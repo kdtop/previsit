@@ -1,0 +1,44 @@
+/*:root states that variables are available to everyone.   */
+:root {
+	--background-color: #333;  /* -- prefix defines a variable name    */
+	--forground-color: #eee;
+	}
+
+/*  This '*' means changing the default behavior for all elements (all styles)  */
+* {
+	padding: 0;
+	margin: 0;
+	box-sizing: border-box;
+}
+
+body {
+	background-color: var(--background-color);
+	color: var(--forground-color);
+	font: normal 16px Poppins;
+	}
+
+@font-face {
+  font-display: swap;
+  font-family: 'Poppins';
+  font-style: normal;
+  font-weight: 400;
+  src: url('./fonts/poppins-v21-latin-regular.woff2') format('woff2');
+}
+
+@font-face {
+  font-display: swap; 
+  font-family: 'Poppins';
+  font-style: normal;
+  font-weight: 600;
+  src: url('./fonts/poppins-v21-latin-600.woff2') format('woff2'); 
+}
+
+@font-face {
+  font-display: swap;
+  font-family: 'Poppins';
+  font-style: normal;
+  font-weight: 700;
+  src: url('./fonts/poppins-v21-latin-700.woff2') format('woff2'); 
+}
+	
+

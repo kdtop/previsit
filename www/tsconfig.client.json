@@ -1,0 +1,26 @@
+{
+  // Temporarily remove "extends" to isolate the issue with tsconfig.base.json
+  // If this fixes the problem, the issue is with tsconfig.base.json's overrides.
+  // "extends": "../tsconfig.base.json",
+  "compilerOptions": {
+    "module": "nodenext",
+    "outDir": "./dist",
+    "rootDir": "./",
+    "target": "ES2022", // Ensure a modern target for browser compatibility
+    "esModuleInterop": true, // Often needed for modern module imports, good practice
+
+    "lib": ["ES2022", "DOM", "DOM.Iterable"],
+    "forceConsistentCasingInFileNames": true,
+    "strict": true,
+    "skipLibCheck": true,
+    "sourceMap": true
+
+  },
+  "include": [
+    "./**/*.ts"
+  ],
+  "exclude": [
+    "node_modules",
+    "dist"
+  ]
+}
