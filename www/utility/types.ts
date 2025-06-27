@@ -14,3 +14,10 @@ export interface LoginApiResponse {
     message?: string;
     sessionID?: string;
 }
+
+// Define a more specific type for the event detail
+export interface ChangeViewEventDetail {
+    loginData?: LoginApiResponse;
+    requestedView : string;
+    message: string;
+}

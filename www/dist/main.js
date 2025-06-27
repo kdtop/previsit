@@ -4,9 +4,10 @@
 // main.ts
 //
 // Every visual element will have separate import element
-import DashboardComp from './components/dashboard.js';
-import LoginComp from './components/login.js';
-import { TCtrl } from './controller.js';
+import TDashboardAppView from './components/dashboard.js';
+import TLoginAppView from './components/login.js';
+import THxUpdateAppView from './components/hxupdate.js';
+import { TCtrl } from './utility/controller.js';
 // ================================================================
 //
 // main  .. high level program process and user interface
@@ -16,26 +17,30 @@ import { TCtrl } from './controller.js';
 //
 // Define module-scoped variables that need to be accessible across functions
 let dB; // document.body
-let appEventTarget; // Renamed from 'result' for clarity
 let ctrl;
-let dashboardComp;
-let loginComp;
+let dashboardAppView;
+let loginAppView;
+let HxUpdateAppView;
 // --------------------------
 // Named functions for core application logic
 // --------------------------
-// Handler for the 'continue' event, currently emitted by login.js
-function handleCompContinue(e) {
+// Handler for the 'change_view' event when emitted by AppView objects.
+function handleSwitchingEvent(e) {
     const customEvent = e;
     const { detail: info } = customEvent;
     console.log(info);
-    // Create anew each time, so that it is up to date.
-    dashboardComp = DashboardComp({ ctrl });
-    switchTo(dashboardComp);
+    let aView = ctrl.getNamedItem(info.requestedView);
+    if (aView) {
+        switchTo(aView);
+    }
 }
 // Function to switch between visual elements in the app.
-function switchTo(n) {
+async function switchTo(anAppView) {
+    await anAppView.refresh();
     dB.innerHTML = '';
-    dB.appendChild(n);
+    if (anAppView.htmlEl) {
+        dB.appendChild(anAppView.htmlEl);
+    }
 }
 // Main application initialization logic
 async function initializeApp() {
@@ -43,18 +48,19 @@ async function initializeApp() {
     // conflict in the project's type definitions. In some environments, TypeScript
     // may incorrectly infer `document.body` as a generic `HTMLElement`.
     // This assertion correctly enforces the more specific `HTMLBodyElement` type.
-    dB = document.body;
-    appEventTarget = new EventTarget(); // This will be the 'main' variable
+    dB = document.body; // This will be the 'main' variable
     ctrl = new TCtrl();
-    loginComp = LoginComp({ ctrl });
-    loginComp.addEventListener("continue", handleCompContinue);
-    switchTo(loginComp); // Execute the change to the specified view
+    ctrl.addEventListener("change_view", handleSwitchingEvent); // The main app listens on the controller
+    loginAppView = new TLoginAppView(ctrl);
+    dashboardAppView = new TDashboardAppView(ctrl);
+    HxUpdateAppView = new THxUpdateAppView(ctrl);
+    await switchTo(HxUpdateAppView); // Pass the HTML element to switchTo
+    //await switchTo(loginAppView); // Pass the HTML element to switchTo
     // NOTE: when loginComp is done, it will dispatch a 'continue' event, handled above
-    return appEventTarget; // Will be stored in 'main' in global scope.
 }
 // Function for running tests or post-initialization logic
 async function runTests() {
-    console.log("Tests are running.");
+    console.log("Tests (if any) are running.");
     // This is run as soon as main.js is run. Could use for debugging.
     // Because initializeApp is an asynchronous function, that will finish before this function is called.
     // You can access appEventTarget or other module-scoped variables here if needed.
@@ -66,7 +72,7 @@ async function runTests() {
 // ================================================================
 // Use top-level await to run the initialization and tests
 // This is allowed in ES Modules (which main.js is likely compiled to)
-let main = await initializeApp();
+await initializeApp();
 await runTests();
 // At this point, execution should return to the main message loop of the browser.
 //# sourceMappingURL=main.js.map

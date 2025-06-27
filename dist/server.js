@@ -35,7 +35,7 @@ async function hndlLogin(req, res) {
     try {
         let err = "";
         // Use await here as tmg.RPC is async
-        const rpcResult = await tmg.RPC("USRLOGIN", "TMGNODE1", [lastName, firstName, dob, err]);
+        const rpcResult = await tmg.RPC("USRLOGIN", "TMGPRE01", [lastName, firstName, dob, err]);
         console.log('RPC result from Mumps for login:', JSON.stringify(rpcResult));
         const sessionID = piece(rpcResult.return, '^', 2);
         const mumpsResult = strToNumDef(piece(rpcResult.return, '^', 1), 0);
@@ -72,11 +72,10 @@ async function hndlDashboard(req, res) {
     }
     console.log(`Dashboard request for sessionID: ${sessionID}`);
     try {
-        // This is a placeholder for the Mumps RPC to populate.
-        // It signals to your RPC wrapper that the first argument is an array.
+        // This signals to your RPC wrapper that the first argument is an array.
         // Using an empty array is a clean way to represent an output parameter.
         const outForms = [];
-        const formsResult = await tmg.RPC("GETPATFORMS", "TMGNODE1", [outForms, sessionID]);
+        const formsResult = await tmg.RPC("GETPATFORMS", "TMGPRE01", [outForms, sessionID]);
         // The populated array of forms is returned as the first element of the 'args' property in the result.
         const populatedForms = formsResult.args[0];
         // It's good practice to validate the structure of the returned data.
@@ -92,6 +91,44 @@ async function hndlDashboard(req, res) {
         console.error('Error during /api/dashboard request:', error);
         const errorMessage = error instanceof Error ? error.message : 'Unknown error';
         res.status(500).json({ success: false, message: `Internal server error: ${errorMessage}` });
+    }
+}
+//====================================================================================================
+/**
+ * Handle request for HxUpdate forms.
+ * This endpoint will provide the list of forms a patient needs to complete.
+ */
+async function hndlHxUpdate(req, res) {
+    console.log("Received request for HxUpdate forms.", req.query);
+    // Retrieve sessionID from query parameters.
+    const { sessionID } = req.query;
+    // It's good practice to validate that the sessionID was provided and is a string.
+    if (typeof sessionID !== 'string' || !sessionID) {
+        return res.status(400).json({ success: false, message: 'A valid Session ID is required.' });
+    }
+    console.log(`Dashboard request for sessionID: ${sessionID}`);
+    try {
+        // This is a placeholder for the Mumps RPC to populate.
+        // It signals to your RPC wrapper that the first argument is an array.
+        // Using an empty array is a clean way to represent an output parameter.
+        const outForms = [];
+        const rpcResult = await tmg.RPC("GETHXFORM", "TMGPRE01", [outForms, sessionID]);
+        // The populated array of lines (comprising HTML) is returned as the first element of the 'args' property in the result.
+        const outArr = rpcResult.args[0];
+        // It's good practice to validate the structure of the returned data.
+        if (Array.isArray(outArr)) {
+            let someHTML = outArr.join("\n");
+            res.json({ success: true, html: someHTML, message: "success" });
+        }
+        else {
+            console.error("RPC for forms did not return an array as expected.", outArr);
+            res.status(500).json({ success: false, html: "", message: 'Server error: Invalid data format received for HxUpdate HTML.' });
+        }
+    }
+    catch (error) {
+        console.error('Error during /api/hxupdate request:', error);
+        const errorMessage = error instanceof Error ? error.message : 'Unknown error';
+        res.status(500).json({ success: false, html: "", message: `Internal server error: ${errorMessage}` });
     }
 }
 //====================================================================================================
@@ -145,6 +182,7 @@ try {
     // Register route handlers
     app.post('/api/login', hndlLogin); // register handler (endpoint) for login
     app.get('/api/dashboard', hndlDashboard); // Register handler for dashboard dashboard
+    app.get('/api/hxupdate', hndlHxUpdate); // Register handler for dashboard dashboard
     // Start the server
     app.listen(PORT, () => {
         console.log(`Server listening on port ${PORT}`);

@@ -1,23 +1,34 @@
 // /opt/worldvista/EHR/web/previsit/www/components/dashboard.ts
 // Compiles to --> /opt/worldvista/EHR/web/previsit/www/dist/components/dashboard.js
 
-import EL, { ELInstance } from '../utility/el.js';
-import { TCtrl } from '../controller.js';
+//import TAppView, { AppViewInstance, EnhancedHTMLElement } from '../utility/appview.js';
+import TAppView, { EnhancedHTMLElement } from './appview.js';
+import { TCtrl } from '../utility/controller.js';
+import { piece} from '../utility/client_utils.js'; // Import the functions, pointing to the expected .js output
+
 
 // --- Type Definitions ---
 
-/**
- * Extends the base ELInstance to add properties and shortcuts
- * specific to this dashboard component.
- */
-export interface DashboardELInstance extends ELInstance {
+export type DashboardHTMLElement = EnhancedHTMLElement & {
+    // Extend the base EnhancedHTMLElement html property with specific DOM elements
     $patientname?: HTMLSpanElement;
     $formscontainer?: HTMLDivElement;
+};
+
+/**
+ * Extends the base AppViewInstance to add properties and shortcuts
+ * specific to this dashboard component.
+ * The specific DOM elements are now properties of the `html` member.
+ */
+/*
+export interface DashboardAppViewInstance extends AppViewInstance { // BaseELInstance is now the EL class instance
+    html: DashboardHTMLElement; // Extended from base html property with specific DOM elements
     about: () => void;
 }
+*/
 
 interface DashboardOptions {
-    ctrl: TCtrl;
+    someOption : any;
 }
 
 /**
@@ -30,84 +41,94 @@ interface DashboardApiResponse {
 }
 
 // ---------------------------------------------------
-// Purpose: Return a visualization element for the dashboard screen.
-export default function DashboardComp(opts: DashboardOptions): DashboardELInstance {
-    const ctrl: TCtrl = opts.ctrl;
+// Purpose: Represents the Dashboard component as a class.
+//export default class DashboardAppView extends TAppView implements DashboardAppViewInstance {
+export default class TDashboardAppView extends TAppView {   // implements DashboardAppViewInstance
+    declare htmlEl: DashboardHTMLElement; // Use 'declare' to override the type of the inherited property
 
-    const innerHTML = `
-        <style>
-            .dashboard-container {
-                padding: 30px;
-                text-align: center;
-                background-color: #ffffff;
-                border-radius: 8px;
-                box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
-                width: 100%;
-                max-width: 500px;
-            }
-            .dashboard-container h1 {
-                color: #333;
-                margin-top: 15px;
-            }
-            .dashboard-container svg {
-                width: 48px;
-                height: 48px;
-                stroke: #007bff;
-            }
-            .forms-container {
-                margin-top: 25px;
-                display: flex;
-                flex-direction: column;
-                gap: 10px;
-            }
-            .forms-container button {
-                padding: 12px 20px;
-                background-color: #007bff;
-                color: white;
-                border: none;
-                border-radius: 5px;
-                cursor: pointer;
-                font-size: 1.05em;
-                text-align: left;
-                transition: background-color 0.3s ease;
-            }
-            .forms-container button:hover {
-                background-color: #0056b3;
-            }
-            .instructions {
-                background-color:rgb(236, 231, 231);
-                text-align: center;
-                color: #400909;
-            }
-        </style>
+    constructor(aCtrl:  TCtrl,  opts?: DashboardOptions) {
+        super('dashboard', aCtrl);
+        { //temp scope for tempInnerHTML
+            const tempInnerHTML = `
+                <style>
+                    .dashboard-container {
+                        padding: 30px;
+                        text-align: center;
+                        background-color: #ffffff;
+                        xborder-radius: 8px;
+                        xbox-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+                        xwidth: 100%;
+                        xmax-width: 500px;
+                        min-height: 100vh;
+                    }
+                    .dashboard-container h1 {
+                        color: #333;
+                        margin-top: 15px;
+                    }
+                    .dashboard-container svg {
+                        width: 48px;
+                        height: 48px;
+                        stroke: #007bff;
+                    }
+                    .forms-container {
+                        margin-top: 25px;
+                        display: flex;
+                        flex-direction: column;
+                        gap: 10px;
+                    }
+                    .forms-container button {
+                        padding: 12px 20px;
+                        background-color: #007bff;
+                        color: white;
+                        border: none;
+                        border-radius: 5px;
+                        cursor: pointer;
+                        font-size: 1.05em;
+                        text-align: left;
+                        transition: background-color 0.3s ease;
+                    }
+                    .forms-container button:hover {
+                        background-color: #0056b3;
+                    }
+                    .instructions {
+                        background-color:rgb(236, 231, 231);
+                        text-align: center;
+                        color: #400909;
+                    }
+                </style>
 
-        <div class='container dashboard-container'>
-            <h1>Welcome, <span class="patient-name"></span>!</h1>
-            <div class="instructions">
-                <p>Please select a form to begin.</p>
-            </div>
-            <div class="forms-container"></div>
-        </div>
-    `;
+                <div class='container dashboard-container'>
+                    <h1>Welcome, <span class="patient-name"></span>!</h1>
+                    <div class="instructions">
+                        <p>Please select a form to begin.</p>
+                    </div>
+                    <div class="forms-container"></div>
+                </div>
+            `;  //end of innerHTML
+            this.setHTMLEl(tempInnerHTML);
+        }
+        //this.htmlEl.className = 'dashboard';
+        if (opts) {
+          //process opts -- if any added later
+        }
 
-    // Create the component instance using the EL utility
-    const self = new EL({ innerHTML }) as DashboardELInstance;
-
-    // Populate the patient's name from the shared controller
-    if (self.$patientname) {
-        self.$patientname.textContent = ctrl.patientFullName || "Valued Patient";
-    }
+    }  //constructor
 
     /** Fetches the list of required forms from the server. */
-    async function loadForms(ctrl: TCtrl): Promise<void> {
-        // Ensure we have a session ID before making the request.
-        const sessionID = ctrl.loginData?.sessionID;
+    private async loadForms(): Promise<void>
+    {
+        const sessionID = this.ctrl.loginData?.sessionID;
         if (!sessionID) {
-            console.error("No session ID found. Cannot load forms.");
-            if (self.$formscontainer) self.$formscontainer.textContent = "Authentication error. Cannot load forms.";
+            console.error("No session ID found. Cannot load forms."); // Corrected typo: 'sessionID'
+            if (this.htmlEl.$formscontainer) this.htmlEl.$formscontainer.textContent = "No session ID found. Cannot load forms.";
             return;
         }
 
+        this.setHTMLEl(this.sourceHTML);  //This is initial HTML.  Patient-specific parts will be inserted below
+        // Populate the patient's name from the shared controller
+        if (this.htmlEl.$patientname) {
+            this.htmlEl.$patientname.textContent = this.ctrl.patientFullName || "Valued Patient";
+        }
         try {
             const params = new URLSearchParams({ sessionID });
             const URL = `/api/dashboard?${params.toString()}`;
@@ -118,42 +139,50 @@ export default function DashboardComp(opts: DashboardOptions): DashboardELInstan
             const data: DashboardApiResponse = await response.json();
 
             if (data.success && Array.isArray(data.forms)) {
-                renderFormButtons(data.forms);
+                this.renderFormButtons(data.forms);
             } else {
                 console.error("Failed to load forms:", data.message);
-                if (self.$formscontainer) self.$formscontainer.textContent = "Could not load forms.";
+                if (this.htmlEl.$formscontainer) this.htmlEl.$formscontainer.textContent = "Could not load forms.";
             }
         } catch (error) {
             console.error("Error fetching forms:", error);
-            if (self.$formscontainer) self.$formscontainer.textContent = "Error loading forms. Please try again later.";
+            if (this.htmlEl.$formscontainer) this.htmlEl.$formscontainer.textContent = "Error loading forms. Please try again later.";
         }
-    }
+    }  //loadForms
 
     /** Renders the buttons for each form. */
-    function renderFormButtons(forms: string[]): void {
-        const container = self.$formscontainer;
+    private renderFormButtons(forms: string[]): void {
+        const container = this.htmlEl.$formscontainer;
         if (!container) return;
         container.innerHTML = '';  // Clear previous content
         forms.forEach(formName => {
             const button = document.createElement('button');
-            button.textContent = formName; // Set the button's text content
+            const displayName = piece(formName, "^", 1)
+            const targetName = piece(formName, "^", 2)
+            button.textContent = displayName; // Set the button's text content
+            button.dataset.targetName = targetName;
             button.onclick = (event: MouseEvent) => { // The event object is passed here
                 const clickedButton = event.currentTarget as HTMLButtonElement; // Get the button element
+                const targetName = clickedButton.dataset.targetName;
+                if (targetName === undefined) return;
+                event.preventDefault()
                 console.log(`Clicked on form: ${formName}`);
                 console.log(`The clicked button's text was: ${clickedButton.textContent}`);
                 // You can now do something with 'clickedButton'
+                this.triggerChangeView(targetName);
             };
             container.appendChild(button);
         });
     }
 
-    // Load the forms when the component is initialized.
-    loadForms(ctrl);
-
     // Example of an instance method
-    self.about = function() {
+    public about(): void {
         console.log("Dashboard Component instance");
     };
 
-    return self;
+    public async refresh() : Promise<void> {
+        //put any code needed to be executed prior to this class being displayed to user.
+        await this.loadForms();
+    }
+
 }

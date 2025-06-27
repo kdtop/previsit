@@ -81,6 +81,7 @@ export class TTMGNetwork extends EventTarget {
     const mumpsFnArgs = [tag, rtn, finalJsonArgsForMumps];
     let callOptions : MRoutineCallOptions = {
       function: mumpsAPIFn,
+      autoRelink : false,
       arguments: mumpsFnArgs
     };
 

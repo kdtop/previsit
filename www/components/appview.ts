@@ -2,16 +2,11 @@
 
 /*
 Created by Adam Mitchel
-Converted to TypeScript by K. Toppenberg 6/22/25
+Modified and Converted to TypeScript by K. Toppenberg 6/22/25
 */
 
-/**
- * el.ts
- * - A minimalist DOM framework for developers who prefer vanilla programmatic development.
- *
- * This file is a TypeScript conversion of the original el.js, providing strong
- * typing for better developer experience and code safety.
- */
+import { TCtrl } from '../utility/controller.js';
+import { ChangeViewEventDetail } from '../utility/types.js';
 
 // --- Type Definitions ---
 
@@ -19,22 +14,27 @@ Converted to TypeScript by K. Toppenberg 6/22/25
  * Options for the EL constructor and properties functions.
  * Supports `innerHTML` and other dynamic properties.
  */
-export interface ELOptions {
+export interface AppViewOptions extends Record<string, any> {
     innerHTML?: string;
-    [key: string]: any;
 }
 
 /**
  * Represents an instance created by the EL utility.
- * It's a `HTMLDivElement` enhanced with an attached Shadow DOM and dynamic
- * shortcut properties (e.g., `el.$loginform`).
+ * This is the object returned by `new EL(...)`.
+ * It contains an `html` property which is the actual `HTMLDivElement`
+ * enhanced with an attached Shadow DOM and dynamic shortcut properties (e.g., `el.html.$loginform`).
  */
-export interface ELInstance extends HTMLDivElement {
-    /** The Shadow DOM root for the component. */
+export type EnhancedHTMLElement = HTMLDivElement & {
     dom: ShadowRoot;
-    /** Index signature to allow dynamic shortcut properties. */
-    [key: string]: any;
+    [key: string]: any; // Index signature for dynamic shortcut properties like $loginform
+};
+
+/*
+export interface AppViewInstance {
+    // The actual HTMLDivElement, enhanced with its Shadow DOM and dynamic shortcut properties.
+    html: EnhancedHTMLElement;
 }
+*/
 
 // --- Utility Functions ---
 
@@ -54,23 +54,11 @@ export function toFragment(el: HTMLElement | null): DocumentFragment {
 }
 
 /**
- * Attaches a shadow root to an element and sets the `dom` property on it.
- * @param el The element to attach the shadow root to.
- */
-export function shadowRoot(el: ELInstance): void {
-    // The constructor already does this, but this is kept for compatibility
-    // if someone wants to compose their own element.
-    if (!el.shadowRoot) {
-        el.dom = el.attachShadow({ mode: 'open' });
-    }
-}
-
-/**
  * Sets properties on an element's shadow DOM.
- * @param el The ELInstance.
+ * @param el The HTMLDivElement (which now contains the shadow DOM).
  * @param opts The properties to set, e.g., { innerHTML: '...' }.
  */
-export function properties(el: ELInstance, opts?: ELOptions): void {
+export function properties(el: EnhancedHTMLElement, opts?: AppViewOptions): void {
     if (!opts) return;
     for (const [key, value] of Object.entries(opts)) {
         // This is intentionally dynamic to match original behavior.
@@ -80,10 +68,10 @@ export function properties(el: ELInstance, opts?: ELOptions): void {
 
 /**
  * Creates shortcut properties on the ELInstance for elements with class names.
- * For an element like `<div class="login-form">`, it creates `el.$loginform`.
- * @param el The ELInstance to add shortcuts to.
+ * For an element like `<div class="login-form">`, it creates `el.$loginform` on the HTMLDivElement.
+ * @param el The HTMLDivElement to add shortcuts to.
  */
-export function shorts(el: ELInstance): void {
+export function shorts(el: EnhancedHTMLElement): void {
     const allElements = el.dom.querySelectorAll<HTMLElement>('*');
 
     for (const element of allElements) {
@@ -114,7 +102,7 @@ export function HTML_ELEMENT(): HTMLDivElement {
  * @param opts Can be a string of HTML or an options object with an `innerHTML` property.
  * @returns A DocumentFragment.
  */
-export function Fragment(opts?: string | ELOptions): DocumentFragment {
+export function Fragment(opts?: string | AppViewOptions): DocumentFragment {
     const el = HTML_ELEMENT();
     const innerHTML = (typeof opts === 'string') ? opts : opts?.innerHTML || '';
     el.innerHTML = innerHTML;
@@ -127,22 +115,52 @@ export function Fragment(opts?: string | ELOptions): DocumentFragment {
  * The main factory class that creates an enhanced `div` element.
  * It's designed to be called with `new EL(...)` to maintain compatibility
  * with the original usage pattern.
- *
- * The constructor returns an `ELInstance` (an enhanced HTMLDivElement), not an
- * instance of the `EL` class itself. This matches the original library's behavior.
+ * This class now returns an instance of itself, which contains the HTML element.
  *
  * @param opts Options, including `innerHTML` to populate the shadow DOM.
  */
-export default class EL {
-    constructor(opts?: ELOptions) {
-        const el = document.createElement('div') as ELInstance;
+export default class TAppView {
+    //implements AppViewInstance
+    public htmlEl: EnhancedHTMLElement | null; // Allow htmlEl to be null initially
+    protected ctrl: TCtrl;
+    protected sourceHTML: string;
+    public name: string;
+
+    constructor(aName : string, aCtrl:  TCtrl)
+    {
+        this.ctrl = aCtrl;
+        this.sourceHTML = ''; // Initialize sourceHTML to an empty string
+        this.htmlEl = null;
+        this.name = aName;
+        this.ctrl.registerItem(this);
+    }
+
+    protected setHTMLEl(innerHTML : string, opts?: AppViewOptions): EnhancedHTMLElement
+    {
+        const el: EnhancedHTMLElement = document.createElement('div') as EnhancedHTMLElement;
         el.dom = el.attachShadow({ mode: 'open' });
-        if (opts) {
-            properties(el, opts);
-            shorts(el);
-        }
-        // When a constructor returns an object, that object becomes the result
-        // of the `new` expression. This preserves the original API.
+        this.sourceHTML = innerHTML ?? '';
+        el.dom.innerHTML = innerHTML ?? '';
+        properties(el, opts); // properties function handles opts being undefined internally
+        shorts(el); // shorts function does not depend on opts
+
+        this.htmlEl = el;
         return el;
+    };
+
+    protected triggerChangeView(aRequestedView : string, aMessage? : string)
+    {
+        const eventInfo : ChangeViewEventDetail = {
+            loginData: this.ctrl.loginData,
+            requestedView : aRequestedView,
+            message: aMessage ?? ''
+        };
+        const e = new CustomEvent('change_view', { detail: eventInfo });
+        this.ctrl.dispatchEvent(e); // Dispatch the event on the controller
+    }
+
+
+    public async refresh() : Promise<void> {
+        //virtual -- to be overridden by descendant classes
     }
 }

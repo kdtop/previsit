@@ -1,223 +1,228 @@
 // /opt/worldvista/EHR/web/previsit/www/components/login.ts
 
 //
-// LoginComp
+// LoginAppView
 //     > has space for expand.. to scroll (for addresseses)
 //     > but can have independantly scrolling windows
 //     	(if display size big enough)
 //
 
-import EL, { ELInstance as BaseELInstance } from '../utility/el.js';
+//import AppView, { AppViewInstance, EnhancedHTMLElement } from '../utility/appview.js';
+import TAppView, { EnhancedHTMLElement } from './appview.js';
 import { padZero } from '../utility/client_utils.js';
-import { TCtrl } from '../controller.js';
-import { LoginApiResponse, LoginRequestData } from '../types.js';
+import { TCtrl } from '../utility/controller.js';
+import { LoginApiResponse, LoginRequestData } from '../utility/types.js';
 
 // --- Type Definitions ---
-
-/**
- * Extends the base ELInstance to add properties and shortcuts
- * specific to this login component.
- */
-export interface LoginELInstance extends BaseELInstance {
-    loginData?: LoginApiResponse;
+// No change to types, they are already aligned with the class structure
+export type LoginHTMLElement = EnhancedHTMLElement & {
+    // Extend the base EnhancedHTMLElement html property with specific DOM elements
     $loginform?: HTMLFormElement;
     $loginbutton?: HTMLButtonElement;
     $welcomename?: HTMLSpanElement;
     $body?: HTMLDivElement;
-    classname: string;
-    about: () => void;
-}
+};
+
 
 /** Options for the Login component factory function. */
+// No change to options interface
 interface LoginOptions {
-    ctrl: TCtrl;
+    someOption : any;
 }
 
 // ---------------------------------------------------
 //Purpose return a visualization element.
-export default function LoginComp(opts: LoginOptions): LoginELInstance {
-    const {ctrl} = opts  //type TCtrl
+export default class TLoginAppView extends TAppView {   //implements LoginAppViewInstance {
+    declare htmlEl: LoginHTMLElement; // Use 'declare' to override the type of the inherited property
+    public loginData?: LoginApiResponse; // This was on the instance, so it should be a public property of the class
 
-    //note: ` is a quote that allows ${<evaluate js code>} syntax  And it allows newlines (continue string on subsequent line)
-    let innerHTML = `
-        <style>
-        /* Basic styling for the app container and welcome view */
-        .body {
-            font-family: sans-serif;
-            margin: 0;
-            display: flex;
-            justify-content: center; /* Center horizontally */
-            align-items: center;     /* Center vertically */
-            min-height: 100vh;       /* Take full viewport height */
-            background-color: #f4f4f4; /* Light background for the page */
-            color:rgb(63, 58, 58);
-        }
-        #app {
-            width: 100%;
-            display: flex;
-            flex-direction: column; /* Stack children vertically */
-            align-items: center;    /* Center children horizontally */
-        }
-        .form-container {
-            background-color: #ffffff;
-            padding: 30px;
-            border-radius: 8px;
-            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
-            width: 100%;
-            max-width: 400px; /* Limit width for popup effect */
-            text-align: center; /* Center content within the container */
-        }
-        .welcome-container { /* Style for the welcome message area */
-            background-color: #ffffff;
-            padding: 30px;
-            border-radius: 8px;
-            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
-            width: 100%;
-            max-width: 400px;
-            text-align: center;
+    constructor(aCtrl:  TCtrl,  opts?: LoginOptions) {
+        // Define innerHTML here, before calling super()
+        super('login', aCtrl);
+        {  //temp scope for tempInnerHTML
+            const tempInnerHTML = `
+                <style>
+                /* Basic styling for the app container and welcome view */
+                .body {
+                    font-family: sans-serif;
+                    margin: 0;
+                    display: flex;
+                    justify-content: center; /* Center horizontally */
+                    align-items: center;     /* Center vertically */
+                    min-height: 100vh;       /* Take full viewport height */
+                    background-color: #f4f4f4; /* Light background for the page */
+                    color:rgb(63, 58, 58);
+                }
+                #app {
+                    width: 100%;
+                    display: flex;
+                    flex-direction: column; /* Stack children vertically */
+                    align-items: center;    /* Center children horizontally */
+                }
+                .form-container {
+                    background-color: #ffffff;
+                    padding: 30px;
+                    border-radius: 8px;
+                    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+                    width: 100%;
+                    max-width: 400px; /* Limit width for popup effect */
+                    text-align: center; /* Center content within the container */
+                }
+                .welcome-container { /* Style for the welcome message area */
+                    background-color: #ffffff;
+                    padding: 30px;
+                    border-radius: 8px;
+                    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+                    width: 100%;
+                    max-width: 400px;
+                    text-align: center;
 
-            /* this will get all tags 'button' that are desecendants of welcom-container  */
-            & button{
-                margin-top: 10px;
-                margin-bottom: 10px;
-            }
+                    /* this will get all tags 'button' that are desecendants of welcom-container  */
+                    & button{
+                        margin-top: 10px;
+                        margin-bottom: 10px;
+                    }
 
-            & #logout-button {
-            background-color:rgb(255, 8, 0);
-            }
-        }
+                    & #logout-button {
+                    background-color:rgb(255, 8, 0);
+                    }
+                }
+                h1 {
+                    color: #333;
+                    margin-bottom: 20px;
+                }
+                form {
+                    margin-top: 20px;
+                }
+                label {
+                    display: block;
+                    margin-bottom: 5px;
+                    text-align: left; /* Align labels to the left */
+                    color: #555;
+                    font-weight: bold;
+                }
+                input[type="text"], input[type="password"] {
+                    padding: 10px;
+                    margin-bottom: 15px;
+                    border: 1px solid #ddd;
+                    border-radius: 5px;
+                    width: calc(100% - 22px); /* Full width minus padding/border */
+                    box-sizing: border-box; /* Include padding/border in width */
+                    font-size: 1em;
+                }
+                .dob-group {
+                    display: flex; /* Use flexbox for DOB inputs */
+                    justify-content: space-between; /* Distribute space between inputs */
+                    margin-bottom: 15px;
+                }
+                .dob-group input {
+                    width: calc(33% - 10px); /* Roughly 1/3rd width minus some margin */
+                    padding: 10px;
+                    border: 1px solid #ddd;
+                    border-radius: 5px;
+                    box-sizing: border-box;
+                    text-align: center; /* Center text in DOB inputs */
+                    font-size: 1em;
+                }
+                .dob-group input:not(:last-child) {
+                    margin-right: 10px; /* Space between inputs */
+                }
+                button {
+                    padding: 12px 20px;
+                    background-color: #007bff;
+                    color: white;
+                    border: none;
+                    border-radius: 5px;
+                    cursor: pointer;
+                    font-size: 1.1em;
+                    width: 100%; /* Make button full width */
+                    box-sizing: border-box;
+                    transition: background-color 0.3s ease;
+                }
+                button:hover {
+                    background-color: #0056b3;
+                }
+                #message {
+                    margin-top: 20px;
+                    padding: 12px;
+                    border-radius: 5px;
+                    /*display: none;  Hidden by default */
+                    font-weight: bold;
+                    xtext-align: left; /* Align messages to the left */
+                }
+                #message.success {
+                    background-color: #d4edda;
+                    color: #155724;
+                    border: 1px solid #c3e6cb;
+                }
+                #message.error {
+                    background-color: #f8d7da;
+                    color: #721c24;
+                    border: 1px solid #f5c6cb;
+                }
+                /* . means class, # means ID
+                   .class1.class2 means class1 AND class2
+                   class1 <space> class2 means class2 is a decendant of a node with class 1
+                 */
+                .body.logged-in .hide-if-logged-in {
+                    display: none;
+                }
+                .body:not(.logged-in) .hide-if-not-logged-in {
+                    display: none;
+                }
 
+                </style>
 
-        h1 {
-            color: #333;
-            margin-bottom: 20px;
-        }
-        form {
-            margin-top: 20px;
-        }
-        label {
-            display: block;
-            margin-bottom: 5px;
-            text-align: left; /* Align labels to the left */
-            color: #555;
-            font-weight: bold;
-        }
-        input[type="text"], input[type="password"] {
-            padding: 10px;
-            margin-bottom: 15px;
-            border: 1px solid #ddd;
-            border-radius: 5px;
-            width: calc(100% - 22px); /* Full width minus padding/border */
-            box-sizing: border-box; /* Include padding/border in width */
-            font-size: 1em;
-        }
-        .dob-group {
-            display: flex; /* Use flexbox for DOB inputs */
-            justify-content: space-between; /* Distribute space between inputs */
-            margin-bottom: 15px;
-        }
-        .dob-group input {
-            width: calc(33% - 10px); /* Roughly 1/3rd width minus some margin */
-            padding: 10px;
-            border: 1px solid #ddd;
-            border-radius: 5px;
-            box-sizing: border-box;
-            text-align: center; /* Center text in DOB inputs */
-            font-size: 1em;
-        }
-        .dob-group input:not(:last-child) {
-            margin-right: 10px; /* Space between inputs */
-        }
-        button {
-            padding: 12px 20px;
-            background-color: #007bff;
-            color: white;
-            border: none;
-            border-radius: 5px;
-            cursor: pointer;
-            font-size: 1.1em;
-            width: 100%; /* Make button full width */
-            box-sizing: border-box;
-            transition: background-color 0.3s ease;
-        }
-        button:hover {
-            background-color: #0056b3;
-        }
-        #message {
-            margin-top: 20px;
-            padding: 12px;
-            border-radius: 5px;
-            /*display: none;  Hidden by default */
-            font-weight: bold;
-            xtext-align: left; /* Align messages to the left */
-        }
-        #message.success {
-            background-color: #d4edda;
-            color: #155724;
-            border: 1px solid #c3e6cb;
-        }
-        #message.error {
-            background-color: #f8d7da;
-            color: #721c24;
-            border: 1px solid #f5c6cb;
-        }
-        /* . means class, # means ID
-           .class1.class2 means class1 AND class2
-           class1 <space> class2 means class2 is a decendant of a node with class 1
-         */
-        .body.logged-in .hide-if-logged-in {
-            display: none;
-        }
-        .body:not(.logged-in) .hide-if-not-logged-in {
-            display: none;
-        }
+                <div class="body">
+                    <div id="app">
+                        <div class="form-container hide-if-logged-in">
+                            <h1>Login</h1>
+                            <form class="login-form">
+                                <div id="login-message" class="message"></div> <!-- Added for error/success messages -->
+                                <label for="loginLastName">Last Name:</label>
+                                <input type="text" id="loginLastName" name="lastName" required><br>
+                                <label for="loginFirstName">First Name:</label>
+                                <input type="text" id="loginFirstName" name="firstName" required><br>
+                                <label>Date of Birth:</label>
+                                <div class="dob-group">
+                                    <input type="text" id="loginDobMonth" name="dobMonth" placeholder="MM" maxlength="2" required ref="dobMonthInput">
+                                    <input type="text" id="loginDobDay" name="dobDay" placeholder="DD" maxlength="2" required ref="dobDayInput">
+                                    <input type="text" id="loginDobYear" name="dobYear" placeholder="YYYY" maxlength="4" required>
+                                </div><br>
+                                <button class="login-button" type="submit">Login</button>
+                            </form>
+                        </div>
 
-        </style>
+                       <div class="welcome-container hide-if-not-logged-in">
+                            <div id="message">
+                            <h1>Welcome, <span class="welcome-name"></span>!</h1>
+                            <p>You have successfully logged in.</p>
+                            <button id="continue-button">Continue</button>
+                            <button id="logout-button">Logout</button>
+                        </div>
 
-        <div class="body">
-            <div id="app">
-                <div class="form-container hide-if-logged-in">
-                    <h1>Login</h1>
-                    <form class="login-form">
-                        <div id="login-message" class="message"></div> <!-- Added for error/success messages -->
-                        <label for="loginLastName">Last Name:</label>
-                        <input type="text" id="loginLastName" name="lastName" required><br>
-                        <label for="loginFirstName">First Name:</label>
-                        <input type="text" id="loginFirstName" name="firstName" required><br>
-                        <label>Date of Birth:</label>
-                        <div class="dob-group">
-                            <input type="text" id="loginDobMonth" name="dobMonth" placeholder="MM" maxlength="2" required ref="dobMonthInput">
-                            <input type="text" id="loginDobDay" name="dobDay" placeholder="DD" maxlength="2" required ref="dobDayInput">
-                            <input type="text" id="loginDobYear" name="dobYear" placeholder="YYYY" maxlength="4" required>
-                        </div><br>
-                        <button class="login-button" type="submit">Login</button>
-                    </form>
+                    </div>
                 </div>
+            `;      //<-- note end backtick
+            this.setHTMLEl(tempInnerHTML);
+        }
+        this.htmlEl = this.htmlEl as LoginHTMLElement; // typecast as relevent for this object.
+        //this.htmlEl.className = 'login';
 
-               <div class="welcome-container hide-if-not-logged-in">
-                    <div id="message">
-                    <h1>Welcome, <span class="welcome-name"></span>!</h1>
-                    <p>You have successfully logged in.</p>
-                    <button id="continue-button">Continue</button>
-                    <button id="logout-button">Logout</button>
-                </div>
+        if (opts) {
+          //process opts -- if any added later
 
-            </div>
-        </div>
-    `;  //<-- note end backtick
+        }
+        // Attach event listeners in the constructor or a dedicated setup method
+        this.setupEventListeners();
+    }  //constructor
 
-    // ----------------------------
-    let self: LoginELInstance = new EL({innerHTML}) as LoginELInstance;  //create new dom element, passing in html+css code
-    self.className = 'login-comp';
-
-    // --------------------------
-
-    async function doLogin(): Promise<void> {
-        if (!self.$loginform) {
+    private async doLogin(): Promise<void> {
+        if (!this.htmlEl.$loginform) {
             console.error("Login form not found");
             return;
         }
-        const formData = new FormData(self.$loginform);  //FormData is a built-in DOM function to get data from forms.
+        const formData = new FormData(this.htmlEl.$loginform); //FormData is a built-in DOM function to get data from forms.
         // Use formData.get() to be more explicit and avoid issues with editor tooling.
         let aLastName = formData.get('lastName') as string || '';
         let aFirstName = formData.get('firstName') as string || '';
@@ -244,18 +249,19 @@ export default function LoginComp(opts: LoginOptions): LoginELInstance {
                body: JSON.stringify(reqData)
         });
         const data: LoginApiResponse = await response.json();
-        console.log(data);
+        console.log("Login API Response:", data);
         if (response.ok && data.success) {
-            if (self.$welcomename) self.$welcomename.textContent = reqData.fullName;
-            if (self.$body) self.$body.classList.add('logged-in');
-            ctrl.loginData = data;  //pass login data back out via controller.
-            ctrl.patientFullName = aFullName;
-            ctrl.patientDOB = aDOB;
+            if (this.htmlEl.$welcomename) this.htmlEl.$welcomename.textContent = reqData.fullName;
+            if (this.htmlEl.$body) this.htmlEl.$body.classList.add('logged-in');
+            this.loginData = data;  // Store login data on the component instance
+            this.ctrl.loginData = data;
+            this.ctrl.patientFullName = aFullName;
+            this.ctrl.patientDOB = aDOB;
 
         } else {
             // Handle failed login from server (e.g., bad credentials)
-            const errorMessage = data.message || 'Invalid credentials. Please try again.';
-            const messageEl = self.dom.getElementById('login-message');
+            const errorMessage = data.message || 'Invalid credentials. Please try again.'; // Corrected typo: 'message'
+            const messageEl = this.htmlEl.dom.getElementById('login-message');
             if (messageEl) {
                 messageEl.textContent = errorMessage;
                 messageEl.className = 'message error'; // Apply error styling
@@ -263,48 +269,47 @@ export default function LoginComp(opts: LoginOptions): LoginELInstance {
         }
         } catch (error) {
             console.error('Error during login fetch:', error);
-            const messageEl = self.dom.getElementById('login-message');
+            const messageEl = this.htmlEl.dom.getElementById('login-message');
             if (messageEl) {
                 messageEl.textContent = 'A network error occurred. Please try again.';
                 messageEl.className = 'message error'; // Apply error styling
             }
         }
-    }
+    }  //doLogin
 
-    const logoutButton = self.dom.getElementById("logout-button") as HTMLButtonElement | null;
-    if (logoutButton) {
-        logoutButton.onclick = function(event: MouseEvent) {
-            event.preventDefault(); // Prevent default form submission
-            if (self.$body) self.$body.classList.remove('logged-in');
+    private setupEventListeners(): void { // This method will attach all event listeners
+        const logoutButton = this.htmlEl.dom.getElementById("logout-button") as HTMLButtonElement | null;
+        if (logoutButton) {
+            logoutButton.onclick = (event: MouseEvent) => {
+                event.preventDefault();
+                if (this.htmlEl.$body) this.htmlEl.$body.classList.remove('logged-in');
+            };
         }
-    }
 
-    const continueButton = self.dom.getElementById("continue-button") as HTMLButtonElement | null;
-    if (continueButton) {
-        continueButton.onclick = function(event: MouseEvent) {
-            event.preventDefault();
-            console.log('continue button clicked');
-            const e = new CustomEvent('continue', {
-                detail: {loginData: self.loginData,
-                        message: "OK"
-                        }
-            });
-            self.dispatchEvent(e);  //this will pass message back to main.js
+        const continueButton = this.htmlEl.dom.getElementById("continue-button") as HTMLButtonElement | null;
+        if (continueButton) {
+            continueButton.onclick = (event: MouseEvent) => {
+                event.preventDefault();
+                console.log('continue button clicked');
+                this.triggerChangeView("dashboard");
+            };
         }
-    }
 
-    if (self.$loginbutton) {
-        self.$loginbutton.onclick = function(event: MouseEvent) {
-            event.preventDefault();
-            console.log('Login button clicked');
-            doLogin();
+        if (this.htmlEl.$loginbutton) {
+            this.htmlEl.$loginbutton.onclick = (event: MouseEvent) => {
+                event.preventDefault();
+                console.log('Login button clicked');
+                this.doLogin();
+            };
         }
+    } //setupEventListeners
+
+    public about(): void {
+        console.log("Login Component instance");
+    } //about
+
+    public async refresh() : Promise<void> {
+        //put any code needed to be executed prior to this class being displayed to user.
     }
 
-    // --------------------------
-    self.about = function(){
-        //example of giving the dom element various methods if wanted.
-    }
-
-    return self
 }

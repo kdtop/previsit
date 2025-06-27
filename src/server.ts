@@ -53,7 +53,7 @@ async function hndlLogin(req: express.Request, res: express.Response)
 
         let err = "";
         // Use await here as tmg.RPC is async
-        const rpcResult: MumpsLoginResult = await tmg.RPC("USRLOGIN", "TMGNODE1", [lastName, firstName, dob, err]);
+        const rpcResult: MumpsLoginResult = await tmg.RPC("USRLOGIN", "TMGPRE01", [lastName, firstName, dob, err]);
 
         console.log('RPC result from Mumps for login:', JSON.stringify(rpcResult));
 
@@ -96,8 +96,7 @@ async function hndlDashboard(req: express.Request, res: express.Response) {
     console.log(`Dashboard request for sessionID: ${sessionID}`);
 
     try {
-        // This is a placeholder for the Mumps RPC to populate.
-        // It signals to your RPC wrapper that the first argument is an array.
+        // This signals to your RPC wrapper that the first argument is an array.
         // Using an empty array is a clean way to represent an output parameter.
         const outForms: string[] = [];
 
@@ -107,7 +106,7 @@ async function hndlDashboard(req: express.Request, res: express.Response) {
             return: string;
         }
 
-        const formsResult: MumpsFormsResult = await tmg.RPC("GETPATFORMS", "TMGNODE1", [outForms, sessionID]);
+        const formsResult: MumpsFormsResult = await tmg.RPC("GETPATFORMS", "TMGPRE01", [outForms, sessionID]);
 
         // The populated array of forms is returned as the first element of the 'args' property in the result.
         const populatedForms = formsResult.args[0];
@@ -125,6 +124,105 @@ async function hndlDashboard(req: express.Request, res: express.Response) {
         res.status(500).json({ success: false, message: `Internal server error: ${errorMessage}` });
     }
 }
+//====================================================================================================
+/**
+ * Handle request for HxUpdate forms.
+ * This endpoint will provide the list of forms a patient needs to complete.
+ */
+async function hndlHxUpdate(req: express.Request, res: express.Response)
+{
+    console.log("Received request for HxUpdate forms.", req.query);
+
+    // Retrieve sessionID from query parameters.
+    const { sessionID } = req.query;
+
+    // It's good practice to validate that the sessionID was provided and is a string.
+    if (typeof sessionID !== 'string' || !sessionID) {
+        return res.status(400).json({ success: false, message: 'A valid Session ID is required.' });
+    }
+
+    console.log(`Dashboard request for sessionID: ${sessionID}`);
+
+    try {
+        // This is a placeholder for the Mumps RPC to populate.
+        // It signals to your RPC wrapper that the first argument is an array.
+        // Using an empty array is a clean way to represent an output parameter.
+        const outForms: string[] = [];
+
+        // Define the expected shape of the RPC result, similar to the login handler.
+        interface MumpsHTMLResult {
+            args: [string[], string]; // Expecting [populated_forms, original_sessionID]
+            return: string;
+        }
+
+        const rpcResult: MumpsHTMLResult = await tmg.RPC("GETHXFORM", "TMGPRE01", [outForms, sessionID]);
+
+        // The populated array of lines (comprising HTML) is returned as the first element of the 'args' property in the result.
+        const outArr = rpcResult.args[0];
+
+        // It's good practice to validate the structure of the returned data.
+        if (Array.isArray(outArr)) {
+            let someHTML = outArr.join("\n");
+            res.json({ success: true, html: someHTML, message: "success" });
+        } else {
+            console.error("RPC for forms did not return an array as expected.", outArr);
+            res.status(500).json({ success: false, html : "", message: 'Server error: Invalid data format received for HxUpdate HTML.' });
+        }
+    } catch (error) {
+        console.error('Error during /api/hxupdate request:', error);
+        const errorMessage = error instanceof Error ? error.message : 'Unknown error';
+        res.status(500).json({ success: false, html:"", message: `Internal server error: ${errorMessage}` });
+    }
+}
+
+//====================================================================================================
+/**
+ * Handle saving of HxUpdate form data.
+ * This endpoint receives the form data from the client and saves it via RPC.
+ */
+async function hndlSaveHxUpdate(req: express.Request, res: express.Response) {
+    console.log("Received request to save HxUpdate data.", req.body);
+
+    // Retrieve sessionID and formData from the request body.
+    const { sessionID, formData } = req.body;
+
+    // Validate that the required data was provided.
+    if (!sessionID || !formData) {
+        return res.status(400).json({ success: false, message: 'sessionID and formData are required.' });
+    }
+
+    console.log(`Saving HxUpdate data for sessionID: ${sessionID}`);
+
+    try {
+        // The formData is already a JSON object, so we pass it as a JSON string to Mumps.
+        //const formDataJsonString = JSON.stringify(formData);
+
+        // Define the expected shape of the RPC result.
+        interface MumpsSaveResult {
+            args: (string | object)[];
+            return: string;
+        }
+
+        let err = ""; // Output parameter for errors from Mumps
+        const rpcResult: MumpsSaveResult = await tmg.RPC("SAVEHXDATA", "TMGPRE01", [sessionID, formData, err]);
+
+        console.log('RPC result from Mumps for saving HxUpdate:', JSON.stringify(rpcResult));
+
+        const mumpsResult = piece(rpcResult.return, '^', 1);
+
+        if (mumpsResult === "1") {
+            res.status(200).json({ success: true, message: 'History data saved successfully.' });
+        } else {
+            const errorMessage = rpcResult.args[2] || 'Failed to save data in Mumps.';
+            res.status(500).json({ success: false, message: `Server error: ${errorMessage}` });
+        }
+    } catch (error) {
+        console.error('Error during POST /api/hxupdate request:', error);
+        const errorMessage = error instanceof Error ? error.message : 'Unknown error';
+        res.status(500).json({ success: false, message: `Internal server error: ${errorMessage}` });
+    }
+}
+
 //====================================================================================================
 
 function close(message: string): void { // Add type annotation for 'message' and return type
@@ -180,8 +278,10 @@ try {
   app.use(express.static('www'));
 
   // Register route handlers
-  app.post('/api/login',    hndlLogin as express.RequestHandler);  // register handler (endpoint) for login
-  app.get('/api/dashboard', hndlDashboard as express.RequestHandler);     // Register handler for dashboard dashboard
+  app.post('/api/login',    hndlLogin as express.RequestHandler);        // register handler (endpoint) for login
+  app.get('/api/dashboard', hndlDashboard as express.RequestHandler);    // Register handler for dashboard dashboard
+  app.get('/api/hxupdate',  hndlHxUpdate as express.RequestHandler);     // Register handler for dashboard dashboard
+  app.post('/api/hxupdate', hndlSaveHxUpdate as express.RequestHandler); // Register handler for saving history updates
 
   // Start the server
   app.listen(PORT, () => {

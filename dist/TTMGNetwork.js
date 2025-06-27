@@ -68,6 +68,7 @@ export class TTMGNetwork extends EventTarget {
         const mumpsFnArgs = [tag, rtn, finalJsonArgsForMumps];
         let callOptions = {
             function: mumpsAPIFn,
+            autoRelink: false,
             arguments: mumpsFnArgs
         };
         const processResult = function (nodemResult) {

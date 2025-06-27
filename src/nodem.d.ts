@@ -28,6 +28,7 @@ declare module 'nodem' {
          */
         export interface MRoutineCallOptions {
             function: string; // The tag name of the M function/procedure
+            autoRelink? : (boolean | null | undefined);
             arguments: (string | number | boolean | object | null)[]; // Arguments to pass to the M routine
             // Additional options might exist, e.g., 'callinTable' or 'routinesPath' if needed
         }
