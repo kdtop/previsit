@@ -8,6 +8,7 @@
 import TDashboardAppView from './components/dashboard.js';
 import TLoginAppView  from './components/login.js';
 import THxUpdateAppView  from './components/hxupdate.js';
+import TRosUpdateAppView  from './components/rosupdate.js';
 import TAppView, { EnhancedHTMLElement } from './components/appview.js';
 import { TCtrl } from './utility/controller.js';
 import { LoginApiResponse, ChangeViewEventDetail } from './utility/types.js';
@@ -25,7 +26,8 @@ let dB: HTMLBodyElement; // document.body
 let ctrl: TCtrl;
 let dashboardAppView: TDashboardAppView;
 let loginAppView:     TLoginAppView;
-let HxUpdateAppView:  THxUpdateAppView;
+let hxUpdateAppView:  THxUpdateAppView;
+let rosUpdateAppView: TRosUpdateAppView;
 
 // --------------------------
 // Named functions for core application logic
@@ -52,7 +54,6 @@ async function switchTo(anAppView : TAppView): Promise<void>
     }
 }
 
-
 // Main application initialization logic
 async function initializeApp()
 {
@@ -66,9 +67,10 @@ async function initializeApp()
 
     loginAppView     = new TLoginAppView(ctrl);
     dashboardAppView = new TDashboardAppView(ctrl);
-    HxUpdateAppView  = new THxUpdateAppView(ctrl);
+    hxUpdateAppView  = new THxUpdateAppView(ctrl);
+    rosUpdateAppView  = new TRosUpdateAppView(ctrl);
 
-    //await switchTo(HxUpdateAppView); // Pass the HTML element to switchTo
+    //await switchTo(rosUpdateAppView); // Pass the HTML element to switchTo
     await switchTo(loginAppView); // Pass the HTML element to switchTo
     // NOTE: when loginComp is done, it will dispatch a 'continue' event, handled above
 

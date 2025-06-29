@@ -1,17 +1,15 @@
 // /opt/worldvista/EHR/web/previsit/www/components/hxupdate.ts
-//
-// HxUpdateAppView
-//     > has space for expand.. to scroll (for addresseses)
-//     > but can have independantly scrolling windows
-//     	(if display size big enough)
-//
-//import AppView, { AppViewInstance, EnhancedHTMLElement } from '../utility/appview.js';
 import TAppView from './appview.js';
+import { createCategorySection, createHeading, createCheckboxList, createDetailsBox, createQuestionGroup, addToggleVisibilityListener, sendDataToServerAPI, serverDataToFormContainer, gatherDataFromContainerForServer, } from './questcommon.js';
 /**
  * Represents the HxUpdate component as a class, responsible for building and managing the patient history update form.
  */
 export default class THxUpdateAppView extends TAppView {
     autosaveTimer = null;
+    // --- NEW: Properties for managing the dynamic "Done" button ---
+    doneButton = null;
+    doneButtonMainText = null;
+    doneButtonSubText = null;
     constructor(aCtrl, opts) {
         super('hxupdate', aCtrl);
         { //temp scope for tempInnerHTML
@@ -164,6 +162,42 @@ export default class THxUpdateAppView extends TAppView {
               resize: none;
             }
 
+            /* --- MODIFIED: Done Button and Submission Area --- */
+            .submission-controls {
+                text-align: center;
+                margin-top: 30px;
+                /* NEW: Add significant padding to the bottom to create scrollable whitespace */
+                padding-bottom: 50vh;
+            }
+
+            .done-button {
+                /* NEW: Make button full width */
+                width: 100%;
+                padding: 12px 25px;
+                font-size: 1.1em;
+                color: white;
+                border: none;
+                border-radius: 5px;
+                cursor: pointer;
+                transition: background-color 0.3s ease;
+                /* NEW: Use flexbox to manage internal text lines */
+                display: flex;
+                flex-direction: column;
+                align-items: center;
+                justify-content: center;
+                line-height: 1.4;
+            }
+
+            /* NEW: Class for the incomplete state (red) */
+            .done-button-incomplete {
+                background-color: #e74c3c;
+            }
+
+            /* NEW: Class for the complete state (green) */
+            .done-button-complete {
+                background-color: #28a745;
+            }
+
             /* Class to hide elements with JavaScript */
             .hidden {
               display: none !important; /* Use !important to ensure it overrides other display properties */
@@ -195,8 +229,11 @@ export default class THxUpdateAppView extends TAppView {
                     <p>Please review and answer the questions below. This will help us prepare for your visit.</p>
                 </div>
                 <div class="forms-container"></div>
-                <div class="submission-controls" style="text-align: center; margin-top: 30px;">
-                    <button type="button" class="done-button" style="padding: 12px 25px; font-size: 1.1em; background-color: #28a745; color: white; border: none; border-radius: 5px; cursor: pointer;">Done</button>
+                <div class="submission-controls">
+                    <button type="button" class="done-button">
+                        <span class="done-button-main-text"></span>
+                        <span class="done-button-sub-text" style="font-size: 0.8em; opacity: 0.9;"></span>
+                    </button>
                 </div>
             </form>
         `; //end of innerHTML
@@ -212,6 +249,10 @@ export default class THxUpdateAppView extends TAppView {
      */
     async loadForms() {
         this.setHTMLEl(this.sourceHTML); //restore initial html
+        // NEW: Cache the done button elements for quick access
+        this.doneButton = this.htmlEl.dom.querySelector('.done-button');
+        this.doneButtonMainText = this.htmlEl.dom.querySelector('.done-button-main-text');
+        this.doneButtonSubText = this.htmlEl.dom.querySelector('.done-button-sub-text');
         // Populate patient name
         const patientNameEl = this.htmlEl.dom.querySelector('.patient-name');
         if (patientNameEl) {
@@ -225,104 +266,73 @@ export default class THxUpdateAppView extends TAppView {
         container.innerHTML = ''; // Clear any previous content.
         this.renderWhySee(container); // 1. "Why are you seeing the doctor today?"
         this.renderNewHx(container); // 2. "Since your last visit..."
-        this.renderRos(container); // 3. "Review of Systems"
+        // this.renderRos(container);   // REMOVED: ROS is now in rosupdate.ts
         // Setup autosave and the "Done" button listener
         this.setupFormEventListeners();
+        // NEW: Try to prepopulate form from server data
+        try {
+            const sessionID = this.ctrl.loginData?.sessionID;
+            if (sessionID) {
+                const resp = await fetch(`/api/hxupdate?sessionID=${encodeURIComponent(sessionID)}`);
+                if (resp.ok) {
+                    const result = await resp.json();
+                    if (result.success && result.data && Object.keys(result.data).length > 0) {
+                        this.serverDataToForm(result.data);
+                        return; // Done button state will be updated in serverDataToForm
+                    }
+                }
+            }
+        }
+        catch (e) {
+            console.warn("Could not prepopulate hxupdate form from server data.", e);
+        }
+        // If no data, set the initial state of the done button after the form is rendered
+        this.updateDoneButtonState();
     }
     /** Renders the "Why are you seeing the doctor today?" section. */
     renderWhySee(parent) {
-        const section = this.createCategorySection(parent);
-        section.appendChild(this.createHeading(2, "Why are you seeing the doctor today?"));
+        const section = createCategorySection(parent);
+        section.classList.add('trackable-question');
+        section.appendChild(createHeading(2, "Why are you seeing the doctor today?"));
         const list = ["Physical", "Recheck", "Sick", "New Problem"];
-        section.appendChild(this.createCheckboxList("visit_reason", list));
-        section.appendChild(this.createDetailsBox("visit_reason", "Other:"));
+        section.appendChild(createCheckboxList("visit_reason", list));
+        section.appendChild(createDetailsBox("visit_reason", "Other:"));
     }
     /** Renders the "New History" section. */
     renderNewHx(parent) {
-        const section = this.createCategorySection(parent);
-        section.appendChild(this.createHeading(2, "Since your last visit, have you had any of the following?"));
-        this.createQuestionGroup(section, "hx_change_new_prob", "New medical problems?");
-        this.createQuestionGroup(section, "hx_change_other_provider", "Seen any other doctors (e.g. specialists, ER doctor, chiropracter, others etc)?");
-        this.createQuestionGroup(section, "hx_change_surgery", "Had any new surgeries?");
-        this.createQuestionGroup(section, "hx_change_social", "Any change in use of tobacco or alcohol? Any significant changes in social support / employment / living arrangements?");
-        this.createQuestionGroup(section, "hx_change_family", "Any family members with new diseases (e.g. heart attack, diabetes, cancer etc)?");
-        this.createQuestionGroup(section, "hx_change_tests", "Have you had any recent medical tests elsewhere?");
-        const testingListContainer = document.createElement('div');
-        testingListContainer.id = 'testing_list_container';
-        const testList = ["blood work", "mammogram", "xrays", "MRI", "CT scan", "colon or stomach scope", "ultrasound", "echocardiogram", "cardiac stress test", "Holter monitor", "ECG", "bone density"];
-        testingListContainer.appendChild(this.createCheckboxList("testing", testList));
-        testingListContainer.appendChild(this.createDetailsBox("testing", "Details about tests:"));
-        section.appendChild(testingListContainer);
-    }
-    /** Renders the "Review of Systems" section. */
-    renderRos(parent) {
-        parent.appendChild(this.createHeading(1, "Review of Systems"));
-        const rosData = [
-            { section: "constitutional", list: "Chills^Fatigue^Fever^Weight gain^Weight loss" },
-            { section: "heent", text: "HEAD, EARS, EYES, THROAT", list: "Hearing loss^Sinus pressure^Visual changes" },
-            { section: "respiratory", list: "Cough^Shortness of breath^Wheezing" },
-            { section: "cardiovascular", list: "Chest pain^Pain while walking^Edema^Palpitations" },
-            { section: "gastrointestinal", list: "Abdominal pain^Blood in stool^Constipation^Diarrhea^Heartburn^Loss of appetite^Nausea^Vomiting" },
-            { section: "genitourinary", list: "Painful urination (Dysuria)^Excessive amount of urine (Polyuria)^Urinary frequency" },
-            { section: "metabolic", text: "METABOLIC/ENDOCRINE", list: "Cold intolerance^Heat intolerance^Excessive thirst (Polydipsia)^Excessive hunger (Polyphagia)" },
-            { section: "neurological", list: "Dizziness^Extremity numbness^Extremity weakness^Headaches^Seizures^Tremors" },
-            { section: "psychiatric", list: "Anxiety^Depression" },
-            { section: "musculoskeletal", list: "Back pain^Joint pain^Joint swelling^Neck pain" },
-            { section: "hematologic", list: "Easily bleeds^Easily bruises^Lymphedema^Issues with blood clots" },
-            { section: "immunologic", list: "Food allergies^Seasonal allergies" },
+        const section = createCategorySection(parent);
+        section.appendChild(createHeading(2, "Since your last visit, have you had any of the following?"));
+        createQuestionGroup(this, section, "hx_change_new_prob", "New medical problems?", addToggleVisibilityListener);
+        createQuestionGroup(this, section, "hx_change_other_provider", "Seen any other doctors (e.g. specialists, ER doctor, chiropracter, others etc)?", addToggleVisibilityListener);
+        createQuestionGroup(this, section, "hx_change_surgery", "Had any new surgeries?", addToggleVisibilityListener);
+        createQuestionGroup(this, section, "hx_change_social", "Any change in use of tobacco or alcohol? Any significant changes in social support / employment / living arrangements?", addToggleVisibilityListener);
+        createQuestionGroup(this, section, "hx_change_family", "Any family members with new diseases (e.g. heart attack, diabetes, cancer etc)?", addToggleVisibilityListener);
+        // --- COMBINED: Medical tests question with options and details, like ROS ---
+        const testOptions = [
+            "blood work", "mammogram", "xrays", "MRI", "CT scan", "colon or stomach scope", "ultrasound", "echocardiogram", "cardiac stress test", "Holter monitor", "ECG", "bone density"
         ];
-        rosData.forEach(data => {
-            const text = data.text || data.section.charAt(0).toUpperCase() + data.section.slice(1);
-            this.createRosSection(parent, data.section, text, data.list.split('^'));
-        });
+        /*
+        this.createRosSection(
+            section,
+            "testing",
+            "Have you had any recent medical tests elsewhere?",
+            testOptions
+        );
+        */
     }
     // --- DOM Creation Helper Methods ---
-    createCategorySection = (parent) => {
-        const div = document.createElement('div');
-        div.className = 'category-section';
-        parent.appendChild(div);
-        return div;
-    };
-    createHeading = (level, text) => {
-        const h = document.createElement(`h${level}`);
-        h.textContent = text;
-        return h;
-    };
-    createCheckboxList = (prefix, items) => {
-        const ul = document.createElement('ul');
-        items.forEach(item => {
-            const li = document.createElement('li');
-            const label = document.createElement('label');
-            const input = document.createElement('input');
-            input.type = 'checkbox';
-            input.name = `${prefix}_${item.toLowerCase().replace(/ /g, '_')}`;
-            input.className = 'sr-only';
-            const span = document.createElement('span');
-            span.className = 'custom-checkbox-text';
-            span.textContent = item;
-            label.append(input, span);
-            li.appendChild(label);
-            ul.appendChild(li);
-        });
-        return ul;
-    };
-    createDetailsBox = (prefix, labelText) => {
-        const div = document.createElement('div');
-        div.className = 'details-input-group';
-        const name = `${prefix}_details`;
-        const label = document.createElement('label');
-        label.htmlFor = name;
-        label.textContent = labelText;
-        const textarea = document.createElement('textarea');
-        textarea.id = name;
-        textarea.name = name;
-        textarea.placeholder = 'Enter details (optional)...';
-        div.append(label, textarea);
-        return div;
-    };
-    createRosSection = (parent, prefix, text, list) => {
+    /*
+    private createCategorySection = createCategorySection;
+    private createHeading = createHeading;
+    private createCheckboxList = createCheckboxList;
+    private createDetailsBox = createDetailsBox;
+
+    private createRosSection = (parent: HTMLElement, prefix: string, text: string, list: string[]): void => {
         const section = this.createCategorySection(parent);
+        // NEW: Add tracking class for each ROS section
+        section.classList.add('trackable-question');
         section.appendChild(this.createHeading(2, text));
+
         // Create a flex container to hold all buttons in a single row
         const buttonContainer = document.createElement('div');
         buttonContainer.style.display = 'flex';
@@ -331,6 +341,7 @@ export default class THxUpdateAppView extends TAppView {
         buttonContainer.style.alignItems = 'center';
         buttonContainer.style.marginBottom = '20px'; // Maintain spacing from the details box
         section.appendChild(buttonContainer);
+
         // Create the "NONE" checkbox and add it to the new container
         const noneLabel = document.createElement('label');
         noneLabel.className = 'none-option-label'; // Reusing class from createQuestionGroup
@@ -338,37 +349,46 @@ export default class THxUpdateAppView extends TAppView {
         noneInput.type = 'checkbox';
         noneInput.name = `${prefix}_none`;
         noneInput.className = 'sr-only none-toggle-checkbox'; // Important for red styling
+
         const checkboxListId = `${prefix}_checkbox_list`;
         const detailsBoxId = `${prefix}_details_box`;
         noneInput.dataset.hideTargetIds = `${checkboxListId},${detailsBoxId}`;
+
         const noneSpan = document.createElement('span');
         noneSpan.className = 'custom-checkbox-text none-checkbox-text'; // Important for red styling
         noneSpan.textContent = 'NONE';
         noneLabel.append(noneInput, noneSpan);
         buttonContainer.appendChild(noneLabel);
+
         // Create the list of other options and add it to the container
         const checkboxList = this.createCheckboxList(prefix, list);
         checkboxList.id = checkboxListId;
         // This makes the <li> elements inside the <ul> behave as direct children of the flex container
         checkboxList.style.display = 'contents';
         buttonContainer.appendChild(checkboxList);
+
         const detailsBox = this.createDetailsBox(prefix, "Other:");
         detailsBox.id = detailsBoxId; // Assign the unique ID
         section.appendChild(detailsBox);
+
         // Attach the toggle listener to the NONE checkbox
         this.addToggleVisibilityListener(noneInput);
+
         // Attach listener for mutual exclusion
         this.addMutualExclusionListeners(noneInput, checkboxList);
-    };
-    addMutualExclusionListeners = (noneCheckbox, optionsContainer) => {
+    }
+
+    private addMutualExclusionListeners = (noneCheckbox: HTMLInputElement, optionsContainer: HTMLElement): void => {
         // This listener ensures that if any regular option is checked, the "NONE" option is automatically unchecked.
         optionsContainer.addEventListener('change', (event) => {
-            const target = event.target;
+            const target = event.target as HTMLInputElement;
+
             // We only care about checkbox changes inside the container, and only when they are being checked.
             if (target.type === 'checkbox' && target.checked) {
                 // If "NONE" is currently checked, uncheck it.
                 if (noneCheckbox.checked) {
                     noneCheckbox.checked = false;
+
                     // Programmatically changing 'checked' does not fire a 'change' event.
                     // We need to dispatch it manually to trigger the logic in `addToggleVisibilityListener`
                     // which is responsible for showing the other elements.
@@ -377,70 +397,32 @@ export default class THxUpdateAppView extends TAppView {
                 }
             }
         });
-    };
-    createQuestionGroup = (parent, prefix, text) => {
-        const groupDiv = document.createElement('div');
-        groupDiv.className = 'question-group';
-        const mainLabel = document.createElement('label');
-        mainLabel.className = 'main-question-label';
-        mainLabel.textContent = text;
-        const optionsRow = document.createElement('div');
-        optionsRow.className = 'details-options-row';
-        const noneLabel = document.createElement('label');
-        noneLabel.className = 'none-option-label';
-        const noneInput = document.createElement('input');
-        noneInput.type = 'checkbox';
-        noneInput.name = `${prefix}_none`;
-        noneInput.className = 'sr-only none-toggle-checkbox';
-        const detailsLabelId = `${prefix}_details_label`;
-        const textareaContainerId = `${prefix}_textarea_container`;
-        noneInput.dataset.hideTargetIds = `${detailsLabelId},${textareaContainerId}`;
-        const noneSpan = document.createElement('span');
-        noneSpan.className = 'custom-checkbox-text none-checkbox-text';
-        noneSpan.textContent = 'NONE';
-        noneLabel.append(noneInput, noneSpan);
-        const detailsLabel = document.createElement('span');
-        detailsLabel.className = 'details-label';
-        detailsLabel.id = detailsLabelId;
-        detailsLabel.textContent = 'Details:';
-        optionsRow.append(noneLabel, detailsLabel);
-        const textareaContainer = document.createElement('div');
-        textareaContainer.className = 'details-textarea-container';
-        textareaContainer.id = textareaContainerId;
-        const textarea = document.createElement('textarea');
-        textarea.id = prefix;
-        textarea.name = prefix;
-        textarea.placeholder = 'Enter details here (optional)...';
-        textareaContainer.appendChild(textarea);
-        groupDiv.append(mainLabel, optionsRow, textareaContainer);
-        parent.appendChild(groupDiv);
-        this.addToggleVisibilityListener(noneInput);
-    };
-    addToggleVisibilityListener = (checkbox) => {
-        if (!this.htmlEl)
-            return; // Guard against null element
+    }
+
+    private addToggleVisibilityListener = (checkbox: HTMLInputElement): void => {
+        if (!this.htmlEl) return; // Guard against null element
         const shadowRoot = this.htmlEl.dom;
-        const toggleVisibility = (isChecked) => {
+
+        const toggleVisibility = (isChecked: boolean) => {
             const targetIdsString = checkbox.dataset.hideTargetIds;
-            if (!targetIdsString)
-                return;
+            if (!targetIdsString) return;
             const targetIds = targetIdsString.split(',');
             targetIds.forEach(id => {
-                const targetElement = shadowRoot.getElementById(id.trim());
+                const targetElement : HTMLElement | null = shadowRoot.getElementById(id.trim());
                 if (targetElement) {
                     targetElement.classList.toggle('hidden', isChecked);
                     if (isChecked) {
-                        targetElement.querySelectorAll('input[type="checkbox"]').forEach(cb => cb.checked = false);
+                        targetElement.querySelectorAll<HTMLInputElement>('input[type="checkbox"]').forEach(cb => cb.checked = false);
                         const textarea = targetElement.querySelector('textarea');
-                        if (textarea)
-                            textarea.value = '';
+                        if (textarea) textarea.value = '';
                     }
                 }
             });
         };
         checkbox.addEventListener('change', () => toggleVisibility(checkbox.checked));
         toggleVisibility(checkbox.checked); // Initial check
-    };
+    }
+    */
     // --- Data, Submission, and Autosave Logic ---
     /**
      * Sets up event listeners for the form, including the autosave mechanism and the 'Done' button.
@@ -455,40 +437,87 @@ export default class THxUpdateAppView extends TAppView {
         const resetTimer = () => this.resetAutosaveTimer();
         form.addEventListener('change', resetTimer);
         form.addEventListener('input', resetTimer); // 'input' is better for textareas
+        // NEW: Add listeners to update the done button state on any user interaction
+        form.addEventListener('change', this.updateDoneButtonState);
+        form.addEventListener('input', this.updateDoneButtonState);
         // 'Done' button listener
-        const doneButton = this.htmlEl.dom.querySelector('.done-button');
-        doneButton?.addEventListener('click', (e) => {
+        this.doneButton?.addEventListener('click', (e) => {
             e.preventDefault();
             this.handleDoneClick();
         });
     };
     /**
-     * Resets the 30-second autosave timer. If the timer fires, it saves the form data.
+     * NEW: Updates the state, color, and text of the "Done" button based on form completion.
+     */
+    updateDoneButtonState = () => {
+        if (!this.htmlEl || !this.doneButton || !this.doneButtonMainText || !this.doneButtonSubText)
+            return;
+        const form = this.htmlEl.dom.querySelector('form.hxupdate-container');
+        if (!form)
+            return;
+        const questions = form.querySelectorAll('.trackable-question');
+        const totalQuestions = questions.length;
+        let answeredCount = 0;
+        questions.forEach(qSection => {
+            // A section is considered "answered" if any of these conditions are met:
+            // 1. A "none" checkbox is checked.
+            const isNoneChecked = !!qSection.querySelector('input.none-toggle-checkbox:checked');
+            // 2. Any other checkbox is checked.
+            const isOtherCheckboxChecked = !!qSection.querySelector('input[type="checkbox"]:not(.none-toggle-checkbox):checked');
+            // 3. Any textarea has a non-empty value.
+            let isTextareaAnswered = false;
+            qSection.querySelectorAll('textarea').forEach(ta => {
+                if (ta.value.trim() !== '') {
+                    isTextareaAnswered = true;
+                }
+            });
+            if (isNoneChecked || isOtherCheckboxChecked || isTextareaAnswered) {
+                answeredCount++;
+            }
+        });
+        const unansweredCount = totalQuestions - answeredCount;
+        if (unansweredCount === 0) {
+            this.doneButtonMainText.textContent = 'Done';
+            this.doneButtonSubText.textContent = '';
+            this.doneButtonSubText.style.display = 'none';
+            this.doneButton.classList.add('done-button-complete');
+            this.doneButton.classList.remove('done-button-incomplete');
+        }
+        else {
+            this.doneButtonMainText.textContent = 'Return';
+            this.doneButtonSubText.textContent = `(declining to answer ${unansweredCount} questions)`;
+            this.doneButtonSubText.style.display = 'block';
+            this.doneButton.classList.add('done-button-incomplete');
+            this.doneButton.classList.remove('done-button-complete');
+        }
+    };
+    /**
+     * Resets the 10-second autosave timer. If the timer fires, it saves the form data.
      */
     resetAutosaveTimer = () => {
         // If a timer is already running, do nothing.
-        // The current timer will fire after its 30 seconds, and then a new one can be started.
+        // The current timer will fire after its 30 seconds, and then a new one can be set on next change.
         if (this.autosaveTimer !== null) {
             return;
         }
-        this.autosaveTimer = window.setTimeout(() => {
+        this.autosaveTimer = window.setTimeout(async () => {
             console.log("Autosaving form data...");
-            this.dataToServer();
-            // Future: await this.sendDataToServer(data);
+            const data = this.gatherDataForServer();
+            await this.sendDataToServer(data);
             this.autosaveTimer = null; // Clear the timer so a new one can be set on next change
-        }, 30000); // 30 seconds
+        }, 10000); // 10 seconds
     };
     /**
      * Handles the 'Done' button click. It performs a final save and navigates away.
      */
-    handleDoneClick = () => {
+    handleDoneClick = async () => {
         if (this.autosaveTimer) {
             clearTimeout(this.autosaveTimer);
             this.autosaveTimer = null;
         }
         console.log("Finalizing and saving form data...");
-        this.dataToServer();
-        // Future: await this.sendDataToServer(data);
+        const data = this.gatherDataForServer();
+        await this.sendDataToServer(data);
         console.log("Navigating to dashboard.");
         this.triggerChangeView("dashboard");
     };
@@ -496,57 +525,57 @@ export default class THxUpdateAppView extends TAppView {
      * Gathers all form data into a structured JSON object.
      * @returns A JSON object representing the current state of the form.
      */
-    dataToServer = () => {
-        if (!this.htmlEl)
-            return {};
-        const form = this.htmlEl.dom.querySelector('form.hxupdate-container');
+    gatherDataForServer = () => {
+        return gatherDataFromContainerForServer(this, 'form.rosupdate-container');
+        /*
+        if (!this.htmlEl) return {};
+        const form = this.htmlEl.dom.querySelector<HTMLFormElement>('form.hxupdate-container');
         if (!form) {
             console.error("Form not found for data extraction.");
             return {};
         }
         const formData = new FormData(form);
-        const data = {};
+        const data: Record<string, string | boolean> = {};
         for (const [key, value] of formData.entries()) {
-            if (value === 'on') {
-                data[key] = true; // Convert checkbox 'on' to boolean true
-            }
-            else if (value) { // Only include textareas/inputs if they have a value
-                data[key] = value;
-            }
+          if (value === 'on') {
+            data[key] = true; // Convert checkbox 'on' to boolean true
+          } else if (value) { // Only include textareas/inputs if they have a value
+            data[key] = value as string;
+          }
         }
         console.log("Compiled form data:", data);
         return data;
+        */
     };
     /**
      * Populates the form fields based on a JSON object from the server.
      * @param data A JSON object with form data.
      */
     serverDataToForm = (data) => {
-        if (!this.htmlEl)
-            return;
+        serverDataToFormContainer(this, 'form.hxupdate-container', data);
+        /*
+        if (!this.htmlEl) return;
         const form = this.htmlEl.dom.querySelector('form.hxupdate-container');
-        if (!form)
-            return;
+        if (!form) return;
         // 1. Get all relevant input elements (checkboxes and textareas)
-        const allInputs = form.querySelectorAll('input[type="checkbox"], textarea');
+        let allInputs : NodeListOf<HTMLInputElement | HTMLTextAreaElement>
+        allInputs= form.querySelectorAll<HTMLInputElement | HTMLTextAreaElement>('input[type="checkbox"], textarea');
         // 2. First, reset all inputs to their default state (unchecked/empty)
         allInputs.forEach(element => {
             if (element.type === 'checkbox') {
-                element.checked = false;
-            }
-            else if (element.tagName === 'TEXTAREA') {
-                element.value = '';
+                (element as HTMLInputElement).checked = false;
+            } else if (element.tagName === 'TEXTAREA') {
+                (element as HTMLTextAreaElement).value = '';
             }
         });
         // 3. Then, apply the data received from the server
         for (const key in data) { // Iterate only over keys present in 'data'
-            const element = form.querySelector(`[name="${key}"]`);
+            const element = form.querySelector<HTMLInputElement | HTMLTextAreaElement>(`[name="${key}"]`);
             if (element) { // Ensure the element exists in the form
                 if (element.type === 'checkbox') {
-                    element.checked = data[key] === true;
-                }
-                else if (element.tagName === 'TEXTAREA') {
-                    element.value = data[key];
+                  (element as HTMLInputElement).checked = data[key] === true;
+                } else if (element.tagName === 'TEXTAREA') {
+                  (element as HTMLTextAreaElement).value = data[key] as string;
                 }
             }
         }
@@ -554,18 +583,56 @@ export default class THxUpdateAppView extends TAppView {
         // This is crucial because setting 'checked' programmatically does not fire 'change' events,
         // and our visibility/mutual exclusion logic relies on these events.
         // Start with 'none' toggles to handle section visibility and clearing.
-        form.querySelectorAll('.none-toggle-checkbox').forEach(cb => {
+        form.querySelectorAll<HTMLInputElement>('.none-toggle-checkbox').forEach(cb => {
             cb.dispatchEvent(new Event('change', { bubbles: true }));
         });
         // Then, trigger for any other checkboxes that are now checked, to ensure mutual exclusion
         // (e.g., if a regular option was checked, it should uncheck 'NONE' if it was still checked).
-        form.querySelectorAll('input[type="checkbox"]:not(.none-toggle-checkbox):checked').forEach(cb => {
+        form.querySelectorAll<HTMLInputElement>('input[type="checkbox"]:not(.none-toggle-checkbox):checked').forEach(cb => {
             cb.dispatchEvent(new Event('change', { bubbles: true }));
         });
+        */
+        // Update the done button state after loading the data
+        this.updateDoneButtonState();
+    };
+    /**
+     * Sends the collected form data to the server via a POST request.
+     * @param data The JSON object to send.
+     */
+    sendDataToServer = async (data) => {
+        return sendDataToServerAPI(this, '/api/hxupdate', data);
+        /*
+          const sessionID = this.ctrl.loginData?.sessionID;
+          if (!sessionID) {
+              console.error("No session ID found. Cannot save form data.");
+              // Optionally, alert the user or attempt to re-authenticate.
+              return;
+          }
+  
+          try {
+              const response = await fetch('/api/hxupdate', {
+                  method: 'POST',
+                  headers: {
+                      'Content-Type': 'application/json',
+                  },
+                  // Send both sessionID and the form data in the body
+                  body: JSON.stringify({ sessionID, formData: data })
+              });
+  
+              if (!response.ok) {
+                  const errorData = await response.json();
+                  console.error('Error saving form data:', errorData.message || response.statusText);
+              } else {
+                  console.log("Form data successfully autosaved.");
+              }
+          } catch (error) {
+              console.error('Network error while saving form data:', error);
+          }
+        */
     };
     // Example of an instance method
     about() {
-        console.log("Dashboard Component instance");
+        console.log("Hx Update Component instance");
     }
     ;
     async refresh() {

@@ -59,22 +59,17 @@ export class TTMGNetwork extends EventTarget {
     const mumpsAPIFn = "NODEAPI^TMGNODE1";
     const hasCallback = typeof callback === 'function';
 
-    const preparedMumpsArgs = args.map((arg, index) => {
-        let valueToSend: any;
+    const preparedMumpsArgs = args.map((arg) => {
         let originalType: string;
 
         if (typeof arg === 'object' && arg !== null) {
-            valueToSend = JSON.stringify(arg);
             originalType = Array.isArray(arg) ? 'json_array' : 'json_object';
         } else {
-            valueToSend = arg;
             originalType = typeof arg === 'number' ? 'number' : 'string';
         }
 
-        return {
-            value: valueToSend,
-            type: originalType,
-        };
+        // The value is the argument itself. The outer JSON.stringify will handle converting it.
+        return { value: arg, type: originalType };
     });
 
     const finalJsonArgsForMumps = JSON.stringify(preparedMumpsArgs);
@@ -115,7 +110,7 @@ export class TTMGNetwork extends EventTarget {
       };
 
       try {
-        this.ydb.function(callOptions, hndlCallback);
+        this.ydb.function(callOptions, hndlCallback);  //<--- make RPC call to mumps server.
       } catch (syncError: any) {
         callback(syncError, null);
       }

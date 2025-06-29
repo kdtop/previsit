@@ -122,7 +122,7 @@ export function Fragment(opts?: string | AppViewOptions): DocumentFragment {
 export default class TAppView {
     //implements AppViewInstance
     public htmlEl: EnhancedHTMLElement | null; // Allow htmlEl to be null initially
-    protected ctrl: TCtrl;
+    public ctrl: TCtrl;
     protected sourceHTML: string;
     public name: string;
 

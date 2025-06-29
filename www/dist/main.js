@@ -7,6 +7,7 @@
 import TDashboardAppView from './components/dashboard.js';
 import TLoginAppView from './components/login.js';
 import THxUpdateAppView from './components/hxupdate.js';
+import TRosUpdateAppView from './components/rosupdate.js';
 import { TCtrl } from './utility/controller.js';
 // ================================================================
 //
@@ -20,7 +21,8 @@ let dB; // document.body
 let ctrl;
 let dashboardAppView;
 let loginAppView;
-let HxUpdateAppView;
+let hxUpdateAppView;
+let rosUpdateAppView;
 // --------------------------
 // Named functions for core application logic
 // --------------------------
@@ -53,9 +55,10 @@ async function initializeApp() {
     ctrl.addEventListener("change_view", handleSwitchingEvent); // The main app listens on the controller
     loginAppView = new TLoginAppView(ctrl);
     dashboardAppView = new TDashboardAppView(ctrl);
-    HxUpdateAppView = new THxUpdateAppView(ctrl);
-    await switchTo(HxUpdateAppView); // Pass the HTML element to switchTo
-    //await switchTo(loginAppView); // Pass the HTML element to switchTo
+    hxUpdateAppView = new THxUpdateAppView(ctrl);
+    rosUpdateAppView = new TRosUpdateAppView(ctrl);
+    //await switchTo(rosUpdateAppView); // Pass the HTML element to switchTo
+    await switchTo(loginAppView); // Pass the HTML element to switchTo
     // NOTE: when loginComp is done, it will dispatch a 'continue' event, handled above
 }
 // Function for running tests or post-initialization logic

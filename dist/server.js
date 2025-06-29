@@ -96,39 +96,122 @@ async function hndlDashboard(req, res) {
 //====================================================================================================
 /**
  * Handle request for HxUpdate forms.
- * This endpoint will provide the list of forms a patient needs to complete.
+ * This endpoint will provide the saved form data for a patient (if any).
  */
-async function hndlHxUpdate(req, res) {
-    console.log("Received request for HxUpdate forms.", req.query);
+async function hndlGetHxUpdateData(req, res) {
+    console.log("Received request for HxUpdate data.", req.query);
     // Retrieve sessionID from query parameters.
     const { sessionID } = req.query;
     // It's good practice to validate that the sessionID was provided and is a string.
     if (typeof sessionID !== 'string' || !sessionID) {
         return res.status(400).json({ success: false, message: 'A valid Session ID is required.' });
     }
-    console.log(`Dashboard request for sessionID: ${sessionID}`);
+    console.log(`HxUpdate data request for sessionID: ${sessionID}`);
     try {
-        // This is a placeholder for the Mumps RPC to populate.
-        // It signals to your RPC wrapper that the first argument is an array.
-        // Using an empty array is a clean way to represent an output parameter.
-        const outForms = [];
-        const rpcResult = await tmg.RPC("GETHXFORM", "TMGPRE01", [outForms, sessionID]);
-        // The populated array of lines (comprising HTML) is returned as the first element of the 'args' property in the result.
-        const outArr = rpcResult.args[0];
-        // It's good practice to validate the structure of the returned data.
-        if (Array.isArray(outArr)) {
-            let someHTML = outArr.join("\n");
-            res.json({ success: true, html: someHTML, message: "success" });
+        // Placeholder for the Mumps RPC to populate.
+        // The output parameter for the data (should be an object/array)
+        let outData = {};
+        // Call the new GETHXDATA RPC
+        const rpcResult = await tmg.RPC("GETHXDATA", "TMGPRE01", [outData, sessionID]);
+        // The saved data is returned as the first element of the 'args' property in the result.
+        const savedData = rpcResult.args[0];
+        // If the data is an object/array, use it directly. If not, return empty object.
+        let parsedData = {};
+        if (typeof savedData === 'object' && savedData !== null) {
+            parsedData = savedData;
         }
-        else {
-            console.error("RPC for forms did not return an array as expected.", outArr);
-            res.status(500).json({ success: false, html: "", message: 'Server error: Invalid data format received for HxUpdate HTML.' });
-        }
+        res.json({ success: true, data: parsedData });
     }
     catch (error) {
         console.error('Error during /api/hxupdate request:', error);
         const errorMessage = error instanceof Error ? error.message : 'Unknown error';
-        res.status(500).json({ success: false, html: "", message: `Internal server error: ${errorMessage}` });
+        res.status(500).json({ success: false, data: {}, message: `Internal server error: ${errorMessage}` });
+    }
+}
+//====================================================================================================
+/**
+ * Handle saving of HxUpdate form data.
+ * This endpoint receives the form data from the client and saves it via RPC.
+ */
+async function hndlSaveHxUpdate(req, res) {
+    console.log("Received request to save HxUpdate data.", req.body);
+    // Retrieve sessionID and formData from the request body.
+    const { sessionID, formData } = req.body;
+    // Validate that the required data was provided.
+    if (!sessionID || !formData) {
+        return res.status(400).json({ success: false, message: 'sessionID and formData are required.' });
+    }
+    console.log(`Saving HxUpdate data for sessionID: ${sessionID}`);
+    try {
+        let err = ""; // Output parameter for errors from Mumps
+        const rpcResult = await tmg.RPC("SAVEHXDATA", "TMGPRE01", [sessionID, formData, err]);
+        console.log('RPC result from Mumps for saving HxUpdate:', JSON.stringify(rpcResult));
+        const mumpsResult = piece(rpcResult.return, '^', 1);
+        if (mumpsResult === "1") {
+            res.status(200).json({ success: true, message: 'History data saved successfully.' });
+        }
+        else {
+            const errorMessage = rpcResult.args[2] || 'Failed to save data in Mumps.';
+            res.status(500).json({ success: false, message: `Server error: ${errorMessage}` });
+        }
+    }
+    catch (error) {
+        console.error('Error during POST /api/hxupdate request:', error);
+        const errorMessage = error instanceof Error ? error.message : 'Unknown error';
+        res.status(500).json({ success: false, message: `Internal server error: ${errorMessage}` });
+    }
+}
+//====================================================================================================
+/**
+ * Handle request for ROS data (get).
+ */
+async function hndlGetRosUpdateData(req, res) {
+    console.log("Received request for ROS data.", req.query);
+    const { sessionID } = req.query;
+    if (typeof sessionID !== 'string' || !sessionID) {
+        return res.status(400).json({ success: false, message: 'A valid Session ID is required.' });
+    }
+    try {
+        let outData = {};
+        const rpcResult = await tmg.RPC("GETROSDATA", "TMGPRE01", [outData, sessionID]);
+        const savedData = rpcResult.args[0];
+        let parsedData = {};
+        if (typeof savedData === 'object' && savedData !== null) {
+            parsedData = savedData;
+        }
+        res.json({ success: true, data: parsedData });
+    }
+    catch (error) {
+        console.error('Error during /api/rosupdate GET:', error);
+        const errorMessage = error instanceof Error ? error.message : 'Unknown error';
+        res.status(500).json({ success: false, data: {}, message: `Internal server error: ${errorMessage}` });
+    }
+}
+/**
+ * Handle saving of ROS data (post).
+ */
+async function hndlSaveRosUpdateData(req, res) {
+    console.log("Received request to save ROS data.", req.body);
+    const { sessionID, formData } = req.body;
+    if (!sessionID || !formData) {
+        return res.status(400).json({ success: false, message: 'sessionID and formData are required.' });
+    }
+    try {
+        let err = "";
+        const rpcResult = await tmg.RPC("SAVEROSDATA", "TMGPRE01", [sessionID, formData, err]);
+        const mumpsResult = piece(rpcResult.return, '^', 1);
+        if (mumpsResult === "1") {
+            res.status(200).json({ success: true, message: 'ROS data saved successfully.' });
+        }
+        else {
+            const errorMessage = rpcResult.args[2] || 'Failed to save ROS data in Mumps.';
+            res.status(500).json({ success: false, message: `Server error: ${errorMessage}` });
+        }
+    }
+    catch (error) {
+        console.error('Error during POST /api/rosupdate:', error);
+        const errorMessage = error instanceof Error ? error.message : 'Unknown error';
+        res.status(500).json({ success: false, message: `Internal server error: ${errorMessage}` });
     }
 }
 //====================================================================================================
@@ -182,7 +265,10 @@ try {
     // Register route handlers
     app.post('/api/login', hndlLogin); // register handler (endpoint) for login
     app.get('/api/dashboard', hndlDashboard); // Register handler for dashboard dashboard
-    app.get('/api/hxupdate', hndlHxUpdate); // Register handler for dashboard dashboard
+    app.get('/api/hxupdate', hndlGetHxUpdateData); // Register handler for getting hxupdate data
+    app.post('/api/hxupdate', hndlSaveHxUpdate); // Register handler for saving history updates
+    app.get('/api/rosupdate', hndlGetRosUpdateData); // Register handler for getting rosupdate data
+    app.post('/api/rosupdate', hndlSaveRosUpdateData); // Register handler for saving rosupdate data
     // Start the server
     app.listen(PORT, () => {
         console.log(`Server listening on port ${PORT}`);
