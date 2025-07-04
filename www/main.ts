@@ -9,6 +9,7 @@ import TDashboardAppView from './components/dashboard.js';
 import TLoginAppView  from './components/login.js';
 import THxUpdateAppView  from './components/hxupdate.js';
 import TRosUpdateAppView  from './components/rosupdate.js';
+import TMedReviewAppView  from './components/medication_review.js';
 import TAppView, { EnhancedHTMLElement } from './components/appview.js';
 import { TCtrl } from './utility/controller.js';
 import { LoginApiResponse, ChangeViewEventDetail } from './utility/types.js';
@@ -28,6 +29,7 @@ let dashboardAppView: TDashboardAppView;
 let loginAppView:     TLoginAppView;
 let hxUpdateAppView:  THxUpdateAppView;
 let rosUpdateAppView: TRosUpdateAppView;
+let MedReviewAppView:  TMedReviewAppView;
 
 // --------------------------
 // Named functions for core application logic
@@ -69,6 +71,7 @@ async function initializeApp()
     dashboardAppView = new TDashboardAppView(ctrl);
     hxUpdateAppView  = new THxUpdateAppView(ctrl);
     rosUpdateAppView  = new TRosUpdateAppView(ctrl);
+    MedReviewAppView  = new TMedReviewAppView(ctrl);   // Eddie 7/1/25
 
     //await switchTo(rosUpdateAppView); // Pass the HTML element to switchTo
     await switchTo(loginAppView); // Pass the HTML element to switchTo

@@ -8,6 +8,7 @@ import TDashboardAppView from './components/dashboard.js';
 import TLoginAppView from './components/login.js';
 import THxUpdateAppView from './components/hxupdate.js';
 import TRosUpdateAppView from './components/rosupdate.js';
+import TMedReviewAppView from './components/medication_review.js';
 import { TCtrl } from './utility/controller.js';
 // ================================================================
 //
@@ -23,6 +24,7 @@ let dashboardAppView;
 let loginAppView;
 let hxUpdateAppView;
 let rosUpdateAppView;
+let MedReviewAppView;
 // --------------------------
 // Named functions for core application logic
 // --------------------------
@@ -57,6 +59,7 @@ async function initializeApp() {
     dashboardAppView = new TDashboardAppView(ctrl);
     hxUpdateAppView = new THxUpdateAppView(ctrl);
     rosUpdateAppView = new TRosUpdateAppView(ctrl);
+    MedReviewAppView = new TMedReviewAppView(ctrl); // Eddie 7/1/25
     //await switchTo(rosUpdateAppView); // Pass the HTML element to switchTo
     await switchTo(loginAppView); // Pass the HTML element to switchTo
     // NOTE: when loginComp is done, it will dispatch a 'continue' event, handled above

@@ -14,7 +14,7 @@ export default class TLoginAppView extends TAppView {
     loginData; // This was on the instance, so it should be a public property of the class
     constructor(aCtrl, opts) {
         // Define innerHTML here, before calling super()
-        super('login', aCtrl);
+        super('login', '/api/login', aCtrl);
         { //temp scope for tempInnerHTML
             const tempInnerHTML = `
                 <style>
@@ -53,16 +53,19 @@ export default class TLoginAppView extends TAppView {
                     max-width: 400px;
                     text-align: center;
 
-                    /* this will get all tags 'button' that are desecendants of welcom-container  */
-                    & button{
-                        margin-top: 10px;
-                        margin-bottom: 10px;
-                    }
-
-                    & #logout-button {
-                    background-color:rgb(255, 8, 0);
-                    }
                 }
+                .welcome-container button {
+                    margin-top: 10px;
+                    margin-bottom: 10px;
+                }
+
+                #logout-button {
+                    background-color: #e74c3c; /* red */
+                }
+                #logout-button:hover {
+                    background-color: #c0392b; /* darker red */
+                }
+
                 h1 {
                     color: #333;
                     margin-bottom: 20px;
@@ -181,9 +184,18 @@ export default class TLoginAppView extends TAppView {
                 </div>
             `; //<-- note end backtick
             this.setHTMLEl(tempInnerHTML);
+            const debug = true;
+            if (debug == true) {
+                const map = { "loginDobMonth": "06", "loginDobDay": "23", "loginDobYear": "1947", "loginFirstName": "Judith" };
+                for (const [key, value] of Object.entries(map)) {
+                    let input = this.htmlEl.dom.getElementById(key);
+                    if (input) {
+                        input.value = value; // Set the value of the input field
+                    }
+                }
+            }
         }
         this.htmlEl = this.htmlEl; // typecast as relevent for this object.
-        //this.htmlEl.className = 'login';
         if (opts) {
             //process opts -- if any added later
         }
@@ -195,10 +207,15 @@ export default class TLoginAppView extends TAppView {
             console.error("Login form not found");
             return;
         }
+        function capitalizeFirstLetter(val) {
+            let result = val.trim().toLowerCase();
+            result = result.charAt(0).toUpperCase() + String(result).slice(1);
+            return result;
+        }
         const formData = new FormData(this.htmlEl.$loginform); //FormData is a built-in DOM function to get data from forms.
         // Use formData.get() to be more explicit and avoid issues with editor tooling.
-        let aLastName = formData.get('lastName') || '';
-        let aFirstName = formData.get('firstName') || '';
+        let aLastName = capitalizeFirstLetter(formData.get('lastName') || ''); // Ensure lastName is trimmed and capitalized
+        let aFirstName = capitalizeFirstLetter(formData.get('firstName') || ''); // Ensure firstName is trimmed and capitalized
         let aFullName = `${aFirstName} ${aLastName}`;
         let aDOBMonth = formData.get('dobMonth') || '';
         let aDOBDay = formData.get('dobDay') || '';
@@ -212,7 +229,7 @@ export default class TLoginAppView extends TAppView {
         };
         console.log(reqData);
         try {
-            const response = await fetch('/api/login', {
+            const response = await fetch(this.apiURL, {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json'
@@ -275,9 +292,6 @@ export default class TLoginAppView extends TAppView {
             };
         }
     } //setupEventListeners
-    about() {
-        console.log("Login Component instance");
-    } //about
     async refresh() {
         //put any code needed to be executed prior to this class being displayed to user.
     }

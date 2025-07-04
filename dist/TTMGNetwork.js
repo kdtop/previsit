@@ -66,7 +66,7 @@ export class TTMGNetwork extends EventTarget {
             autoRelink: false,
             arguments: mumpsFnArgs
         };
-        const processResult = function (nodemResult) {
+        const processResultFn = function (nodemResult) {
             if (!nodemResult || !nodemResult.ok) {
                 const errorMessage = (nodemResult && nodemResult.errorMessage) || 'Unknown RPC error from nodem';
                 const errorCode = (nodemResult && nodemResult.isError) ? nodemResult.errorCode : 'N/A'; // Assuming nodem.isError is available for specific errors
@@ -82,16 +82,18 @@ export class TTMGNetwork extends EventTarget {
         };
         if (hasCallback) {
             const hndlCallback = function (error, nodemResult) {
-                if (error) { // Handle initial nodem error
-                    callback(new Error(`RPC call failed before Mumps execution: ${error.message}`), null);
+                if (error) {
+                    // Handle initial nodem error. No result is passed on error.
+                    callback(new Error(`RPC call failed before Mumps execution: ${error.message}`));
                 }
-                else { // Process the successful nodem result
+                else {
+                    // Process the successful nodem result
                     try {
-                        const finalResult = processResult(nodemResult);
+                        const finalResult = processResultFn(nodemResult);
                         callback(null, finalResult); // Pass null for error on success
                     }
                     catch (processingError) {
-                        callback(processingError, null);
+                        callback(processingError);
                     }
                 }
             };
@@ -99,31 +101,30 @@ export class TTMGNetwork extends EventTarget {
                 this.ydb.function(callOptions, hndlCallback); //<--- make RPC call to mumps server.
             }
             catch (syncError) {
-                callback(syncError, null);
+                callback(syncError);
             }
             return undefined;
         }
         else {
-            return new Promise(async (resolve, reject) => {
+            // For the promise-based path, we use an async IIFE (Immediately Invoked Function Expression)
+            // to leverage async/await syntax without the Promise constructor anti-pattern.
+            return (async () => {
                 let nodemResult;
                 try {
-                    // Await the nodem.function call directly, as it returns a Promise
+                    // Await the nodem.function call directly. It returns a promise when no callback is provided.
                     nodemResult = await this.ydb.function({
                         function: mumpsAPIFn,
                         arguments: mumpsFnArgs
                     });
                 }
                 catch (error) {
-                    return reject(new Error(`RPC call failed before Mumps execution: ${error.message}`));
+                    // This catch handles transport-level errors (e.g., network, nodem internal).
+                    throw new Error(`RPC call failed before Mumps execution: ${error.message}`);
                 }
-                try {
-                    const finalResult = processResult(nodemResult);
-                    resolve(finalResult);
-                }
-                catch (processingError) {
-                    reject(processingError);
-                }
-            });
+                // processResultFn handles Mumps-level errors and JSON parsing errors by throwing.
+                // Any exception here will be automatically caught and will cause the promise to reject.
+                return processResultFn(nodemResult);
+            })();
         }
     }
     myFN1() {

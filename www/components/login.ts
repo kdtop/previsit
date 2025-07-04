@@ -38,7 +38,7 @@ export default class TLoginAppView extends TAppView {   //implements LoginAppVie
 
     constructor(aCtrl:  TCtrl,  opts?: LoginOptions) {
         // Define innerHTML here, before calling super()
-        super('login', aCtrl);
+        super('login', '/api/login', aCtrl);
         {  //temp scope for tempInnerHTML
             const tempInnerHTML = `
                 <style>
@@ -77,16 +77,19 @@ export default class TLoginAppView extends TAppView {   //implements LoginAppVie
                     max-width: 400px;
                     text-align: center;
 
-                    /* this will get all tags 'button' that are desecendants of welcom-container  */
-                    & button{
-                        margin-top: 10px;
-                        margin-bottom: 10px;
-                    }
-
-                    & #logout-button {
-                    background-color:rgb(255, 8, 0);
-                    }
                 }
+                .welcome-container button {
+                    margin-top: 10px;
+                    margin-bottom: 10px;
+                }
+
+                #logout-button {
+                    background-color: #e74c3c; /* red */
+                }
+                #logout-button:hover {
+                    background-color: #c0392b; /* darker red */
+                }
+
                 h1 {
                     color: #333;
                     margin-bottom: 20px;
@@ -205,9 +208,18 @@ export default class TLoginAppView extends TAppView {   //implements LoginAppVie
                 </div>
             `;      //<-- note end backtick
             this.setHTMLEl(tempInnerHTML);
+            const debug=true;
+            if (debug==true) {
+                const map = {"loginDobMonth": "06", "loginDobDay": "23", "loginDobYear": "1947", "loginFirstName": "Judith"};
+                for (const [key, value] of Object.entries(map)) {
+                    let input = this.htmlEl.dom.getElementById(key) as HTMLInputElement | null;
+                    if (input) {
+                        input.value = value; // Set the value of the input field
+                    }
+                }
+            }
         }
         this.htmlEl = this.htmlEl as LoginHTMLElement; // typecast as relevent for this object.
-        //this.htmlEl.className = 'login';
 
         if (opts) {
           //process opts -- if any added later
@@ -222,10 +234,17 @@ export default class TLoginAppView extends TAppView {   //implements LoginAppVie
             console.error("Login form not found");
             return;
         }
+
+        function capitalizeFirstLetter(val : string) : string {
+            let result = val.trim().toLowerCase();
+            result = result.charAt(0).toUpperCase() + String(result).slice(1);
+          return result;
+        }
+
         const formData = new FormData(this.htmlEl.$loginform); //FormData is a built-in DOM function to get data from forms.
         // Use formData.get() to be more explicit and avoid issues with editor tooling.
-        let aLastName = formData.get('lastName') as string || '';
-        let aFirstName = formData.get('firstName') as string || '';
+        let aLastName =  capitalizeFirstLetter(formData.get('lastName') as string || ''); // Ensure lastName is trimmed and capitalized
+        let aFirstName = capitalizeFirstLetter(formData.get('firstName') as string || ''); // Ensure firstName is trimmed and capitalized
         let aFullName = `${aFirstName} ${aLastName}`;
         let aDOBMonth = formData.get('dobMonth') as string || '';
         let aDOBDay = formData.get('dobDay') as string || '';
@@ -241,7 +260,7 @@ export default class TLoginAppView extends TAppView {   //implements LoginAppVie
 
         console.log(reqData);
         try {
-           const response = await fetch('/api/login', {
+           const response = await fetch(this.apiURL, {
                method: 'POST',
                headers: {
                    'Content-Type': 'application/json'
@@ -303,10 +322,6 @@ export default class TLoginAppView extends TAppView {   //implements LoginAppVie
             };
         }
     } //setupEventListeners
-
-    public about(): void {
-        console.log("Login Component instance");
-    } //about
 
     public async refresh() : Promise<void> {
         //put any code needed to be executed prior to this class being displayed to user.

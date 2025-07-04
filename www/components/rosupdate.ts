@@ -1,19 +1,12 @@
 // /opt/worldvista/EHR/web/previsit/www/components/rosupdate.ts
 
-//
-// RosUpdateAppView
-//     > has space for expand.. to scroll (for addresseses)
-//     > but can have independantly scrolling windows
-//     	(if display size big enough)
-//
-
 import TAppView, { EnhancedHTMLElement } from './appview.js';
 import { createCategorySection, createHeading,
          createCheckboxList, createDetailsBox,
          addToggleVisibilityListener,
-         sendDataToServerAPI, serverDataToFormContainer,
-         gatherDataFromContainerForServer,
+         serverDataToFormContainer
         } from './questcommon.js';
+import { KeyToStrBoolValueObj } from '../utility/types.js';
 import { TCtrl } from '../utility/controller.js';
 
 interface RosUpdateOptions {
@@ -29,9 +22,13 @@ export type RosUpdateHTMLElement = EnhancedHTMLElement & {
 /**
  * Represents the RosUpdate component as a class, responsible for building and managing the patient history update form.
  */
-export default class TRosUpdateAppView extends TAppView {
+export default class TRosUpdateAppView extends TAppView<KeyToStrBoolValueObj> {
+    //NOTE: The generic type <KeyToStrBoolValueObj> is used to represent this view's data structure.
+    //      In the ancestor class, it will be represented at TServerData
+    //      This the type of data that will be sent to the server when the form is submitted.
+    //      other AppViews will use different data types when sending data to the server.
+
     declare htmlEl: RosUpdateHTMLElement; // Use 'declare' to override the type of the inherited property
-    private autosaveTimer: number | null = null;
 
     // --- NEW: Properties for managing the dynamic "Done" button ---
     private doneButton: HTMLButtonElement | null = null;
@@ -39,11 +36,11 @@ export default class TRosUpdateAppView extends TAppView {
     private doneButtonSubText: HTMLSpanElement | null = null;
 
     constructor(aCtrl:  TCtrl,  opts?: RosUpdateOptions) {
-        super('rosupdate', aCtrl);
+        super('rosupdate', '/api/rosupdate', aCtrl);
         {  //temp scope for tempInnerHTML
         const tempInnerHTML = `
             <style>
-            .rosupdate-container {
+            .content-container {
               line-height: 1.6;
               padding: 0 100px;
               background-color: #ffffff;
@@ -190,6 +187,42 @@ export default class TRosUpdateAppView extends TAppView {
               resize: none;
             }
 
+/* --- MODIFIED: Done Button and Submission Area --- */
+            .submission-controls {
+                text-align: center;
+                margin-top: 30px;
+                /* NEW: Add significant padding to the bottom to create scrollable whitespace */
+                padding-bottom: 50vh;
+            }
+
+            .done-button {
+                /* NEW: Make button full width */
+                width: 100%;
+                padding: 12px 25px;
+                font-size: 1.1em;
+                color: white;
+                border: none;
+                border-radius: 5px;
+                cursor: pointer;
+                transition: background-color 0.3s ease;
+                /* NEW: Use flexbox to manage internal text lines */
+                display: flex;
+                flex-direction: column;
+                align-items: center;
+                justify-content: center;
+                line-height: 1.4;
+            }
+
+            /* NEW: Class for the incomplete state (red) */
+            .done-button-incomplete {
+                background-color: #e74c3c;
+            }
+
+            /* NEW: Class for the complete state (green) */
+            .done-button-complete {
+                background-color: #28a745;
+            }
+
             /* Class to hide elements with JavaScript */
             .hidden {
               display: none !important; /* Use !important to ensure it overrides other display properties */
@@ -214,15 +247,18 @@ export default class TRosUpdateAppView extends TAppView {
               }
             }
             </style>
-            <form class='container rosupdate-container'>
+            <form class='container content-container'>
                 <h1>Tell Us About Your Symptoms</h1>
                 <p><b>Patient:</b> <span class="patient-name"></span></p>
                 <div class="instructions">
                     <p>Please tell us if you have NEW problems in parts of your body. This will help us prepare for your visit.</p>
                 </div>
                 <div class="forms-container"></div>
-                <div class="submission-controls" style="text-align: center; margin-top: 30px;">
-                    <button type="button" class="done-button" style="padding: 12px 25px; font-size: 1.1em; background-color: #28a745; color: white; border: none; border-radius: 5px; cursor: pointer;">Done</button>
+                <div class="submission-controls">
+                    <button type="button" class="done-button">
+                        <span class="done-button-main-text"></span>
+                        <span class="done-button-sub-text" style="font-size: 0.8em; opacity: 0.9;"></span>
+                    </button>
                 </div>
             </form>
         `;  //end of innerHTML
@@ -290,27 +326,33 @@ export default class TRosUpdateAppView extends TAppView {
         parent.appendChild(createHeading(1, "Review of Systems"));
 
         const rosData = [
-            { section: "constitutional", list: "Chills^Fatigue^Fever^Weight gain^Weight loss" },
-            { section: "heent", text: "HEAD, EARS, EYES, THROAT", list: "Hearing loss^Sinus pressure^Visual changes" },
-            { section: "respiratory", list: "Cough^Shortness of breath^Wheezing" },
-            { section: "cardiovascular", list: "Chest pain^Pain while walking^Edema^Palpitations" },
-            { section: "gastrointestinal", list: "Abdominal pain^Blood in stool^Constipation^Diarrhea^Heartburn^Loss of appetite^Nausea^Vomiting" },
-            { section: "genitourinary", list: "Painful urination (Dysuria)^Excessive amount of urine (Polyuria)^Urinary frequency" },
-            { section: "metabolic", text: "Metabolic/Endocrine", list: "Cold intolerance^Heat intolerance^Excessive thirst (Polydipsia)^Excessive hunger (Polyphagia)" },
-            { section: "neurological", list: "Dizziness^Extremity numbness^Extremity weakness^Headaches^Seizures^Tremors" },
-            { section: "psychiatric", list: "Anxiety^Depression" },
-            { section: "musculoskeletal", list: "Back pain^Joint pain^Joint swelling^Neck pain" },
-            { section: "hematologic", list: "Easily bleeds^Easily bruises^Lymphedema^Issues with blood clots" },
-            { section: "immunologic", list: "Food allergies^Seasonal allergies" },
+            { section: "constitutional", list: "Fever^Chills^Unusual weight gain^Unusual weight loss" },
+            { section: "eye", list: "Blindness^Blurred vision^Double vision^Any eye problems" },
+            { section: "entm", text: "Ears, Nose, Throat, Mouth", list: "Difficulty hearing^Ear problems^Nose problems^Throat problems^Mouth problems" },
+            { section: "cardiovascular", list: "Chest pain^Ankle swelling^Strokes^Leg cramps" },
+            { section: "respiratory", list: "Shortness of breath^Wheezing^Inability to lay flat" },
+            { section: "gastrointestinal", list: "Blood from bowels^Bad indigestion^Abdominal Pain" },
+            { section: "genitourinary", list: "Urine Pain^Urine leakage^Female problems^Sexual problems" },
+            { section: "musculoskeletal", list: "Joint or muscle pain^Arthritis^Sprains^Ligament injury" },
+            { section: "skin", text: "Skin or breast", list: "Worrisome skin lesions^Lumps in breast^Skin problems" },
+            { section: "neurologic", list: "Numbness^Tingling^Confusion^Seizures^Chronic pain" },
+            { section: "psychiatric", list: "Anxiety^Depression^Obsessions" },
+            { section: "endocrine", list: "Problems with thyroid^Diabetes" },
+            { section: "hematologic", text: "Hematologic/Lymphatic", list: "Bleeding^Blood problems^Worrisome lymph nodes" },
+            { section: "immunologic", text: "Allergic/Immunologic", list: "Allergies^Immunity problems^Medication reactions" },
+            { section: "fall", text: "Fall Risk", list: "2 or more falls in the past year^Any fall with injury in past year" }
+
         ];
 
         rosData.forEach(data => {
             const text = data.text || data.section.charAt(0).toUpperCase() + data.section.slice(1);
-            this.createRosSection(parent, data.section, text, data.list.split('^'));
+            const section = this.createRosSection(parent, data.section, text, data.list.split('^'));
+            section.classList.add('trackable-question');
         });
     }
 
-    private createRosSection = (parent: HTMLElement, prefix: string, text: string, list: string[]): void => {
+    private createRosSection(parent: HTMLElement, prefix: string, text: string, list: string[]): HTMLDivElement
+    {
         const section = createCategorySection(parent);
         section.appendChild(createHeading(2, text));
 
@@ -357,6 +399,8 @@ export default class TRosUpdateAppView extends TAppView {
 
         // Attach listener for mutual exclusion
         this.addMutualExclusionListeners(noneInput, checkboxList);
+
+        return section; // Return the created section for further use if needed
     }
 
     private addMutualExclusionListeners = (noneCheckbox: HTMLInputElement, optionsContainer: HTMLElement): void => {
@@ -379,31 +423,6 @@ export default class TRosUpdateAppView extends TAppView {
             }
         });
     }
-    /*
-    private addToggleVisibilityListener = (checkbox: HTMLInputElement): void => {
-        if (!this.htmlEl) return; // Guard against null element
-        const shadowRoot = this.htmlEl.dom;
-
-        const toggleVisibility = (isChecked: boolean) => {
-            const targetIdsString = checkbox.dataset.hideTargetIds;
-            if (!targetIdsString) return;
-            const targetIds = targetIdsString.split(',');
-            targetIds.forEach(id => {
-                const targetElement = shadowRoot.getElementById(id.trim());
-                if (targetElement) {
-                    targetElement.classList.toggle('hidden', isChecked);
-                    if (isChecked) {
-                        targetElement.querySelectorAll<HTMLInputElement>('input[type="checkbox"]').forEach(cb => cb.checked = false);
-                        const textarea = targetElement.querySelector('textarea');
-                        if (textarea) textarea.value = '';
-                    }
-                }
-            });
-        };
-        checkbox.addEventListener('change', () => toggleVisibility(checkbox.checked));
-        toggleVisibility(checkbox.checked); // Initial check
-    }
-    */
     // --- Data, Submission, and Autosave Logic ---
 
     /**
@@ -411,13 +430,17 @@ export default class TRosUpdateAppView extends TAppView {
      */
     private setupFormEventListeners = (): void => {
         if (!this.htmlEl) return;
-        const form = this.htmlEl.dom.querySelector('form.rosupdate-container');
+        const form = this.htmlEl.dom.querySelector('form.content-container');
         if (!form) return;
 
         // Autosave on any change or input
         const resetTimer = () => this.resetAutosaveTimer();
         form.addEventListener('change', resetTimer);
         form.addEventListener('input', resetTimer); // 'input' is better for textareas
+
+        // NEW: Add listeners to update the done button state on any user interaction
+        form.addEventListener('change', this.updateDoneButtonState);
+        form.addEventListener('input', this.updateDoneButtonState);
 
         // 'Done' button listener
         const doneButton = this.htmlEl.dom.querySelector<HTMLButtonElement>('.done-button');
@@ -428,12 +451,19 @@ export default class TRosUpdateAppView extends TAppView {
     }
 
     /**
-     * NEW: Updates the state, color, and text of the "Done" button based on form completion.
+     * NEW: Updates the state of progress
      */
-    private updateDoneButtonState = (): void => {
-        if (!this.htmlEl || !this.doneButton || !this.doneButtonMainText || !this.doneButtonSubText) return;
+    public updateProgressState = (): void => {
 
-        const form = this.htmlEl.dom.querySelector('form.hxupdate-container');
+        // Reset progress data
+        this.progressData.answeredItems = 0;
+        this.progressData.unansweredItems = 0;
+        this.progressData.totalItems = 0;
+        this.progressData.progressPercentage = 0;
+
+        if (!this.htmlEl) return;
+
+        const form = this.htmlEl.dom.querySelector('form.content-container');
         if (!form) return;
 
         const questions = form.querySelectorAll<HTMLElement>('.trackable-question');
@@ -461,174 +491,30 @@ export default class TRosUpdateAppView extends TAppView {
 
         const unansweredCount = totalQuestions - answeredCount;
 
-        if (unansweredCount === 0) {
-            this.doneButtonMainText.textContent = 'Done';
-            this.doneButtonSubText.textContent = '';
-            this.doneButtonSubText.style.display = 'none';
-            this.doneButton.classList.add('done-button-complete');
-            this.doneButton.classList.remove('done-button-incomplete');
-        } else {
-            this.doneButtonMainText.textContent = 'Return';
-            this.doneButtonSubText.textContent = `(declining to answer ${unansweredCount} questions)`;
-            this.doneButtonSubText.style.display = 'block';
-            this.doneButton.classList.add('done-button-incomplete');
-            this.doneButton.classList.remove('done-button-complete');
-        }
-    }
+        // Update progress data
+        this.progressData.totalItems = totalQuestions;
+        this.progressData.answeredItems = answeredCount;
+        this.progressData.unansweredItems = unansweredCount;
+        this.progressData.progressPercentage = totalQuestions > 0 ? Math.round((answeredCount / totalQuestions) * 100) : 0;
 
-
-    /**
-     * Resets the 10-second autosave timer. If the timer fires, it saves the form data.
-     */
-    private resetAutosaveTimer = (): void => {
-        // If a timer is already running, do nothing.
-        // The current timer will fire after its 30 seconds, and then a new one can be started.
-        if (this.autosaveTimer !== null) {
-            return;
-        }
-        this.autosaveTimer = window.setTimeout(async () => {
-            console.log("Autosaving form data...");
-            const data = this.gatherDataForServer();
-            await this.sendDataToServer(data);
-            this.autosaveTimer = null; // Clear the timer so a new one can be set on next change
-        }, 10000); // 10 seconds
-    }
-
-    /**
-     * Handles the 'Done' button click. It performs a final save and navigates away.
-     */
-    private handleDoneClick = async (): Promise<void> => {
-        if (this.autosaveTimer) {
-            clearTimeout(this.autosaveTimer);
-            this.autosaveTimer = null;
-        }
-        console.log("Finalizing and saving form data...");
-        const data = this.gatherDataForServer();
-        await this.sendDataToServer(data);
-
-        console.log("Navigating to dashboard.");
-        this.triggerChangeView("dashboard");
     }
 
     /**
      * Gathers all form data into a structured JSON object.
      * @returns A JSON object representing the current state of the form.
      */
-    private gatherDataForServer = (): Record<string, string | boolean> => {
-      return gatherDataFromContainerForServer(this, 'form.rosupdate-container');
-      /*
-      if (!this.htmlEl) return {};
-      const form = this.htmlEl.dom.querySelector<HTMLFormElement>('form.rosupdate-container');
-      if (!form) {
-          console.error("Form not found for data extraction.");
-          return {};
-      }
-      const formData = new FormData(form);
-      const data: Record<string, string | boolean> = {};
-      for (const [key, value] of formData.entries()) {
-        if (value === 'on') {
-          data[key] = true; // Convert checkbox 'on' to boolean true
-        } else if (value) { // Only include textareas/inputs if they have a value
-          data[key] = value as string;
-        }
-      }
-      console.log("Compiled form data:", data);
-      return data;
-      */
+    public gatherDataForServer = (): KeyToStrBoolValueObj => {
+      return this.gatherDataFromContainerForServer();
     }
 
     /**
      * Populates the form fields based on a JSON object from the server.
      * @param data A JSON object with form data.
      */
-    private serverDataToForm = (data: Record<string, string | boolean>): void => {
-        serverDataToFormContainer(this, 'form.rosupdate-container', data)
-        /*
-        if (!this.htmlEl) return;
-        const form = this.htmlEl.dom.querySelector('form.rosupdate-container');
-        if (!form) return;
-
-        // 1. Get all relevant input elements (checkboxes and textareas)
-        const allInputs = form.querySelectorAll<HTMLInputElement | HTMLTextAreaElement>('input[type="checkbox"], textarea');
-
-        // 2. First, reset all inputs to their default state (unchecked/empty)
-        allInputs.forEach(element => {
-            if (element.type === 'checkbox') {
-                (element as HTMLInputElement).checked = false;
-            } else if (element.tagName === 'TEXTAREA') {
-                (element as HTMLTextAreaElement).value = '';
-            }
-        });
-
-        // 3. Then, apply the data received from the server
-        for (const key in data) { // Iterate only over keys present in 'data'
-            const element = form.querySelector<HTMLInputElement | HTMLTextAreaElement>(`[name="${key}"]`);
-            if (element) { // Ensure the element exists in the form
-                if (element.type === 'checkbox') {
-                    (element as HTMLInputElement).checked = data[key] === true;
-                } else if (element.tagName === 'TEXTAREA') {
-                    (element as HTMLTextAreaElement).value = data[key] as string;
-                }
-            }
-        }
-
-        // 4. Finally, trigger change events for all relevant checkboxes to ensure UI consistency.
-        // This is crucial because setting 'checked' programmatically does not fire 'change' events,
-        // and our visibility/mutual exclusion logic relies on these events.
-        // Start with 'none' toggles to handle section visibility and clearing.
-        form.querySelectorAll<HTMLInputElement>('.none-toggle-checkbox').forEach(cb => {
-            cb.dispatchEvent(new Event('change', { bubbles: true }));
-        });
-        // Then, trigger for any other checkboxes that are now checked, to ensure mutual exclusion
-        // (e.g., if a regular option was checked, it should uncheck 'NONE' if it was still checked).
-        form.querySelectorAll<HTMLInputElement>('input[type="checkbox"]:not(.none-toggle-checkbox):checked').forEach(cb => {
-            cb.dispatchEvent(new Event('change', { bubbles: true }));
-        });
-        */
-        // NEW: Update the done button state after loading the data
+    public serverDataToForm = (data: KeyToStrBoolValueObj): void => {
+        serverDataToFormContainer(this, 'form.content-container', data)
         this.updateDoneButtonState();
     }
-
-    /**
-     * Sends the collected form data to the server via a POST request.
-     * @param data The JSON object to send.
-     */
-    private sendDataToServer = async (data: Record<string, string | boolean>): Promise<void> => {
-        return sendDataToServerAPI(this, '/api/rosupdate', data);
-        /*
-        const sessionID = this.ctrl.loginData?.sessionID;
-        if (!sessionID) {
-            console.error("No session ID found. Cannot save form data.");
-            // Optionally, alert the user or attempt to re-authenticate.
-            return;
-        }
-
-        try {
-            const response = await fetch('/api/rosupdate', {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json',
-                },
-                // Send both sessionID and the form data in the body
-                body: JSON.stringify({ sessionID, formData: data })
-            });
-
-            if (!response.ok) {
-                const errorData = await response.json();
-                console.error('Error saving form data:', errorData.message || response.statusText);
-            } else {
-                console.log("Form data successfully autosaved.");
-            }
-        } catch (error) {
-            console.error('Network error while saving form data:', error);
-        }
-        */
-    }
-
-    // Example of an instance method
-    public about(): void {
-        console.log("ROS Component instance");
-    };
 
     public async refresh() : Promise<void> {
         //put any code needed to be executed prior to this class being displayed to user.

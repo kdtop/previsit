@@ -54,7 +54,8 @@ export class TTMGNetwork extends EventTarget {
    * or rejects with an error if the call fails. Returns undefined if a callback is provided.
    */
   // Note: Using `any` for arguments and return types of RPC for flexibility due to Mumps interaction
-  RPC(tag: string, rtn: string, args: any[] = [], callback?: (error: Error | null, result: any) => void): Promise<any> | undefined {
+  RPC<T = any>(tag: string, rtn: string, args: any[] = [], callback?: (error: Error | null, result?: T) => void): Promise<T> | undefined
+  {
     const ydb = this.ydb;
     const mumpsAPIFn = "NODEAPI^TMGNODE1";
     const hasCallback = typeof callback === 'function';
@@ -80,7 +81,7 @@ export class TTMGNetwork extends EventTarget {
       arguments: mumpsFnArgs
     };
 
-    const processResult = function(nodemResult: any): any { // nodemResult type is complex, using any for simplicity
+    const processResultFn = function(nodemResult: any): T { // nodemResult type is complex, using any for simplicity
       if (!nodemResult || !nodemResult.ok) {
           const errorMessage = (nodemResult && nodemResult.errorMessage) || 'Unknown RPC error from nodem';
           const errorCode = (nodemResult && nodemResult.isError) ? nodemResult.errorCode : 'N/A'; // Assuming nodem.isError is available for specific errors
@@ -89,7 +90,7 @@ export class TTMGNetwork extends EventTarget {
 
       try {
         const finalResults = JSON.parse(nodemResult.result);
-        return finalResults;
+        return finalResults as T;
       } catch (parseError: any) {
         throw new Error(`Failed to parse Mumps result as JSON. Result: '${nodemResult.result}'. Error: ${parseError.message}`);
       }
@@ -97,14 +98,16 @@ export class TTMGNetwork extends EventTarget {
 
     if (hasCallback) {
       const hndlCallback: YDB.NodemCallback<string> = function(error, nodemResult) {
-        if (error) { // Handle initial nodem error
-          callback(new Error(`RPC call failed before Mumps execution: ${error.message}`), null);
-        } else { // Process the successful nodem result
+        if (error) {
+          // Handle initial nodem error. No result is passed on error.
+          callback(new Error(`RPC call failed before Mumps execution: ${error.message}`));
+        } else {
+          // Process the successful nodem result
           try {
-            const finalResult = processResult(nodemResult);
+            const finalResult = processResultFn(nodemResult);
             callback(null, finalResult); // Pass null for error on success
           } catch (processingError: any) {
-            callback(processingError, null);
+            callback(processingError);
           }
         }
       };
@@ -112,29 +115,28 @@ export class TTMGNetwork extends EventTarget {
       try {
         this.ydb.function(callOptions, hndlCallback);  //<--- make RPC call to mumps server.
       } catch (syncError: any) {
-        callback(syncError, null);
+        callback(syncError);
       }
       return undefined;
     } else {
-      return new Promise<any>(async (resolve, reject) => { // Promise resolves with 'any'
+      // For the promise-based path, we use an async IIFE (Immediately Invoked Function Expression)
+      // to leverage async/await syntax without the Promise constructor anti-pattern.
+      return (async (): Promise<T> => {
         let nodemResult: any;
         try {
-          // Await the nodem.function call directly, as it returns a Promise
+          // Await the nodem.function call directly. It returns a promise when no callback is provided.
           nodemResult = await this.ydb.function({
             function: mumpsAPIFn,
             arguments: mumpsFnArgs
           });
         } catch (error: any) {
-          return reject(new Error(`RPC call failed before Mumps execution: ${error.message}`));
+          // This catch handles transport-level errors (e.g., network, nodem internal).
+          throw new Error(`RPC call failed before Mumps execution: ${error.message}`);
         }
-
-        try {
-          const finalResult = processResult(nodemResult);
-          resolve(finalResult);
-        } catch (processingError: any) {
-          reject(processingError);
-        }
-      });
+        // processResultFn handles Mumps-level errors and JSON parsing errors by throwing.
+        // Any exception here will be automatically caught and will cause the promise to reject.
+        return processResultFn(nodemResult);
+      })();
     }
   }
 

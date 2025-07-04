@@ -1,14 +1,12 @@
 // /opt/worldvista/EHR/web/previsit/www/components/dashboard.ts
 // Compiles to --> /opt/worldvista/EHR/web/previsit/www/dist/components/dashboard.js
-//import TAppView, { AppViewInstance, EnhancedHTMLElement } from '../utility/appview.js';
 import TAppView from './appview.js';
-import { piece } from '../utility/client_utils.js'; // Import the functions, pointing to the expected .js output
 // ---------------------------------------------------
 // Purpose: Represents the Dashboard component as a class.
 //export default class DashboardAppView extends TAppView implements DashboardAppViewInstance {
 export default class TDashboardAppView extends TAppView {
     constructor(aCtrl, opts) {
-        super('dashboard', aCtrl);
+        super('dashboard', '/api/dashboard', aCtrl);
         { //temp scope for tempInnerHTML
             const tempInnerHTML = `
                 <style>
@@ -67,8 +65,7 @@ export default class TDashboardAppView extends TAppView {
                 </div>
             `; //end of innerHTML
             this.setHTMLEl(tempInnerHTML);
-        }
-        //this.htmlEl.className = 'dashboard';
+        } //end of temp scope for tempInnerHTML
         if (opts) {
             //process opts -- if any added later
         }
@@ -96,7 +93,7 @@ export default class TDashboardAppView extends TAppView {
             }
             const data = await response.json();
             if (data.success && Array.isArray(data.forms)) {
-                this.renderFormButtons(data.forms);
+                this.renderForm(data.forms);
             }
             else {
                 console.error("Failed to load forms:", data.message);
@@ -111,15 +108,20 @@ export default class TDashboardAppView extends TAppView {
         }
     } //loadForms
     /** Renders the buttons for each form. */
-    renderFormButtons(forms) {
+    renderForm(forms) {
         const container = this.htmlEl.$formscontainer;
         if (!container)
             return;
         container.innerHTML = ''; // Clear previous content
-        forms.forEach(formName => {
+        forms.forEach((item) => {
+            const displayName = item.text;
+            if (!displayName)
+                return;
+            const targetName = item.viewName;
+            if (!targetName)
+                return;
+            let progress = item.progress; //user later.  May be undefined or null
             const button = document.createElement('button');
-            const displayName = piece(formName, "^", 1);
-            const targetName = piece(formName, "^", 2);
             button.textContent = displayName; // Set the button's text content
             button.dataset.targetName = targetName;
             button.onclick = (event) => {
@@ -128,7 +130,7 @@ export default class TDashboardAppView extends TAppView {
                 if (targetName === undefined)
                     return;
                 event.preventDefault();
-                console.log(`Clicked on form: ${formName}`);
+                console.log(`Clicked on form: ${targetName}`);
                 console.log(`The clicked button's text was: ${clickedButton.textContent}`);
                 // You can now do something with 'clickedButton'
                 this.triggerChangeView(targetName);
@@ -136,11 +138,6 @@ export default class TDashboardAppView extends TAppView {
             container.appendChild(button);
         });
     }
-    // Example of an instance method
-    about() {
-        console.log("Dashboard Component instance");
-    }
-    ;
     async refresh() {
         //put any code needed to be executed prior to this class being displayed to user.
         await this.loadForms();

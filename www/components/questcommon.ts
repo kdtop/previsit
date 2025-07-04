@@ -1,6 +1,7 @@
 // questcommon.ts - Common helpers for question/checkbox UI
 
 import TAppView, { EnhancedHTMLElement } from './appview.js';
+import {ProgressData } from '../utility/types.js';
 
 /**
  * Creates a category section div and appends it to the parent.
@@ -148,65 +149,6 @@ export function addToggleVisibilityListener (anAppView : TAppView, checkbox: HTM
     checkbox.addEventListener('change', () => toggleVisibility(checkbox.checked));
     toggleVisibility(checkbox.checked); // Initial check
 }
-
-/**
- * Sends the collected form data to the server via a POST request.
- * @param data The JSON object to send.
- */
-export async function sendDataToServerAPI (anAppView : TAppView, apiURL : string, data: Record<string, string | boolean>): Promise<void>
-{
-    const sessionID = anAppView.ctrl.loginData?.sessionID;
-    if (!sessionID) {
-        console.error("No session ID found. Cannot save form data.");
-        // Optionally, alert the user or attempt to re-authenticate.
-        return;
-    }
-    try {
-        const response = await fetch('/api/hxupdate', {
-            method: 'POST',
-            headers: {
-                'Content-Type': 'application/json',
-            },
-            // Send both sessionID and the form data in the body
-            body: JSON.stringify({ sessionID, formData: data })
-        });
-        if (!response.ok) {
-            const errorData = await response.json();
-            console.error('Error saving form data:', errorData.message || response.statusText);
-        } else {
-            console.log("Form data successfully autosaved.");
-        }
-    } catch (error) {
-        console.error('Network error while saving form data:', error);
-    }
-}
-
-/**
- * Gathers all form data into a structured JSON object.
- * @returns A JSON object representing the current state of the form.
- */
-export function gatherDataFromContainerForServer(anAppView : TAppView, containerName : string): Record<string, string | boolean>
-{
-  if (!anAppView) return {};
-  if (!anAppView.htmlEl) return {};
-  const form : HTMLFormElement | null = anAppView.htmlEl.dom.querySelector<HTMLFormElement>(containerName);
-  if (!form) {
-      console.error("Form not found for data extraction.");
-      return {};
-  }
-  const formData = new FormData(form);
-  const data: Record<string, string | boolean> = {};
-  for (const [key, value] of formData.entries()) {
-    if (value === 'on') {
-      data[key] = true; // Convert checkbox 'on' to boolean true
-    } else if (value) { // Only include textareas/inputs if they have a value
-      data[key] = value as string;
-    }
-  }
- console.log("Compiled form data:", data);
-  return data;
-}
-
 
 /**
  * Populates the form fields based on a JSON object from the server.

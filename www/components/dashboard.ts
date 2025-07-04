@@ -1,11 +1,9 @@
 // /opt/worldvista/EHR/web/previsit/www/components/dashboard.ts
 // Compiles to --> /opt/worldvista/EHR/web/previsit/www/dist/components/dashboard.js
 
-//import TAppView, { AppViewInstance, EnhancedHTMLElement } from '../utility/appview.js';
 import TAppView, { EnhancedHTMLElement } from './appview.js';
 import { TCtrl } from '../utility/controller.js';
-import { piece} from '../utility/client_utils.js'; // Import the functions, pointing to the expected .js output
-
+import type { GetPatientFormsApiResponseArray, GetPatientFormsApiResponse } from '../utility/types.js'; // Import types for type safety
 
 // --- Type Definitions ---
 
@@ -36,7 +34,7 @@ interface DashboardOptions {
  */
 interface DashboardApiResponse {
     success: boolean;
-    forms?: string[];
+    forms?: GetPatientFormsApiResponseArray;
     message?: string;
 }
 
@@ -47,7 +45,7 @@ export default class TDashboardAppView extends TAppView {   // implements Dashbo
     declare htmlEl: DashboardHTMLElement; // Use 'declare' to override the type of the inherited property
 
     constructor(aCtrl:  TCtrl,  opts?: DashboardOptions) {
-        super('dashboard', aCtrl);
+        super('dashboard', '/api/dashboard', aCtrl);
         { //temp scope for tempInnerHTML
             const tempInnerHTML = `
                 <style>
@@ -106,8 +104,7 @@ export default class TDashboardAppView extends TAppView {   // implements Dashbo
                 </div>
             `;  //end of innerHTML
             this.setHTMLEl(tempInnerHTML);
-        }
-        //this.htmlEl.className = 'dashboard';
+        }  //end of temp scope for tempInnerHTML
         if (opts) {
           //process opts -- if any added later
         }
@@ -139,7 +136,7 @@ export default class TDashboardAppView extends TAppView {   // implements Dashbo
             const data: DashboardApiResponse = await response.json();
 
             if (data.success && Array.isArray(data.forms)) {
-                this.renderFormButtons(data.forms);
+                this.renderForm(data.forms);
             } else {
                 console.error("Failed to load forms:", data.message);
                 if (this.htmlEl.$formscontainer) this.htmlEl.$formscontainer.textContent = "Could not load forms.";
@@ -151,14 +148,17 @@ export default class TDashboardAppView extends TAppView {   // implements Dashbo
     }  //loadForms
 
     /** Renders the buttons for each form. */
-    private renderFormButtons(forms: string[]): void {
+    private renderForm(forms: GetPatientFormsApiResponseArray): void {
         const container = this.htmlEl.$formscontainer;
         if (!container) return;
         container.innerHTML = '';  // Clear previous content
-        forms.forEach(formName => {
+        forms.forEach((item : GetPatientFormsApiResponse) => {
+            const displayName = item.text;
+            if (!displayName) return;
+            const targetName = item.viewName;
+            if (!targetName) return;
+            let progress = item.progress;  //user later.  May be undefined or null
             const button = document.createElement('button');
-            const displayName = piece(formName, "^", 1)
-            const targetName = piece(formName, "^", 2)
             button.textContent = displayName; // Set the button's text content
             button.dataset.targetName = targetName;
             button.onclick = (event: MouseEvent) => { // The event object is passed here
@@ -166,7 +166,7 @@ export default class TDashboardAppView extends TAppView {   // implements Dashbo
                 const targetName = clickedButton.dataset.targetName;
                 if (targetName === undefined) return;
                 event.preventDefault()
-                console.log(`Clicked on form: ${formName}`);
+                console.log(`Clicked on form: ${targetName}`);
                 console.log(`The clicked button's text was: ${clickedButton.textContent}`);
                 // You can now do something with 'clickedButton'
                 this.triggerChangeView(targetName);
@@ -174,11 +174,6 @@ export default class TDashboardAppView extends TAppView {   // implements Dashbo
             container.appendChild(button);
         });
     }
-
-    // Example of an instance method
-    public about(): void {
-        console.log("Dashboard Component instance");
-    };
 
     public async refresh() : Promise<void> {
         //put any code needed to be executed prior to this class being displayed to user.
