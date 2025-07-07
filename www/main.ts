@@ -10,6 +10,7 @@ import TLoginAppView  from './components/login.js';
 import THxUpdateAppView  from './components/hxupdate.js';
 import TRosUpdateAppView  from './components/rosupdate.js';
 import TMedReviewAppView  from './components/medication_review.js';
+import TSigFormAppView  from './components/sig_form.js';
 import TAppView, { EnhancedHTMLElement } from './components/appview.js';
 import { TCtrl } from './utility/controller.js';
 import { LoginApiResponse, ChangeViewEventDetail } from './utility/types.js';
@@ -25,11 +26,12 @@ import { LoginApiResponse, ChangeViewEventDetail } from './utility/types.js';
 // Define module-scoped variables that need to be accessible across functions
 let dB: HTMLBodyElement; // document.body
 let ctrl: TCtrl;
-let dashboardAppView: TDashboardAppView;
-let loginAppView:     TLoginAppView;
-let hxUpdateAppView:  THxUpdateAppView;
-let rosUpdateAppView: TRosUpdateAppView;
-let MedReviewAppView:  TMedReviewAppView;
+let dashboardAppView:  TDashboardAppView;
+let loginAppView:      TLoginAppView;
+let hxUpdateAppView:   THxUpdateAppView;
+let rosUpdateAppView:  TRosUpdateAppView;
+let medReviewAppView:  TMedReviewAppView;
+let sigformAppView:    TSigFormAppView;
 
 // --------------------------
 // Named functions for core application logic
@@ -71,7 +73,8 @@ async function initializeApp()
     dashboardAppView = new TDashboardAppView(ctrl);
     hxUpdateAppView  = new THxUpdateAppView(ctrl);
     rosUpdateAppView  = new TRosUpdateAppView(ctrl);
-    MedReviewAppView  = new TMedReviewAppView(ctrl);   // Eddie 7/1/25
+    medReviewAppView  = new TMedReviewAppView(ctrl);
+    sigformAppView    = new TSigFormAppView(ctrl);
 
     //await switchTo(rosUpdateAppView); // Pass the HTML element to switchTo
     await switchTo(loginAppView); // Pass the HTML element to switchTo

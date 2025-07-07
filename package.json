@@ -17,7 +17,8 @@
   "description": "",
   "dependencies": {
     "express": "^5.1.0",
-    "nodem": "^0.20.9"
+    "nodem": "^0.20.9",
+    "signature_pad": "^5.0.10"
   },
   "devDependencies": {
     "@types/express": "^5.0.3",

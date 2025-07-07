@@ -175,12 +175,38 @@ export default class TAppView<TServerData = any> {
 
     public updateProgressState = (): void => {
         //NOTE: This is a virtual method, to be overridden by descendant classes
+        //AND, this needs to be an arrow function to bind `this` correctly.
+        //    Otherwise, `this` will not refer to the instance in the overridden method.
 
         // Reset progress data
         this.progressData.answeredItems = 0;
         this.progressData.unansweredItems = 0;
         this.progressData.totalItems = 0;
         this.progressData.progressPercentage = 0;
+    }
+
+    public async prePopulateFromServer(): Promise<void>
+    {
+        // NEW: Try to prepopulate form from server data
+        try {
+            const sessionID = this.ctrl.loginData?.sessionID;
+            if (!sessionID) return;       // No session, so nothing to do.
+            const URL = this.apiURL + `?sessionID=${encodeURIComponent(sessionID)}`;
+            const resp = await fetch(URL);
+            if (!resp.ok) {
+                   // Log the failure to fetch data. The form will just not be prepopulated.
+                   console.warn(`Failed to fetch prepopulation data: ${resp.status} ${resp.statusText}`);
+                   return;
+            }
+            const result = await resp.json();
+            if (result.success && result.data) {
+                   let data: TServerData = result.data as TServerData;
+                   this.serverDataToForm(data);
+                   // The serverDataToForm method is expected to update the UI elements
+            }
+        } catch (e) {
+            console.warn("Could not prepopulate form from server data.", e);
+        }
     }
 
     public gatherDataForServer = (): TServerData => {
@@ -192,8 +218,9 @@ export default class TAppView<TServerData = any> {
      * Populates the form fields based on a JSON object from the server.
      * @param data A JSON object with form data.
      */
-    public serverDataToForm = (data: any): void => {
+    public serverDataToForm = (data: TServerData ): void => {
         // NOTE: This is a virtual method, to be overridden by descendant classes
+        throw new Error("Method 'serverDataToForm' must be implemented by subclasses.");
     }
 
     /**
@@ -250,18 +277,19 @@ export default class TAppView<TServerData = any> {
             // Optionally, alert the user or attempt to re-authenticate.
             return;
         }
+        const URL = this.apiURL + `?sessionID=${encodeURIComponent(sessionID)}`;
         try {
-            const response = await fetch(this.apiURL, {
+            const info =  {
                 method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json',
-                },
+                headers: { 'Content-Type': 'application/json' },
                 // Send both sessionID and the form data in the body
                 body: JSON.stringify({ sessionID,
-                                       formData: data,
+                                       data: data,
                                        progress: progress
                                      })
-            });
+            };
+
+            const response = await fetch(URL,info);  //<-- This is the POST request to the server
             if (!response.ok) {
                 const errorData = await response.json();
                 console.error('Error saving form data:', errorData.message || response.statusText);
@@ -274,8 +302,7 @@ export default class TAppView<TServerData = any> {
     }
 
 
-    public updateDoneButtonState(): void
-    {
+    public updateDoneButtonState = (): void => {
         this.updateProgressState();  //updates this.progressData
 
         const unansweredCount = this.progressData.unansweredItems || 0;
@@ -308,7 +335,7 @@ export default class TAppView<TServerData = any> {
             doneButton.classList.add('done-button-incomplete');
             doneButton.classList.remove('done-button-complete');
         }
-    }
+    };
 
 
     /**
@@ -327,5 +354,13 @@ export default class TAppView<TServerData = any> {
         this.triggerChangeView("dashboard");
     }
 
+
+    public resetProgressState = (): void => {
+        // Reset progress data to default
+        this.progressData.answeredItems = 0;
+        this.progressData.totalItems = 0;
+        this.progressData.unansweredItems = 1;  //in case this is tested separately, 0 would look like completed.
+        this.progressData.progressPercentage = 0;
+    }
 
 }

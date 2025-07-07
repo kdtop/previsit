@@ -496,6 +496,9 @@ export default class TMedReviewAppView extends TAppView {
         if (patientNameEl) {
             patientNameEl.textContent = this.ctrl.patientFullName || "Valued Patient";
         }
+        this.setupFormEventListeners();
+        await this.prePopulateFromServer(); //evokes call to serverDataToForm()
+        /*
         // Fetch and display medication list
         try {
             const sessionID = this.ctrl.loginData?.sessionID;
@@ -505,43 +508,30 @@ export default class TMedReviewAppView extends TAppView {
                     const result = await resp.json();
                     if (result.success && result.data && Array.isArray(result.data)) {
                         this.medicationData = result.data; // Store the full list
-                        /*
-                        this.medications = []; // Clear previous medications
-                        result.data.forEach((oneMed: UserMedicationAnswers) => {
-                            if (!oneMed.text) oneMed.text = "??";  // Ensure .text is always defined                    }
-                            this.medications.push(oneMed.text); // Store only the original text
-                        });
-                        */
-                        //this.medications = result.data; // Store the full list
                         this.currentMedIndex = 0; // Start with the first medication
-                        //this.initializeMedicationAnswers(this.medications); // Initialize answer storage
                         this.renderCurrentMedication(this.currentMedIndex); // Render the first medication
-                    }
-                    else {
+                    } else {
                         if (this.htmlEl.$medicationDisplayArea) {
                             this.htmlEl.$medicationDisplayArea.innerHTML = '<p>No medication data found or data is not in expected format.</p>';
                         }
                     }
-                }
-                else {
+                } else {
                     if (this.htmlEl.$medicationDisplayArea) {
                         this.htmlEl.$medicationDisplayArea.innerHTML = `<p>Error fetching medication data: ${resp.status} ${resp.statusText}</p>`;
                     }
                 }
-            }
-            else {
+            } else {
                 if (this.htmlEl.$medicationDisplayArea) {
                     this.htmlEl.$medicationDisplayArea.innerHTML = '<p>Session ID not found. Cannot retrieve medication list.</p>';
                 }
             }
-        }
-        catch (e) {
+        } catch (e) {
             console.error("Failed to fetch or display medication list.", e);
             if (this.htmlEl.$medicationDisplayArea) {
                 this.htmlEl.$medicationDisplayArea.innerHTML = '<p>An error occurred while loading your medication list.</p>';
             }
         }
-        this.setupFormEventListeners();
+        */
         this.updateDoneButtonState(); // Update initially
     }
     /**
@@ -942,6 +932,17 @@ export default class TMedReviewAppView extends TAppView {
         this.progressData.answeredItems = answeredCount;
         this.progressData.unansweredItems = unansweredCount;
         this.progressData.progressPercentage = totalQuestions > 0 ? Math.round((answeredCount / totalQuestions) * 100) : 0;
+    };
+    /**
+     * Populates the form fields based on a JSON object from the server.
+     * @param data A JSON object with data.
+     */
+    serverDataToForm = (data) => {
+        this.medicationData = data; // Store the full list
+        this.currentMedIndex = 0; // Start with the first medication
+        this.renderCurrentMedication(this.currentMedIndex); // Render the first medication
+        // Update the done button state after loading the data
+        this.updateDoneButtonState();
     };
     /**
      * Gathers all medication answers into a structured JSON object.

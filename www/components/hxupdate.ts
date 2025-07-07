@@ -301,6 +301,8 @@ export default class THxUpdateAppView extends TAppView<KeyToStrBoolValueObj> {
         // Setup autosave and the "Done" button listener
         this.setupFormEventListeners();
 
+        await this.prePopulateFromServer(); //evokes call to serverDataToForm()
+        /*
         // NEW: Try to prepopulate form from server data
         try {
             const sessionID = this.ctrl.loginData?.sessionID;
@@ -317,6 +319,7 @@ export default class THxUpdateAppView extends TAppView<KeyToStrBoolValueObj> {
         } catch (e) {
             console.warn("Could not prepopulate hxupdate form from server data.", e);
         }
+        */
         // If no data, set the initial state of the done button after the form is rendered
         this.updateDoneButtonState();
     }

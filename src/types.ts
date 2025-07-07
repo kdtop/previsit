@@ -54,3 +54,9 @@ export interface ProgressData {
 };
 
 export type KeyToStrBoolValueObj = Record<string, string | boolean>;
+
+export interface SigFormData {
+    encodedSignature?: string; // Base64 encoded string of the signature image
+    displayText?: string[];    // array of html text to be displayed
+    progress?: ProgressData; // Progress data for the signature form
+}

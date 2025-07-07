@@ -528,6 +528,10 @@ export default class TMedReviewAppView extends TAppView<UserMedAnswersArray> {
             patientNameEl.textContent = this.ctrl.patientFullName || "Valued Patient";
         }
 
+        this.setupFormEventListeners();
+
+        await this.prePopulateFromServer(); //evokes call to serverDataToForm()
+        /*
         // Fetch and display medication list
         try {
             const sessionID = this.ctrl.loginData?.sessionID;
@@ -537,16 +541,7 @@ export default class TMedReviewAppView extends TAppView<UserMedAnswersArray> {
                     const result = await resp.json();
                     if (result.success && result.data && Array.isArray(result.data)) {
                         this.medicationData = result.data; // Store the full list
-                        /*
-                        this.medications = []; // Clear previous medications
-                        result.data.forEach((oneMed: UserMedicationAnswers) => {
-                            if (!oneMed.text) oneMed.text = "??";  // Ensure .text is always defined                    }
-                            this.medications.push(oneMed.text); // Store only the original text
-                        });
-                        */
-                        //this.medications = result.data; // Store the full list
                         this.currentMedIndex = 0; // Start with the first medication
-                        //this.initializeMedicationAnswers(this.medications); // Initialize answer storage
                         this.renderCurrentMedication(this.currentMedIndex); // Render the first medication
                     } else {
                         if (this.htmlEl.$medicationDisplayArea) {
@@ -569,8 +564,8 @@ export default class TMedReviewAppView extends TAppView<UserMedAnswersArray> {
                 this.htmlEl.$medicationDisplayArea.innerHTML = '<p>An error occurred while loading your medication list.</p>';
             }
         }
+        */
 
-        this.setupFormEventListeners();
         this.updateDoneButtonState(); // Update initially
     }
 
@@ -997,6 +992,19 @@ export default class TMedReviewAppView extends TAppView<UserMedAnswersArray> {
         this.progressData.answeredItems = answeredCount;
         this.progressData.unansweredItems = unansweredCount;
         this.progressData.progressPercentage = totalQuestions > 0 ? Math.round((answeredCount / totalQuestions) * 100) : 0;
+    }
+
+    /**
+     * Populates the form fields based on a JSON object from the server.
+     * @param data A JSON object with data.
+     */
+    public serverDataToForm = (data: UserMedAnswersArray): void => {
+        this.medicationData = data; // Store the full list
+        this.currentMedIndex = 0; // Start with the first medication
+        this.renderCurrentMedication(this.currentMedIndex); // Render the first medication
+
+        // Update the done button state after loading the data
+        this.updateDoneButtonState();
     }
 
 

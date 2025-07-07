@@ -266,23 +266,7 @@ export default class TRosUpdateAppView extends TAppView {
         this.renderRos(container); // "Review of Systems"
         // Setup autosave and the "Done" button listener
         this.setupFormEventListeners();
-        // NEW: Try to prepopulate form from server data
-        try {
-            const sessionID = this.ctrl.loginData?.sessionID;
-            if (sessionID) {
-                const resp = await fetch(`/api/rosupdate?sessionID=${encodeURIComponent(sessionID)}`);
-                if (resp.ok) {
-                    const result = await resp.json();
-                    if (result.success && result.data && Object.keys(result.data).length > 0) {
-                        this.serverDataToForm(result.data);
-                        return; // Done button state will be updated in serverDataToForm
-                    }
-                }
-            }
-        }
-        catch (e) {
-            console.warn("Could not prepopulate rosupdate form from server data.", e);
-        }
+        await this.prePopulateFromServer(); //evokes call to serverDataToForm()
         // If no data, set the initial state of the done button after the form is rendered
         this.updateDoneButtonState();
     }
@@ -396,7 +380,7 @@ export default class TRosUpdateAppView extends TAppView {
         });
     };
     /**
-     * NEW: Updates the state of progress
+     * Updates the state of progress
      */
     updateProgressState = () => {
         // Reset progress data

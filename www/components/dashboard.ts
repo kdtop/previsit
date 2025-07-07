@@ -41,7 +41,7 @@ interface DashboardApiResponse {
 // ---------------------------------------------------
 // Purpose: Represents the Dashboard component as a class.
 //export default class DashboardAppView extends TAppView implements DashboardAppViewInstance {
-export default class TDashboardAppView extends TAppView {   // implements DashboardAppViewInstance
+export default class TDashboardAppView extends TAppView<GetPatientFormsApiResponseArray> {   // implements DashboardAppViewInstance
     declare htmlEl: DashboardHTMLElement; // Use 'declare' to override the type of the inherited property
 
     constructor(aCtrl:  TCtrl,  opts?: DashboardOptions) {
@@ -83,10 +83,48 @@ export default class TDashboardAppView extends TAppView {   // implements Dashbo
                         cursor: pointer;
                         font-size: 1.05em;
                         text-align: left;
-                        transition: background-color 0.3s ease;
+                        transition: background-color 0.3s ease, border-color 0.3s ease;
+                        display: flex;
+                        justify-content: space-between;
+                        align-items: center;
                     }
                     .forms-container button:hover {
                         background-color: #0056b3;
+                    }
+                    .forms-container button.completed {
+                        background-color: #28a745; /* Green for completed */
+                        border-color: #218838;
+                    }
+                    .forms-container button.completed:hover {
+                        background-color: #218838;
+                    }
+                    .button-text {
+                        flex-grow: 1;
+                    }
+                    .progress-container {
+                        display: flex;
+                        align-items: center;
+                        gap: 10px;
+                        margin-left: 20px; /* Space between text and progress */
+                    }
+                    .progress-bar-container {
+                        width: 120px; /* A fixed width for the bar */
+                        height: 12px;
+                        background-color: rgba(255, 255, 255, 0.3); /* Lighter background for the bar */
+                        border-radius: 6px;
+                        overflow: hidden;
+                        border: 1px solid rgba(0, 0, 0, 0.1);
+                    }
+                    .progress-bar {
+                        height: 100%;
+                        background-color: #f1c40f; /* A distinct color for progress */
+                        border-radius: 6px 0 0 6px; /* Keep left radius */
+                        transition: width 0.4s ease-in-out;
+                    }
+                    .progress-text {
+                        font-size: 0.9em;
+                        min-width: 45px; /* Prevents layout shift */
+                        text-align: right;
                     }
                     .instructions {
                         background-color:rgb(236, 231, 231);
@@ -126,6 +164,9 @@ export default class TDashboardAppView extends TAppView {   // implements Dashbo
         if (this.htmlEl.$patientname) {
             this.htmlEl.$patientname.textContent = this.ctrl.patientFullName || "Valued Patient";
         }
+
+        await this.prePopulateFromServer(); //evokes call to serverDataToForm()
+        /*
         try {
             const params = new URLSearchParams({ sessionID });
             const URL = `/api/dashboard?${params.toString()}`;
@@ -145,30 +186,60 @@ export default class TDashboardAppView extends TAppView {   // implements Dashbo
             console.error("Error fetching forms:", error);
             if (this.htmlEl.$formscontainer) this.htmlEl.$formscontainer.textContent = "Error loading forms. Please try again later.";
         }
+        */
     }  //loadForms
 
     /** Renders the buttons for each form. */
-    private renderForm(forms: GetPatientFormsApiResponseArray): void {
+    public serverDataToForm = (forms: GetPatientFormsApiResponseArray): void => {
         const container = this.htmlEl.$formscontainer;
         if (!container) return;
         container.innerHTML = '';  // Clear previous content
         forms.forEach((item : GetPatientFormsApiResponse) => {
             const displayName = item.text;
-            if (!displayName) return;
             const targetName = item.viewName;
-            if (!targetName) return;
-            let progress = item.progress;  //user later.  May be undefined or null
+            if (!displayName || !targetName) return;
+
+            const progress = item.progress;
             const button = document.createElement('button');
-            button.textContent = displayName; // Set the button's text content
             button.dataset.targetName = targetName;
-            button.onclick = (event: MouseEvent) => { // The event object is passed here
-                const clickedButton = event.currentTarget as HTMLButtonElement; // Get the button element
+
+            const buttonText = document.createElement('span');
+            buttonText.className = 'button-text';
+            buttonText.textContent = displayName;
+            button.appendChild(buttonText);
+
+            // Create and append progress elements if progress data is available
+            if (progress && typeof progress.progressPercentage === 'number') {
+                const progressContainer = document.createElement('div');
+                progressContainer.className = 'progress-container';
+
+                const progressBarContainer = document.createElement('div');
+                progressBarContainer.className = 'progress-bar-container';
+
+                const progressBar = document.createElement('div');
+                progressBar.className = 'progress-bar';
+                progressBar.style.width = `${progress.progressPercentage}%`;
+
+                progressBarContainer.appendChild(progressBar);
+
+                const progressText = document.createElement('span');
+                progressText.className = 'progress-text';
+                progressText.textContent = `${progress.progressPercentage}%`;
+
+                progressContainer.appendChild(progressBarContainer);
+                progressContainer.appendChild(progressText);
+                button.appendChild(progressContainer);
+
+                if (progress.progressPercentage === 100) {
+                    button.classList.add('completed');
+                }
+            }
+
+            button.onclick = (event: MouseEvent) => {
+                const clickedButton = event.currentTarget as HTMLButtonElement;
                 const targetName = clickedButton.dataset.targetName;
                 if (targetName === undefined) return;
-                event.preventDefault()
-                console.log(`Clicked on form: ${targetName}`);
-                console.log(`The clicked button's text was: ${clickedButton.textContent}`);
-                // You can now do something with 'clickedButton'
+                event.preventDefault();
                 this.triggerChangeView(targetName);
             };
             container.appendChild(button);

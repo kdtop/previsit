@@ -44,10 +44,48 @@ export default class TDashboardAppView extends TAppView {
                         cursor: pointer;
                         font-size: 1.05em;
                         text-align: left;
-                        transition: background-color 0.3s ease;
+                        transition: background-color 0.3s ease, border-color 0.3s ease;
+                        display: flex;
+                        justify-content: space-between;
+                        align-items: center;
                     }
                     .forms-container button:hover {
                         background-color: #0056b3;
+                    }
+                    .forms-container button.completed {
+                        background-color: #28a745; /* Green for completed */
+                        border-color: #218838;
+                    }
+                    .forms-container button.completed:hover {
+                        background-color: #218838;
+                    }
+                    .button-text {
+                        flex-grow: 1;
+                    }
+                    .progress-container {
+                        display: flex;
+                        align-items: center;
+                        gap: 10px;
+                        margin-left: 20px; /* Space between text and progress */
+                    }
+                    .progress-bar-container {
+                        width: 120px; /* A fixed width for the bar */
+                        height: 12px;
+                        background-color: rgba(255, 255, 255, 0.3); /* Lighter background for the bar */
+                        border-radius: 6px;
+                        overflow: hidden;
+                        border: 1px solid rgba(0, 0, 0, 0.1);
+                    }
+                    .progress-bar {
+                        height: 100%;
+                        background-color: #f1c40f; /* A distinct color for progress */
+                        border-radius: 6px 0 0 6px; /* Keep left radius */
+                        transition: width 0.4s ease-in-out;
+                    }
+                    .progress-text {
+                        font-size: 0.9em;
+                        min-width: 45px; /* Prevents layout shift */
+                        text-align: right;
                     }
                     .instructions {
                         background-color:rgb(236, 231, 231);
@@ -84,6 +122,8 @@ export default class TDashboardAppView extends TAppView {
         if (this.htmlEl.$patientname) {
             this.htmlEl.$patientname.textContent = this.ctrl.patientFullName || "Valued Patient";
         }
+        await this.prePopulateFromServer(); //evokes call to serverDataToForm()
+        /*
         try {
             const params = new URLSearchParams({ sessionID });
             const URL = `/api/dashboard?${params.toString()}`;
@@ -91,53 +131,69 @@ export default class TDashboardAppView extends TAppView {
             if (!response.ok) {
                 throw new Error(`HTTP error! Status: ${response.status}`);
             }
-            const data = await response.json();
+            const data: DashboardApiResponse = await response.json();
+
             if (data.success && Array.isArray(data.forms)) {
                 this.renderForm(data.forms);
-            }
-            else {
+            } else {
                 console.error("Failed to load forms:", data.message);
-                if (this.htmlEl.$formscontainer)
-                    this.htmlEl.$formscontainer.textContent = "Could not load forms.";
+                if (this.htmlEl.$formscontainer) this.htmlEl.$formscontainer.textContent = "Could not load forms.";
             }
-        }
-        catch (error) {
+        } catch (error) {
             console.error("Error fetching forms:", error);
-            if (this.htmlEl.$formscontainer)
-                this.htmlEl.$formscontainer.textContent = "Error loading forms. Please try again later.";
+            if (this.htmlEl.$formscontainer) this.htmlEl.$formscontainer.textContent = "Error loading forms. Please try again later.";
         }
+        */
     } //loadForms
     /** Renders the buttons for each form. */
-    renderForm(forms) {
+    serverDataToForm = (forms) => {
         const container = this.htmlEl.$formscontainer;
         if (!container)
             return;
         container.innerHTML = ''; // Clear previous content
         forms.forEach((item) => {
             const displayName = item.text;
-            if (!displayName)
-                return;
             const targetName = item.viewName;
-            if (!targetName)
+            if (!displayName || !targetName)
                 return;
-            let progress = item.progress; //user later.  May be undefined or null
+            const progress = item.progress;
             const button = document.createElement('button');
-            button.textContent = displayName; // Set the button's text content
             button.dataset.targetName = targetName;
+            const buttonText = document.createElement('span');
+            buttonText.className = 'button-text';
+            buttonText.textContent = displayName;
+            button.appendChild(buttonText);
+            // Create and append progress elements if progress data is available
+            if (progress && typeof progress.progressPercentage === 'number') {
+                const progressContainer = document.createElement('div');
+                progressContainer.className = 'progress-container';
+                const progressBarContainer = document.createElement('div');
+                progressBarContainer.className = 'progress-bar-container';
+                const progressBar = document.createElement('div');
+                progressBar.className = 'progress-bar';
+                progressBar.style.width = `${progress.progressPercentage}%`;
+                progressBarContainer.appendChild(progressBar);
+                const progressText = document.createElement('span');
+                progressText.className = 'progress-text';
+                progressText.textContent = `${progress.progressPercentage}%`;
+                progressContainer.appendChild(progressBarContainer);
+                progressContainer.appendChild(progressText);
+                button.appendChild(progressContainer);
+                if (progress.progressPercentage === 100) {
+                    button.classList.add('completed');
+                }
+            }
             button.onclick = (event) => {
-                const clickedButton = event.currentTarget; // Get the button element
+                const clickedButton = event.currentTarget;
                 const targetName = clickedButton.dataset.targetName;
                 if (targetName === undefined)
                     return;
                 event.preventDefault();
-                console.log(`Clicked on form: ${targetName}`);
-                console.log(`The clicked button's text was: ${clickedButton.textContent}`);
-                // You can now do something with 'clickedButton'
                 this.triggerChangeView(targetName);
             };
             container.appendChild(button);
         });
-    }
+    };
     async refresh() {
         //put any code needed to be executed prior to this class being displayed to user.
         await this.loadForms();
