@@ -1,0 +1,124 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Patient Consent Form</title>
+  <style>
+    body { font-family: Arial, sans-serif; margin: 20px; line-height: 1.6; }
+    h2 { color: #003366; }
+    label { display: block; margin-top: 10px; }
+    .authperson { width: 95%; }
+    .authphone { width: 95%; }
+    .fullwidth { width: 95%; }
+    input[type="text"], input[type="date"] { padding: 8px; margin-top: 5px; }
+    textarea { width: 100%; height: 100px; margin-top: 5px; }
+    .checkbox-group { margin-bottom: 20px; background: #f7f4f2;}
+    .checkbox-group label {  margin-right: 10px; }
+    table { width: 100%; border-collapse: collapse; margin-top: 10px; }
+    table, th, td { border: 1px solid #ccc; }
+    th, td { padding: 8px; text-align: left; }
+    button { padding: 10px 20px; background-color: #0066cc; color: white; border: none; cursor: pointer; }
+    .fullname {display: inline-block;  padding-left: 5px; }
+    table { margin-bottom: 10px }
+    p {background: #f7f4f2;}
+    ul {background: #f7f4f2;}
+  </style>
+</head>
+<body>
+  <h2>Patient Consent to Use and Disclose Protected Health Information</h2>
+
+  <h4>Patient: <div class='fullname'>Replacement_Last_Name, Replacement_First_Name DOB:1/1/1900</div> </h4>
+  <h3>Section A: Consent for Treatment, Payment, and Healthcare Operations</h3>
+  <p>
+    Family Physicians of Greeneville's (FPG) <strong></strong>Notice of Privacy Practices</strong> may be found <a href="https://www.familyphysiciansofgreeneville.com/_files/ugd/bd7ca0_69a0b3bae5c14551b7ffba431d2bac3b.pdf" target="_blank">by clicking here.</a>
+    It provides information about how FPG may use and disclose protected health information (PHI) about you. You have the right to, and should, review our
+    Notice before signing this consent. The terms of our Notice may change, and if so, you may obtain a
+    revised copy by contacting the HIPAA Privacy Officer.
+  </p>
+  <p>
+    You have the right to request in writing that we restrict how PHI about you is used or disclosed for
+    treatment, payment, or healthcare operations, though we are not necessarily required to agree to such restrictions.
+  </p>
+  <p>
+    By signing this form:
+    <ul>
+      <li>You acknowledge that you have received and reviewed our <a href="https://www.familyphysiciansofgreeneville.com/_files/ugd/bd7ca0_69a0b3bae5c14551b7ffba431d2bac3b.pdf" target="_blank" style="margin-right: 2px;"><strong>Notice of Privacy Practices</strong></a>.</li>
+      <li>You consent to our use and disclosure of your PHI for the purposes of treatment, payment, and healthcare operations.</li>
+    </ul>
+  </p>
+  <p>NOTES:</p>
+  <p>
+    <ul>
+      <li>You have the right to revoke this consent in writing at any time, except to the extent we have already relied on it.</li>
+      <li>You are entitled to receive a copy of this signed consent form upon request.</li>
+      <li>Our HIPAA Privacy Officer is <strong>Eddie Hagood – (423) 787-7000 x4</strong></li>
+    </ul>
+
+  </p>
+  <button id="sectionA" >I agree, see signature below</button>
+  <hr>
+
+  <h3>Section B: Special Consent Regarding Sensitive Information</h3>
+  <p>I understand that my protected health information (PHI) used or disclosed may include sensitive information, such as:</p>
+  <ul>
+    <li>Psychotherapy notes</li>
+    <li>Venereal disease(s)</li>
+    <li>Substance abuse treatment</li>
+    <li>HIV/AIDS-related information</li>
+  </ul>
+  <p>I consent to Family Physicians of Greeneville (FPG) using or disclosing such
+    sensitive information to carry out treatment, payment, or healthcare operations, including:</p>
+  <ul>
+    <li>Use by the mental health provider who created the notes</li>
+    <li>Use in supervised training programs</li>
+    <li>Disclosure to defend a legal proceeding</li>
+  </ul>
+
+  <button id="sectionB" >I agree, see signature below</button>
+  <hr>
+
+  <h3>Section C: How we (FPG) will contact you for appointments, test results, etc.</h3>
+  <p>I understand that by signing this, I am giving Family Physicians of Greeneville permission to contact me:</p>
+  <ul>
+    <li>By phone (either directly or by leaving a message)</li>
+    <li>By mail (this gives us permission to mail records to you via the address we have on file)</li>
+  </ul>
+
+  <button id="sectionC" >I approve above, see signature below</button>
+  <hr>
+  <h3>Section D: Authorized Individuals</h3>
+  <p>Please let us (FPG) know with whom we may share your protected health information (PHI).
+    For example, if you would like us to be able to discuss your medical case with a relative or caregiver, we need
+    permission to do so.  By listing persons below, you will give us such authorization. </p>
+  <table>
+    <thead>
+      <tr><th>Person Authorized to Access PHI</th><th>Relationship to Patient</th><th>Phone Number</th></tr>
+    </thead>
+    <tbody>
+      <tr><td><input class="authperson" type="text" name="authName1" /></td><td><input class="authperson" type="text" name="authRel1" /></td><td><input class="authphone" type="text" name="authPhone1" /></td></tr>
+      <tr><td><input class="authperson" type="text" name="authName2" /></td><td><input class="authperson" type="text" name="authRel2" /></td><td><input class="authphone" type="text" name="authPhone2" /></td></tr>
+      <tr><td><input class="authperson" type="text" name="authName3" /></td><td><input class="authperson" type="text" name="authRel3" /></td><td><input class="authphone" type="text" name="authPhone3" /></td></tr>
+    </tbody>
+  </table>
+
+  <button  id="sectionD" >I approve above, see signature below</button>
+  <hr>
+  <h3>Signature</h3>
+  <h4>Patient Name: <div class='fullname'>Replacement_Last_Name, Replacement_First_Name DOB: 1/1/1900</div> </h4>
+  <p>By signing below I am authorizing and signing each of the sections (A to D) above. </p>
+  <label for="signature">Signature of patient (or patient's representative):</label>
+  <div id="signature-container">
+    <input class="fullwidth" type="text" id="signature" name="signature" />
+  </div>
+
+  <label for="repName">If signature is of representative, enter representative's printed name:</label>
+  <input class="fullwidth" type="text" id="repName" name="repName" />
+
+  <label for="relationship">Representative's relationship to patient:</label>
+  <input class="fullwidth" type="text" id="relationship" name="relationship" />
+
+  <button id="done" >DONE</button>
+
+</body>
+</html>

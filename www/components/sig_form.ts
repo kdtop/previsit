@@ -177,7 +177,7 @@ export default class TSigFormAppView extends TAppView<SigFormData> {
         this.htmlEl.$clearSignatureBtn = this.htmlEl.dom.querySelector<HTMLButtonElement>('.clear-btn');
         // Removed caching for save button: this.htmlEl.$saveSignatureBtn = this.htmlEl.dom.querySelector<HTMLButtonElement>('.save-btn');
         this.htmlEl.$dontSignBtn = this.htmlEl.dom.querySelector<HTMLButtonElement>('.dont-sign-btn'); // Cache new button
-        this.htmlEl.$contentSection = this.htmlEl.dom.querySelector<HTMLDivElement>('.content-section'); // Cache content section
+        this.htmlEl.$contentsection = this.htmlEl.dom.querySelector<HTMLDivElement>('.content-section'); // Cache content section
 
         this.initializeSignaturePad(); // Initialize the signature pad
 
@@ -337,8 +337,8 @@ export default class TSigFormAppView extends TAppView<SigFormData> {
                 this.htmlEl.$loadedSignatureImg.src = '';
             }
         }
-        if (data.displayText && this.htmlEl.$contentSection) {
-            this.htmlEl.$contentSection.innerHTML = data.displayText;
+        if (data.displayText && this.htmlEl.$contentsection) {
+            this.htmlEl.$contentsection.innerHTML = data.displayText.join('');
         }
         // Update the done button state after loading the data
         this.updateDoneButtonState();

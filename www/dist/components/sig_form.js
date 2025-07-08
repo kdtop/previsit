@@ -134,7 +134,7 @@ export default class TSigFormAppView extends TAppView {
                 <h1>Patient Consent Form</h1>
 
                 <div class="content-section">
-                    <p>Lorem ipsum dolor sit amet, consectetur adipiscing elit. Ut enim ad minim veniam, quis nostrud exercitation ullamco laboris nisi ut aliquip ex ea commodo consequat. Duis aute irure dolor in reprehenderit in voluptate velit esse cillum dolore eu fugiat nulla pariatur.</p>
+                    <p>ZZZLorem ipsum dolor sit amet, consectetur adipiscing elit. Ut enim ad minim veniam, quis nostrud exercitation ullamco laboris nisi ut aliquip ex ea commodo consequat. Duis aute irure dolor in reprehenderit in voluptate velit esse cillum dolore eu fugiat nulla pariatur.</p>
                     <p>Excepteur sint occaecat cupidatat non proident, sunt in culpa qui officia deserunt mollit anim id est laborum. Sed ut perspiciatis unde omnis iste natus error sit voluptatem accusantium doloremque laudantium, totam rem aperiam, eaque ipsa quae ab illo inventore veritatis et quasi architecto beatae vitae dicta sunt explicabo.</p>
                     <p>Nemo enim ipsam voluptatem quia voluptas sit aspernatur aut odit aut fugit, sed quia consequuntur magni dolores eos qui ratione voluptatem sequi nesciunt.</p>
                 </div>
@@ -159,7 +159,7 @@ export default class TSigFormAppView extends TAppView {
         this.htmlEl.$clearSignatureBtn = this.htmlEl.dom.querySelector('.clear-btn');
         // Removed caching for save button: this.htmlEl.$saveSignatureBtn = this.htmlEl.dom.querySelector<HTMLButtonElement>('.save-btn');
         this.htmlEl.$dontSignBtn = this.htmlEl.dom.querySelector('.dont-sign-btn'); // Cache new button
-        this.htmlEl.$contentSection = this.htmlEl.dom.querySelector('.content-section'); // Cache content section
+        this.htmlEl.$contentsection = this.htmlEl.dom.querySelector('.content-section'); // Cache content section
         this.initializeSignaturePad(); // Initialize the signature pad
         if (opts) {
             // Process any options passed to the constructor if needed
@@ -295,8 +295,8 @@ export default class TSigFormAppView extends TAppView {
                 this.htmlEl.$loadedSignatureImg.src = '';
             }
         }
-        if (data.displayText && this.htmlEl.$contentSection) {
-            this.htmlEl.$contentSection.innerHTML = data.displayText;
+        if (data.displayText && this.htmlEl.$contentsection) {
+            this.htmlEl.$contentsection.innerHTML = data.displayText.join('');
         }
         // Update the done button state after loading the data
         this.updateDoneButtonState();
