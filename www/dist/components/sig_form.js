@@ -155,11 +155,11 @@ export default class TSigFormAppView extends TAppView {
         `;
         this.setHTMLEl(tempInnerHTML);
         // Cache DOM elements for the signature pad after setting HTML
-        this.htmlEl.$signatureCanvas = this.htmlEl.dom.querySelector('#signature-canvas');
-        this.htmlEl.$clearSignatureBtn = this.htmlEl.dom.querySelector('.clear-btn');
+        this.htmlEl.signatureCanvas = this.htmlEl.dom.querySelector('#signature-canvas');
+        this.htmlEl.clearSignatureBtn = this.htmlEl.dom.querySelector('.clear-btn');
         // Removed caching for save button: this.htmlEl.$saveSignatureBtn = this.htmlEl.dom.querySelector<HTMLButtonElement>('.save-btn');
-        this.htmlEl.$dontSignBtn = this.htmlEl.dom.querySelector('.dont-sign-btn'); // Cache new button
-        this.htmlEl.$contentsection = this.htmlEl.dom.querySelector('.content-section'); // Cache content section
+        this.htmlEl.dontSignBtn = this.htmlEl.dom.querySelector('.dont-sign-btn'); // Cache new button
+        this.htmlEl.contentSection = this.htmlEl.dom.querySelector('.content-section'); // Cache content section
         this.initializeSignaturePad(); // Initialize the signature pad
         if (opts) {
             // Process any options passed to the constructor if needed
@@ -170,11 +170,11 @@ export default class TSigFormAppView extends TAppView {
      * Clears the signature after resizing.
      */
     _resizeSignatureCanvas() {
-        if (this.htmlEl.$signatureCanvas && this.signaturePad) {
+        if (this.htmlEl.signatureCanvas && this.signaturePad) {
             const ratio = Math.max(window.devicePixelRatio || 1, 1);
-            this.htmlEl.$signatureCanvas.width = this.htmlEl.$signatureCanvas.offsetWidth * ratio;
-            this.htmlEl.$signatureCanvas.height = this.htmlEl.$signatureCanvas.offsetHeight * ratio;
-            this.htmlEl.$signatureCanvas.getContext("2d")?.scale(ratio, ratio);
+            this.htmlEl.signatureCanvas.width = this.htmlEl.signatureCanvas.offsetWidth * ratio;
+            this.htmlEl.signatureCanvas.height = this.htmlEl.signatureCanvas.offsetHeight * ratio;
+            this.htmlEl.signatureCanvas.getContext("2d")?.scale(ratio, ratio);
             this.signaturePad.clear(); // Clear the pad on resize as drawing coordinates change
         }
     }
@@ -182,17 +182,17 @@ export default class TSigFormAppView extends TAppView {
      * Initializes the SignaturePad instance on the canvas.
      */
     initializeSignaturePad() {
-        if (this.htmlEl.$signatureCanvas) {
+        if (this.htmlEl.signatureCanvas) {
             // FIX: Cast SignaturePadModule.default to 'any' when constructing.
             // This forces TypeScript to accept it as a constructable function at compile time.
-            this.signaturePad = new SignaturePadModule.default(this.htmlEl.$signatureCanvas, {
+            this.signaturePad = new SignaturePadModule.default(this.htmlEl.signatureCanvas, {
                 minWidth: 0.5,
                 maxWidth: 2.5,
                 penColor: 'rgb(0, 0, 0)',
                 backgroundColor: 'rgb(255, 255, 255)'
             });
             // Add event listeners for the clear button
-            this.htmlEl.$clearSignatureBtn?.addEventListener('click', () => {
+            this.htmlEl.clearSignatureBtn?.addEventListener('click', () => {
                 this.signaturePad?.clear();
                 this.updateDoneButtonState();
                 console.log("Signature cleared.");
@@ -209,10 +209,10 @@ export default class TSigFormAppView extends TAppView {
         // Restore initial HTML (if the refresh mechanism resets the DOM)
         this.setHTMLEl(this.sourceHTML);
         // Re-cache DOM elements after the HTML has potentially been reset/re-rendered.
-        this.htmlEl.$signatureCanvas = this.htmlEl.dom.querySelector('#signature-canvas');
-        this.htmlEl.$clearSignatureBtn = this.htmlEl.dom.querySelector('.clear-btn');
+        this.htmlEl.signatureCanvas = this.htmlEl.dom.querySelector('#signature-canvas');
+        this.htmlEl.clearSignatureBtn = this.htmlEl.dom.querySelector('.clear-btn');
         // Removed caching for save button: this.htmlEl.$saveSignatureBtn = this.htmlEl.dom.querySelector<HTMLButtonElement>('.save-btn');
-        this.htmlEl.$dontSignBtn = this.htmlEl.dom.querySelector('.dont-sign-btn'); // Re-cache new button
+        this.htmlEl.dontSignBtn = this.htmlEl.dom.querySelector('.dont-sign-btn'); // Re-cache new button
         this.initializeSignaturePad(); // Re-initialize the signature pad (event listeners will be re-added but this is fine)
         this.setupFormEventListeners(); // Set up any general form event listeners
         await this.prePopulateFromServer(); //evokes call to serverDataToForm()
@@ -231,7 +231,7 @@ export default class TSigFormAppView extends TAppView {
             this.handleDoneClick();
         });
         // Add event listener for the new 'Don't sign' button
-        this.htmlEl.$dontSignBtn?.addEventListener('click', () => {
+        this.htmlEl.dontSignBtn?.addEventListener('click', () => {
             console.log("Don't sign button clicked!");
             this.signaturePad.clear();
             this.updateDoneButtonState();
@@ -295,8 +295,8 @@ export default class TSigFormAppView extends TAppView {
                 this.htmlEl.$loadedSignatureImg.src = '';
             }
         }
-        if (data.displayText && this.htmlEl.$contentsection) {
-            this.htmlEl.$contentsection.innerHTML = data.displayText.join('');
+        if (data.displayText && this.htmlEl.contentSection) {
+            this.htmlEl.contentSection.innerHTML = data.displayText.join('');
         }
         // Update the done button state after loading the data
         this.updateDoneButtonState();

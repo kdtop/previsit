@@ -123,27 +123,6 @@ export default class TDashboardAppView extends TAppView {
             this.htmlEl.$patientname.textContent = this.ctrl.patientFullName || "Valued Patient";
         }
         await this.prePopulateFromServer(); //evokes call to serverDataToForm()
-        /*
-        try {
-            const params = new URLSearchParams({ sessionID });
-            const URL = `/api/dashboard?${params.toString()}`;
-            const response = await fetch(URL);
-            if (!response.ok) {
-                throw new Error(`HTTP error! Status: ${response.status}`);
-            }
-            const data: DashboardApiResponse = await response.json();
-
-            if (data.success && Array.isArray(data.forms)) {
-                this.renderForm(data.forms);
-            } else {
-                console.error("Failed to load forms:", data.message);
-                if (this.htmlEl.$formscontainer) this.htmlEl.$formscontainer.textContent = "Could not load forms.";
-            }
-        } catch (error) {
-            console.error("Error fetching forms:", error);
-            if (this.htmlEl.$formscontainer) this.htmlEl.$formscontainer.textContent = "Error loading forms. Please try again later.";
-        }
-        */
     } //loadForms
     /** Renders the buttons for each form. */
     serverDataToForm = (forms) => {

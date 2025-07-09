@@ -2,12 +2,14 @@
 
 import TAppView, { EnhancedHTMLElement } from './appview.js';
 import { createCategorySection, createHeading,
-         createCheckboxList, createDetailsBox,
-         addToggleVisibilityListener,
+         // createCheckboxList, // No longer directly used for individual checkboxes
+         createDetailsBox,
+         // addToggleVisibilityListener, // REMOVED: No longer used directly with ToggleButton
          serverDataToFormContainer
         } from './questcommon.js';
 import { KeyToStrBoolValueObj } from '../utility/types.js';
 import { TCtrl } from '../utility/controller.js';
+import { ToggleButton, ToggleButtonOptions } from './components.js'; // Import the ToggleButton component
 
 interface RosUpdateOptions {
     someOption : any;
@@ -60,7 +62,7 @@ export default class TRosUpdateAppView extends TAppView<KeyToStrBoolValueObj> {
               margin-top: 30px;
               margin-bottom: 15px;
             }
-                    ul {
+            ul {
               list-style: none;
               padding: 0;
               margin-bottom: 20px;
@@ -68,51 +70,18 @@ export default class TRosUpdateAppView extends TAppView<KeyToStrBoolValueObj> {
               flex-wrap: wrap;
               gap: 10px;
             }
-                    li {
+            li {
               margin-bottom: 0;
             }
 
-            /* --- Custom Checkbox Styling --- */
-            .sr-only {
-              position: absolute;
-              width: 1px;
-              height: 1px;
-              padding: 0;
-              margin: -1px;
-              overflow: hidden;
-              clip: rect(0, 0, 0, 0);
-              white-space: nowrap;
-              border-width: 0;
-            }
-
-            .custom-checkbox-text {
-              display: inline-block;
-              padding: 7px 12px;
-              border-radius: 12px;
-              background-color: #f0f0f0;
-              color: #555;
-              transition: background-color 0.2s ease, color 0.2s ease, transform 0.1s ease;
-              cursor: pointer;
-              user-select: none;
-            }
-            label:hover .custom-checkbox-text {
-              background-color: #e2e2e2;
-            }
-
-            input[type='checkbox']:checked + .custom-checkbox-text {
-              background-color: #3498db; /* Default checked color (blue) */
-              color: white;
-              transform: translateY(-1px);
-              box-shadow: 0 2px 5px rgba(0,0,0,0.2);
-            }
-
             /* Specific style for 'NONE' checkbox when checked */
-            input.none-toggle-checkbox:checked + .none-checkbox-text {
-              background-color: #e74c3c; /* Reddish color for NONE when checked */
-              color: white;
+            /* This can still apply if toggle-button exposes a way to apply this class or if we target toggle-button[name$='_none'][checked] */
+            toggle-button[name$='_none'][checked] {
+              --toggle-button-background-checked: #e74c3c; /* Custom property for NONE button's checked state */
             }
 
-            /* Styles for general labels (like for custom checkboxes) */
+
+            /* Styles for general labels (like for custom checkboxes) - Can be removed if not used for other elements directly */
             label {
               display: flex;
               align-items: center;
@@ -236,10 +205,12 @@ export default class TRosUpdateAppView extends TAppView<KeyToStrBoolValueObj> {
               ul {
                 gap: 8px;
               }
+              /*
               .custom-checkbox-text {
                 padding: 6px 10px;
                 font-size: 0.95em;
               }
+              */
               .details-options-row {
                 flex-direction: column; /* Stack 'NONE' and 'Details:' vertically on small screens */
                 align-items: flex-start;
@@ -351,60 +322,96 @@ export default class TRosUpdateAppView extends TAppView<KeyToStrBoolValueObj> {
         buttonContainer.style.marginBottom = '20px'; // Maintain spacing from the details box
         section.appendChild(buttonContainer);
 
-        // Create the "NONE" checkbox and add it to the new container
-        const noneLabel = document.createElement('label');
-        noneLabel.className = 'none-option-label'; // Reusing class from createQuestionGroup
-        const noneInput = document.createElement('input');
-        noneInput.type = 'checkbox';
-        noneInput.name = `${prefix}_none`;
-        noneInput.className = 'sr-only none-toggle-checkbox'; // Important for red styling
+        // Create the "NONE" ToggleButton and add it to the new container
+        //const noneToggleButton = document.createElement('toggle-button') as ToggleButton;
+        let toggleButtonOpts : ToggleButtonOptions = {
+          label : 'NONE',
+          colors : { checked : { backgroundColor : '#e74c3c' }},
+          name: `${prefix}_none`
+        }
+        const noneToggleButton = new ToggleButton(toggleButtonOpts);
+
+        //noneToggleButton.setAttribute('name', `${prefix}_none`);
+        // We can still add a class for custom styling if needed, though toggle-button handles most of it
+        noneToggleButton.classList.add('none-option-label'); // Keep for consistency if questcommon relies on it
 
         const checkboxListId = `${prefix}_checkbox_list`;
         const detailsBoxId = `${prefix}_details_box`;
-        noneInput.dataset.hideTargetIds = `${checkboxListId},${detailsBoxId}`;
+        // Pass the target IDs to the toggle-button so its internal checkbox can control visibility
+        noneToggleButton.dataset.hideTargetIds = `${checkboxListId},${detailsBoxId}`;
 
-        const noneSpan = document.createElement('span');
-        noneSpan.className = 'custom-checkbox-text none-checkbox-text'; // Important for red styling
-        noneSpan.textContent = 'NONE';
-        noneLabel.append(noneInput, noneSpan);
-        buttonContainer.appendChild(noneLabel);
+        buttonContainer.appendChild(noneToggleButton);
 
-        // Create the list of other options and add it to the container
-        const checkboxList = createCheckboxList(prefix, list);
-        checkboxList.id = checkboxListId;
-        // This makes the <li> elements inside the <ul> behave as direct children of the flex container
-        checkboxList.style.display = 'contents';
-        buttonContainer.appendChild(checkboxList);
+        // Create the list of other options using ToggleButton components
+        const optionsListContainer = document.createElement('ul'); // Keep <ul> for semantic grouping
+        optionsListContainer.id = checkboxListId;
+        optionsListContainer.style.display = 'contents'; // To make <li> elements behave as flex items of buttonContainer
+        buttonContainer.appendChild(optionsListContainer);
+
+        list.forEach(item => {
+            const li = document.createElement('li');
+            //const toggleButton = document.createElement('toggle-button') as ToggleButton;
+            const toggleButton = new ToggleButton(
+              { label : item,
+                name: `${prefix}_${item.replace(/[^a-zA-Z0-9]/g, '_').toLowerCase()}`
+              }
+            );
+
+            //toggleButton.setAttribute('label', item);
+            //toggleButton.setAttribute('name', `${prefix}_${item.replace(/[^a-zA-Z0-9]/g, '_').toLowerCase()}`);
+            li.appendChild(toggleButton);
+            optionsListContainer.appendChild(li);
+        });
 
         const detailsBox = createDetailsBox(prefix, "Other:");
         detailsBox.id = detailsBoxId; // Assign the unique ID
         section.appendChild(detailsBox);
 
-        // Attach the toggle listener to the NONE checkbox
-        addToggleVisibilityListener(this, noneInput);
+        // --- Attach the toggle listener directly to the NONE toggle button
+        noneToggleButton.addEventListener('change', (event: Event) => {
+            const customEvent = event as CustomEvent;
+            const isChecked = customEvent.detail.checked;
+            const targetIds = noneToggleButton.dataset.hideTargetIds;
+
+            if (targetIds) {
+                targetIds.split(',').forEach(id => {
+                    const targetEl = section.querySelector(`#${id}`); // Search within the current section
+                    if (targetEl) {
+                        // Toggle visibility
+                        targetEl.classList.toggle('hidden', isChecked);
+
+                        // If "NONE" is checked (meaning other sections are hidden),
+                        // uncheck any checkboxes and clear any textareas within those hidden sections.
+                        if (isChecked) {
+                            targetEl.querySelectorAll<ToggleButton>('toggle-button').forEach(btn => btn.checked = false);
+                            const textarea = targetEl.querySelector('textarea');
+                            if (textarea) textarea.value = '';
+                        }
+                    }
+                });
+            }
+        });
 
         // Attach listener for mutual exclusion
-        this.addMutualExclusionListeners(noneInput, checkboxList);
+        this.addMutualExclusionListeners(noneToggleButton, optionsListContainer);
 
         return section; // Return the created section for further use if needed
     }
 
-    private addMutualExclusionListeners = (noneCheckbox: HTMLInputElement, optionsContainer: HTMLElement): void => {
+    // MODIFIED: addMutualExclusionListeners to accept ToggleButton
+    private addMutualExclusionListeners = (noneToggleButton: ToggleButton, optionsContainer: HTMLElement): void => {
         // This listener ensures that if any regular option is checked, the "NONE" option is automatically unchecked.
         optionsContainer.addEventListener('change', (event) => {
-            const target = event.target as HTMLInputElement;
+            // The change event from ToggleButton is a CustomEvent with detail.checked
+            const target = event.target as ToggleButton;
 
-            // We only care about checkbox changes inside the container, and only when they are being checked.
-            if (target.type === 'checkbox' && target.checked) {
+            // We only care about toggle-button changes inside the container, and only when they are being checked.
+            if (target.tagName === 'TOGGLE-BUTTON' && target.checked) {
                 // If "NONE" is currently checked, uncheck it.
-                if (noneCheckbox.checked) {
-                    noneCheckbox.checked = false;
-
-                    // Programmatically changing 'checked' does not fire a 'change' event.
-                    // We need to dispatch it manually to trigger the logic in `addToggleVisibilityListener`
-                    // which is responsible for showing the other elements.
-                    const changeEvent = new Event('change', { bubbles: true });
-                    noneCheckbox.dispatchEvent(changeEvent);
+                if (noneToggleButton.checked) {
+                    noneToggleButton.checked = false; // Use the setter directly
+                    // Dispatch a change event for the noneToggleButton to trigger visibility logic
+                    noneToggleButton.dispatchEvent(new CustomEvent('change', { detail: { checked: false }, bubbles: true, composed: true }));
                 }
             }
         });
@@ -421,6 +428,7 @@ export default class TRosUpdateAppView extends TAppView<KeyToStrBoolValueObj> {
 
         // Autosave on any change or input
         const resetTimer = () => this.resetAutosaveTimer();
+        // Listen for 'change' events from toggle-buttons (CustomEvent) and standard inputs/textareas
         form.addEventListener('change', resetTimer);
         form.addEventListener('input', resetTimer); // 'input' is better for textareas
 
@@ -458,10 +466,10 @@ export default class TRosUpdateAppView extends TAppView<KeyToStrBoolValueObj> {
 
         questions.forEach(qSection => {
             // A section is considered "answered" if any of these conditions are met:
-            // 1. A "none" checkbox is checked.
-            const isNoneChecked = !!qSection.querySelector<HTMLInputElement>('input.none-toggle-checkbox:checked');
-            // 2. Any other checkbox is checked.
-            const isOtherCheckboxChecked = !!qSection.querySelector<HTMLInputElement>('input[type="checkbox"]:not(.none-toggle-checkbox):checked');
+            // 1. A "none" ToggleButton is checked.
+            const isNoneChecked = !!qSection.querySelector<ToggleButton>('toggle-button[name$="_none"][checked]');
+            // 2. Any other ToggleButton is checked.
+            const isOtherCheckboxChecked = !!qSection.querySelector<ToggleButton>('toggle-button:not([name$="_none"])[checked]');
             // 3. Any textarea has a non-empty value.
             let isTextareaAnswered = false;
             qSection.querySelectorAll<HTMLTextAreaElement>('textarea').forEach(ta => {
@@ -490,7 +498,35 @@ export default class TRosUpdateAppView extends TAppView<KeyToStrBoolValueObj> {
      * @returns A JSON object representing the current state of the form.
      */
     public gatherDataForServer = (): KeyToStrBoolValueObj => {
-      return this.gatherDataFromContainerForServer();
+      // Need to override gatherDataFromContainerForServer from AppView
+      // because form.elements (used by FormData) does not include custom elements' internal inputs.
+      if (!this.htmlEl) return {};
+      const form : HTMLFormElement | null = this.htmlEl.dom.querySelector<HTMLFormElement>('form.content-container');
+      if (!form) {
+          console.error("Form not found for data extraction.");
+          return {};
+      }
+      const data: KeyToStrBoolValueObj = {};
+
+      // Gather data from toggle-button components
+      form.querySelectorAll<ToggleButton>('toggle-button').forEach(button => {
+          // The name attribute on the toggle-button component corresponds to the input name
+          const name = button.getAttribute('name');
+          if (name) {
+              data[name] = button.checked ? true : false;
+          }
+      });
+
+      // Gather data from textareas
+      form.querySelectorAll<HTMLTextAreaElement>('textarea').forEach(textarea => {
+          const name = textarea.getAttribute('name');
+          if (name && textarea.value.trim() !== '') {
+              data[name] = textarea.value.trim();
+          }
+      });
+
+      console.log("Compiled form data:", data);
+      return data;
     }
 
     /**
@@ -498,7 +534,32 @@ export default class TRosUpdateAppView extends TAppView<KeyToStrBoolValueObj> {
      * @param data A JSON object with form data.
      */
     public serverDataToForm = (data: KeyToStrBoolValueObj): void => {
-        serverDataToFormContainer(this, 'form.content-container', data)
+        // This function needs to be aware of the custom elements.
+        if (!this.htmlEl) return;
+        const form = this.htmlEl.dom.querySelector('form.content-container');
+        if (!form) return;
+
+        for (const key in data) {
+            if (Object.prototype.hasOwnProperty.call(data, key)) {
+                const value = data[key];
+
+                // Check if it's a toggle-button
+                const toggleButton = form.querySelector<ToggleButton>(`toggle-button[name="${key}"]`);
+                if (toggleButton) {
+                    toggleButton.checked = (value === true || value === 'true');
+                    // Manually dispatch change event to ensure visibility listeners are triggered
+                    toggleButton.dispatchEvent(new CustomEvent('change', { detail: { checked: toggleButton.checked }, bubbles: true, composed: true }));
+                    continue;
+                }
+
+                // Check if it's a textarea
+                const textarea = form.querySelector<HTMLTextAreaElement>(`textarea[name="${key}"]`);
+                if (textarea) {
+                    textarea.value = value as string;
+                    continue;
+                }
+            }
+        }
         this.updateDoneButtonState();
     }
 
