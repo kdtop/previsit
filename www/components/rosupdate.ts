@@ -326,7 +326,7 @@ export default class TRosUpdateAppView extends TAppView<KeyToStrBoolValueObj> {
         //const noneToggleButton = document.createElement('toggle-button') as ToggleButton;
         let toggleButtonOpts : ToggleButtonOptions = {
           label : 'NONE',
-          colors : { checked : { backgroundColor : '#e74c3c' }},
+          state : { checked : { backgroundColor : '#e74c3c' }},
           name: `${prefix}_none`
         }
         const noneToggleButton = new ToggleButton(toggleButtonOpts);

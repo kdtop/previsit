@@ -14,18 +14,26 @@ process.on('unhandledRejection', (reason, promise) => {
     process.exit(1); // Exit with a failure code
 });
 
-console.log("v0.5");
+console.log("v0.9");
 
 import express from 'express';
 import { piece, strToNumDef } from './utils.js'; // Import the functions, pointing to the expected .js output
 import { TTMGNetwork } from './TTMGNetwork.js'; // Note: Keep .js in import path for ESM environments
-import type { UserMedicationAnswers, UserMedAnswersArray, ProgressData,
-             GetPatientFormsApiResponseArray, GetPatientFormsApiResponse,
+import type { UserMedAnswersArray, ProgressData,
+             ConsentFormData,
+             GetPatientFormsApiResponseArray,
    } from './types';
 
 let tmg: TTMGNetwork; // Declare tmg, will be initialized in the try block
 const app: express.Application = express(); // Initialize app
 const PORT: number = 3000; // Define PORT
+
+interface RPCSaveDataResultObj {
+    args: (string | object)[];  //leave loosely defined, as none of OUT return values are used
+    return: string;
+}
+type RPCSaveDataResult = RPCSaveDataResultObj | undefined;
+
 
 //====================================================================================================
 // By returning `rpcResult is { return: string; args: any[] }`, we create a type guard.
@@ -39,7 +47,7 @@ function rpcErrorCheckOK(rpcResult: any, res: express.Response, errIndex: number
         res.status(500).json({ success: false, message: `Server error: RPC call (${tag}^${rtn}) failed before Mumps execution.` });
         return false;
     }
-    console.log('RPC result:', JSON.stringify(rpcResult));
+    //console.log('RPC result:', JSON.stringify(rpcResult));
     const mumpsResult: number = strToNumDef(piece(rpcResult.return,'^',1), 0);
     if (mumpsResult < 0) {
         const errorMessage = rpcResult.args[errIndex] || 'API failure';
@@ -60,16 +68,17 @@ function rpcPrecheckOK(req: express.Request, res: express.Response) : boolean
         result = false;
     }
 
-    console.log(`Request sessionID: ${sessionID}`);
+    //console.log(`Request sessionID: ${sessionID}`);
     return result;
 }
 
 //====================================================================================================
-
 // Handle login request
+// POST only
+//====================================================================================================
 async function hndlLogin(req: express.Request, res: express.Response)
 {
-    console.log("Received login request from browser:", req.body);
+    //console.log("Received login request from browser:", req.body);
 
     // Explicitly cast req.body to an expected shape for login
     const { lastName, firstName, dob } = req.body as { lastName: string; firstName: string, dob: string };
@@ -115,22 +124,20 @@ async function hndlLogin(req: express.Request, res: express.Response)
 };
 
 //====================================================================================================
-/**
- * Handle request for dashboard forms.
- * This endpoint will provide the list of forms a patient needs to complete.
- */
+//====================================================================================================
+/*
+ Handle request for dashboard forms --  provideS the list of forms a patient needs to complete.
+ GET only
+*/
+//====================================================================================================
 async function hndlDashboard(req: express.Request, res: express.Response) {
-    console.log("Received request for dashboard forms.", req.query);
-
+    //console.log("Received request for dashboard forms.", req.query);
     if (!rpcPrecheckOK(req, res)) return;  //res output object will have already been set in rpcPrecheckOK
-    const { sessionID } = req.query;
-
     try {
-        // This signals to your RPC wrapper that the first argument is an array.
-        // Using an empty array is a clean way to represent an output parameter.
+        const { sessionID } = req.query;
         const outForms: GetPatientFormsApiResponseArray = []; // Output parameter
 
-        // Define the expected shape of the RPC result, similar to the login handler.
+        // Define the expected shape of the RPC result
         interface RPCResult {
             return: string;  //1 if OK, -1 if problem
             args: [GetPatientFormsApiResponseArray,   // outForms
@@ -155,18 +162,17 @@ async function hndlDashboard(req: express.Request, res: express.Response) {
     }
 }
 //====================================================================================================
-/**
- * Handle request for HxUpdate forms.
- * This endpoint will provide the saved form data for a patient (if any).
- */
+//====================================================================================================
+/*
+ Handle request for HxUpdate forms -- provideS saving form data for a patient (if any).
+ GET
+*/
 async function hndlGetHxUpdateData(req: express.Request, res: express.Response)
 {
-    console.log("Received request for HxUpdate data.", req.query);
-
+    //console.log("Received request for HxUpdate data.", req.query);
     if (!rpcPrecheckOK(req, res)) return;  //res output object will have already been set in rpcPrecheckOK
-    const { sessionID } = req.query;
-
     try {
+        const { sessionID } = req.query;
         let outData: any = {};        // The output parameter for the data (should be an object/array)
         let outProgress: any = {};
 
@@ -182,6 +188,7 @@ async function hndlGetHxUpdateData(req: express.Request, res: express.Response)
 
         let err = ""; let errIndex = 3; // Output parameter for errors from Mumps
         let tag="GETHXDATA"; let rtn="TMGPRE01";
+
         const rpcResult : RPCResult | undefined= await tmg.RPC<RPCResult>(tag, rtn, [outData, outProgress, sessionID, err]);
 
         if (rpcErrorCheckOK(rpcResult, res, errIndex, tag, rtn)) {
@@ -190,7 +197,6 @@ async function hndlGetHxUpdateData(req: express.Request, res: express.Response)
                         progress: rpcResult.args[1],
                        });
         }
-
     } catch (error) {
         console.error('Error during /api/hxupdate request:', error);
         const errorMessage = error instanceof Error ? error.message : 'Unknown error';
@@ -198,33 +204,23 @@ async function hndlGetHxUpdateData(req: express.Request, res: express.Response)
     }
 }
 
-//====================================================================================================
-/**
- * Handle saving of HxUpdate form data.
- * This endpoint receives the form data from the client and saves it via RPC.
+//----------------------------------------------------------------------------------------------------
+/*
+ Handle saving of HxUpdate form data -- saves received form data from the client via RPC.
+ POST
  */
 async function hndlSaveHxUpdate(req: express.Request, res: express.Response) {
-    console.log("Received request to save HxUpdate data.", req.body);
-
+    //console.log("Received request to save HxUpdate data.", req.body);
     if (!rpcPrecheckOK(req, res)) return;  //res output object will have already been set in rpcPrecheckOK
-    const { sessionID } = req.query;
-    const data : any = req.body.data; // Expecting data to be an object
-    const progress : ProgressData = req.body.progress;
-
     try {
-        // Define the expected shape of the RPC result.
-        interface RPCResult {
-            return: string;
-            args: [string,   //out sessionID
-                   any,      //out data
-                   any,      //out progress
-                   string    //out err
-                  ];
-        }
-
+        const { sessionID } = req.query;
+        const data : any = req.body.data; // Expecting data to be an object
+        const progress : ProgressData = req.body.progress;
         let err = ""; let errIndex = 3; // Output parameter for errors from Mumps
         let tag="SAVEHXDATA"; let rtn="TMGPRE01";
-        const rpcResult : RPCResult | undefined = await tmg.RPC<RPCResult>(tag, rtn, [sessionID, data, progress, err]);
+
+        const rpcResult : RPCSaveDataResult = await tmg.RPC<RPCSaveDataResult>(tag, rtn, [sessionID, data, progress, err]);
+
         if (rpcErrorCheckOK(rpcResult, res, errIndex, tag, rtn)) {
             res.status(200).json({ success: true, message: 'History data saved successfully.' });
         }
@@ -236,16 +232,16 @@ async function hndlSaveHxUpdate(req: express.Request, res: express.Response) {
 }
 
 //====================================================================================================
-/**
- * Handle request for ROS data (get).
- */
+//====================================================================================================
+/*
+ Handle request for ROS data
+ GET
+*/
 async function hndlGetRosUpdateData(req: express.Request, res: express.Response) {
-    console.log("Received request for ROS data.", req.query);
-
+    //console.log("Received request for ROS data.", req.query);
     if (!rpcPrecheckOK(req, res)) return;  //res output object will have already been set in rpcPrecheckOK
-    const { sessionID } = req.query;
-
     try {
+        const { sessionID } = req.query;
         let outData: any = {};
         let outProgress: any = {};
         interface RPCResult {
@@ -256,9 +252,9 @@ async function hndlGetRosUpdateData(req: express.Request, res: express.Response)
                    string    // out err
                   ];
         }
-
         let err = ""; let errIndex = 3; // Output parameter for errors from Mumps
         let tag="GETROSDATA"; let rtn="TMGPRE01";
+
         const rpcResult : RPCResult | undefined = await tmg.RPC<RPCResult>(tag, rtn, [outData, outProgress, sessionID, err]);
 
         if (rpcErrorCheckOK(rpcResult, res, errIndex, tag, rtn)) {
@@ -274,26 +270,22 @@ async function hndlGetRosUpdateData(req: express.Request, res: express.Response)
     }
 }
 
-/**
- * Handle saving of ROS data (post).
- */
+//----------------------------------------------------------------------------------------------------
+/*
+ Handle saving of ROS data
+ POST
+*/
 async function hndlSaveRosUpdateData(req: express.Request, res: express.Response) {
-    console.log("Received request to save ROS data.", req.body);
-
+    //console.log("Received request to save ROS data.", req.body);
     if (!rpcPrecheckOK(req, res)) return;  //res output object will have already been set in rpcPrecheckOK
-    const { sessionID } = req.query;
-    const data : any = req.body.data; // Expecting data to be an object
-    const progress : ProgressData = req.body.progress;
-
     try {
-        interface RPCResult {
-            args: (string | object)[];  //leave loosely defined, as none of OUT return values are used
-            return: string;
-        }
-
+        const { sessionID } = req.query;
+        const data : any = req.body.data; // Expecting data to be an object
+        const progress : ProgressData = req.body.progress;
         let err = ""; let errIndex = 3; // Output parameter for errors from Mumps
         let tag="SAVEROSDATA"; let rtn="TMGPRE01";
-        const rpcResult : RPCResult | undefined = await tmg.RPC<RPCResult>(tag, rtn, [sessionID, data, progress,err]);
+
+        const rpcResult : RPCSaveDataResult = await tmg.RPC<RPCSaveDataResult>(tag, rtn, [sessionID, data, progress,err]);
 
         if (rpcErrorCheckOK(rpcResult, res, errIndex, tag, rtn)) {
             res.status(200).json({ success: true, message: 'ROS data saved successfully.' });
@@ -307,16 +299,16 @@ async function hndlSaveRosUpdateData(req: express.Request, res: express.Response
 }
 
 //====================================================================================================
-/**
- * Handle request for Medication Review data (get).
- */
+//====================================================================================================
+/*
+ Handle request for Medication Review data
+ GET
+*/
 async function hndlGetMedReviewData(req: express.Request, res: express.Response) {
-    console.log("Received request for Medication Review data.", req.query);
-
+    //console.log("Received request for Medication Review data.", req.query);
     if (!rpcPrecheckOK(req, res)) return;  //res output object will have already been set in rpcPrecheckOK
-    const { sessionID } = req.query;
-
     try {
+        const { sessionID } = req.query;
         let outData: any = {};
         let outProgress: any = {};
         interface RPCResult {
@@ -327,9 +319,9 @@ async function hndlGetMedReviewData(req: express.Request, res: express.Response)
                   ];
             return: string;
         }
-
         let err = ""; let errIndex = 3; // Output parameter for errors from Mumps
         let tag="GETMEDS"; let rtn="TMGPRE01";
+
         const rpcResult : RPCResult | undefined = await tmg.RPC<RPCResult>(tag, rtn, [outData, outProgress, sessionID, err]);
 
         if (rpcErrorCheckOK(rpcResult, res, errIndex, tag, rtn)) {
@@ -346,26 +338,22 @@ async function hndlGetMedReviewData(req: express.Request, res: express.Response)
     }
 }
 
-/**
- * Handle saving of Medication Review data (post).
- */
+//----------------------------------------------------------------------------------------------------
+/*
+ Handle saving of Medication Review data
+ POST
+*/
 async function hndlSaveMedReviewData(req: express.Request, res: express.Response) {
-    console.log("Received request to save Medication Review data.", req.body);
-
+    //console.log("Received request to save Medication Review data.", req.body)
     if (!rpcPrecheckOK(req, res)) return;  //res output object will have already been set in rpcPrecheckOK
-    const { sessionID } = req.query;
-    const data : UserMedAnswersArray = req.body.data as UserMedAnswersArray; // Expecting data to be an array of UserMedicationAnswers
-    const progress : ProgressData = req.body.progress; // Expecting progress to be of type ProgressData
-
-    try {
-        interface RPCResult {
-            args: (string | object)[];   //leave loosely defined, as none of OUT return values are used
-            return: string;
-        }
-
+    try{
+        const { sessionID } = req.query;
+        const data : UserMedAnswersArray = req.body.data as UserMedAnswersArray; // Expecting data to be an array of UserMedicationAnswers
+        const progress : ProgressData = req.body.progress; // Expecting progress to be of type ProgressData
         let err = ""; let errIndex = 3; // Output parameter for errors from Mumps
         let tag="SAVEMEDS"; let rtn="TMGPRE01";
-        const rpcResult : RPCResult | undefined = await tmg.RPC<RPCResult>(tag, rtn, [sessionID, data, progress, err]);
+
+        const rpcResult : RPCSaveDataResult = await tmg.RPC<RPCSaveDataResult>(tag, rtn, [sessionID, data, progress, err]);
 
         if (rpcErrorCheckOK(rpcResult, res, errIndex, tag, rtn)) {
             res.status(200).json({ success: true,
@@ -381,16 +369,16 @@ async function hndlSaveMedReviewData(req: express.Request, res: express.Response
 }
 
 //====================================================================================================
-/**
- * Handle request for signature data (get).
- */
+//====================================================================================================
+/*
+ Handle request for signature data
+ GET
+*/
 async function hndlGetSig1Data(req: express.Request, res: express.Response) {
-    console.log("Received request for signature data.", req.query);
-
+    //console.log("Received request for signature data.", req.query);
     if (!rpcPrecheckOK(req, res)) return;  //res output object will have already been set in rpcPrecheckOK
-    const { sessionID } = req.query;
-
     try {
+        const { sessionID } = req.query;
         let outSignature: string = ""; // Output parameter for the Base64 signature string
         let outProgress: any = {};     // output parameter for progress object
         let outText : string[] = [];   // output parameter for display text
@@ -404,9 +392,9 @@ async function hndlGetSig1Data(req: express.Request, res: express.Response) {
                   ];
             return: string;         // Scalar return value (e.g., "1" for success, "0" for failure)
         }
-
         let err = ""; let errIndex = 4; // Output parameter for errors from Mumps
         let tag="GETSIG1"; let rtn="TMGPRE01";
+
         const rpcResult: RPCResult | undefined = await tmg.RPC<RPCResult>(tag, rtn, [outSignature, outProgress, outText, sessionID, err]);
 
         if (rpcErrorCheckOK(rpcResult, res, errIndex, tag, rtn)) {
@@ -428,31 +416,22 @@ async function hndlGetSig1Data(req: express.Request, res: express.Response) {
 }
 
 
-//====================================================================================================
-/**
- * Handle saving of signature data.
- * This endpoint receives the Base64 signature data from the client and saves it via RPC.
+//----------------------------------------------------------------------------------------------------
+/*
+ Handle saving of signature data -- receives the Base64 signature data from the client and saves it via RPC.
+ POST
  */
 async function hndlSaveSig1Data(req: express.Request, res: express.Response) {
-    console.log("Received request to save signature.", req.body);
-
+    //console.log("Received request to save signature.", req.body);
     if (!rpcPrecheckOK(req, res)) return;  //res output object will have already been set in rpcPrecheckOK
-    const { sessionID } = req.query;
-
-    const progress : ProgressData = req.body.progress; // Expecting progress to be of type ProgressData
-    const data : string = req.body.data.encodedSignature; // The base64 string for signature data representing the image of the signature
-
-    console.log(`Saving signature for sessionID: ${sessionID}`);
-
     try {
-        interface RPCResult {
-            args: (string | object)[];  //leave loosely defined, as none of OUT return values are used
-            return: string;            // Scalar return value
-        }
-
+        const { sessionID } = req.query;
+        const progress : ProgressData = req.body.progress; // Expecting progress to be of type ProgressData
+        const data : string = req.body.data.encodedSignature; // The base64 string for signature data representing the image of the signature
         let err = ""; let errIndex = 3; // Output parameter for errors from Mumps
         let tag="SAVESIG1"; let rtn="TMGPRE01";
-        const rpcResult: RPCResult | undefined = await tmg.RPC<RPCResult>(tag, rtn, [sessionID, data, progress, err]);
+
+        const rpcResult: RPCSaveDataResult = await tmg.RPC<RPCSaveDataResult>(tag, rtn, [sessionID, data, progress, err]);
 
         if (rpcErrorCheckOK(rpcResult, res, errIndex, tag, rtn)) {
             res.status(200).json({ success: true, message: 'Signature saved successfully.' });
@@ -465,6 +444,79 @@ async function hndlSaveSig1Data(req: express.Request, res: express.Response) {
     }
 }
 
+//
+//====================================================================================================
+//====================================================================================================
+/*
+ Handle request for consent data
+ GET
+*/
+async function hndlGetConsentData(req: express.Request, res: express.Response) {
+    //console.log("Received request for patient consent data.", req.query);
+    if (!rpcPrecheckOK(req, res)) return;  //res output object will have already been set in rpcPrecheckOK
+    try {
+        const { sessionID } = req.query;
+        let outData: ConsentFormData = {}; // Output parameter
+        let outProgress: any = {};         // output parameter for progress object
+
+        interface RPCResult {
+            args: [ConsentFormData,    //out data
+                   ProgressData,       //out outProgress
+                   string,             //out sessionID
+                   string,             //out err
+                  ];
+            return: string;         // Scalar return value (e.g., "1" for success, "0" for failure)
+        }
+        let err = ""; let errIndex = 4; // Output parameter for errors from Mumps
+        let tag="GETCSNT"; let rtn="TMGPRE01";
+
+        const rpcResult: RPCResult | undefined = await tmg.RPC<RPCResult>(tag, rtn, [outData, outProgress, sessionID, err]);
+
+        if (rpcErrorCheckOK(rpcResult, res, errIndex, tag, rtn)) {
+            res.json({
+                success: true,
+                data: rpcResult.args[0],       //type ConsentFormData
+                progress: rpcResult.args[1],   //type progressData
+                message: 'Consent data retrieved successfully.'
+            });
+        }
+
+    } catch (error) {
+        console.error('Error during GET /api/sig1:', error);
+        const errorMessage = error instanceof Error ? error.message : 'Unknown error';
+        res.status(500).json({ success: false, signature: "", message: `Internal server error: ${errorMessage}` });
+    }
+}
+
+
+//----------------------------------------------------------------------------------------------------
+/*
+ Handle saving of consent data -- receives data from the client and saves it via RPC.
+ POST
+ */
+async function hndlSaveConsentData(req: express.Request, res: express.Response) {
+    //console.log("Received request to save consent.", req.body);
+    if (!rpcPrecheckOK(req, res)) return;  //res output object will have already been set in rpcPrecheckOK
+    try {
+        const { sessionID } = req.query;
+        const progress : ProgressData = req.body.progress;
+        const data : ConsentFormData = req.body.data;
+        let err = ""; let errIndex = 3; // Output parameter for errors from Mumps
+        let tag="SAVECSNT"; let rtn="TMGPRE01";
+
+        const rpcResult: RPCSaveDataResult = await tmg.RPC<RPCSaveDataResult>(tag, rtn, [sessionID, data, progress, err]);
+
+        if (rpcErrorCheckOK(rpcResult, res, errIndex, tag, rtn)) {
+            res.status(200).json({ success: true, message: 'Consent data saved successfully.' });
+        }
+    } catch (error) {
+        console.error('Error during POST /api/patient_consent request:', error);
+        const errorMessage = error instanceof Error ? error.message : 'Unknown error';
+        res.status(500).json({ success: false, message: `Internal server error: ${errorMessage}` });
+    }
+}
+
+//====================================================================================================
 //====================================================================================================
 
 function close(message: string): void { // Add type annotation for 'message' and return type
@@ -517,14 +569,21 @@ try {
     // Register route handlers
     app.post('/api/login',               hndlLogin             as express.RequestHandler);  // register handler (endpoint) for login
     app.get('/api/dashboard',            hndlDashboard         as express.RequestHandler);  // Register handler for dashboard dashboard
+
     app.get('/api/hxupdate',             hndlGetHxUpdateData   as express.RequestHandler);  // Register handler for getting hxupdate data
     app.post('/api/hxupdate',            hndlSaveHxUpdate      as express.RequestHandler);  // Register handler for saving history updates
+
     app.get('/api/rosupdate',            hndlGetRosUpdateData  as express.RequestHandler);  // Register handler for getting rosupdate data
     app.post('/api/rosupdate',           hndlSaveRosUpdateData as express.RequestHandler);  // Register handler for saving rosupdate data
+
     app.get('/api/medication_review',    hndlGetMedReviewData  as express.RequestHandler);  // Register handler for getting medication review data
     app.post('/api/medication_review',   hndlSaveMedReviewData as express.RequestHandler);  // Register handler for saving medication review data
-    app.post('/api/sig1',                hndlSaveSig1Data      as express.RequestHandler);  // Register handler for saving signature
+
     app.get('/api/sig1',                 hndlGetSig1Data       as express.RequestHandler);  // Register handler for getting signature
+    app.post('/api/sig1',                hndlSaveSig1Data      as express.RequestHandler);  // Register handler for saving signature
+
+    app.get('/api/patient_consent',      hndlGetConsentData    as express.RequestHandler);  // Register handler for getting patient consent form
+    app.post('/api/patient_consent',     hndlSaveConsentData   as express.RequestHandler);  // Register handler for saving  patient consent form
 
     // Start the server
     app.listen(PORT, () => {

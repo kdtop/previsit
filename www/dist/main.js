@@ -3,14 +3,15 @@
 //
 // main.ts
 //
-// Every visual element will have separate import element
 import TDashboardAppView from './components/dashboard.js';
 import TLoginAppView from './components/login.js';
 import THxUpdateAppView from './components/hxupdate.js';
 import TRosUpdateAppView from './components/rosupdate.js';
 import TMedReviewAppView from './components/medication_review.js';
 import TSigFormAppView from './components/sig_form.js';
+import TPatientConsentFormAppView from './components/consent_form.js';
 import { TCtrl } from './utility/controller.js';
+//import { ToggleButton } from './components/components.js'; // Or the correct relative path
 // ================================================================
 //
 // main  .. high level program process and user interface
@@ -27,6 +28,7 @@ let hxUpdateAppView;
 let rosUpdateAppView;
 let medReviewAppView;
 let sigformAppView;
+let consentformAppView;
 // --------------------------
 // Named functions for core application logic
 // --------------------------
@@ -50,10 +52,6 @@ async function switchTo(anAppView) {
 }
 // Main application initialization logic
 async function initializeApp() {
-    // The type assertion `as HTMLBodyElement` is used here to resolve a potential
-    // conflict in the project's type definitions. In some environments, TypeScript
-    // may incorrectly infer `document.body` as a generic `HTMLElement`.
-    // This assertion correctly enforces the more specific `HTMLBodyElement` type.
     dB = document.body; // This will be the 'main' variable
     ctrl = new TCtrl();
     ctrl.addEventListener("change_view", handleSwitchingEvent); // The main app listens on the controller
@@ -63,7 +61,7 @@ async function initializeApp() {
     rosUpdateAppView = new TRosUpdateAppView(ctrl);
     medReviewAppView = new TMedReviewAppView(ctrl);
     sigformAppView = new TSigFormAppView(ctrl);
-    //await switchTo(rosUpdateAppView); // Pass the HTML element to switchTo
+    consentformAppView = new TPatientConsentFormAppView(ctrl);
     await switchTo(loginAppView); // Pass the HTML element to switchTo
     // NOTE: when loginComp is done, it will dispatch a 'continue' event, handled above
 }

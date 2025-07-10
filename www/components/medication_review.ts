@@ -12,10 +12,10 @@ interface MedReviewOptions {
 export type MedReviewHTMLElement = EnhancedHTMLElement & {
     $patientname?: HTMLSpanElement;
     $formscontainer?: HTMLDivElement;
-    $medicationDisplayArea?: HTMLDivElement | null;
-    $prevMedButton?: HTMLButtonElement | null;
-    $nextMedButton?: HTMLButtonElement | null;
-    $medProgressMessage?: HTMLSpanElement | null; // New: For "Medication X of Y" message
+    medDisplayAreaEl?: HTMLDivElement | null;
+    prevMedButtonEl?: HTMLButtonElement | null;
+    nextMedButtonEl?: HTMLButtonElement | null;
+    medProgMessageEl?: HTMLSpanElement | null; // New: For "Medication X of Y" message
 };
 
 /**
@@ -227,8 +227,8 @@ export default class TMedReviewAppView extends TAppView<UserMedAnswersArray> {
                 border: 1px solid #ddd;
                 border-radius: 8px;
                 padding: 25px;
-                width: 100%;
-                max-width: 600px;
+                width: 80%;
+                max-width: 900px;
                 box-shadow: 0 4px 8px rgba(0,0,0,0.05);
                 position: absolute; /* Keep absolute for transitions */
                 top: 50%;
@@ -292,6 +292,7 @@ export default class TMedReviewAppView extends TAppView<UserMedAnswersArray> {
                 font-weight: bold;
                 font-size: 1.1em;
                 color: #333;
+                text-align: center;
             }
 
             .options-list {
@@ -312,7 +313,7 @@ export default class TMedReviewAppView extends TAppView<UserMedAnswersArray> {
                 min-height: 80px;
             }
 
-            /* NEW: Navigation Buttons & Progress Message */
+            /* Navigation Buttons & Progress Message */
             .navigation-area { /* Container for buttons and message */
                 display: flex;
                 justify-content: space-between;
@@ -424,7 +425,7 @@ export default class TMedReviewAppView extends TAppView<UserMedAnswersArray> {
 
             .medication-header {
                 position: relative;
-                --checkmark-size: 64px; /* Size of the checkmark icon */
+                --checkmark-size: 12vw; /* Size of the checkmark icon */
             }
             .medication-header .complete-indicator {
                 position: absolute;
@@ -446,8 +447,8 @@ export default class TMedReviewAppView extends TAppView<UserMedAnswersArray> {
             }
 
 
-            /* Responsive adjustments */
-            @media (max-width: 768px) {
+            /* Responsive adjustments   -- was 768 originally*/
+            @media(max-width: 850px) {
                 .medreview-container {
                     padding: 0 15px;
                 }
@@ -471,6 +472,26 @@ export default class TMedReviewAppView extends TAppView<UserMedAnswersArray> {
                     font-size: 0.95em;
                 }
             }
+
+            @media (0 <= width <= 720px) {
+                .medication-name {
+                    font-size: 5vw;
+                    margin-bottom: 5px;
+                }
+                .main-question-label {
+                    margin-bottom: 5px;
+                    font-size: 5.5vw;
+                }
+
+                .custom-checkbox-text {
+                    font-size: 3.0vw;
+                }
+
+                ul.options-list {
+                    margin: 5px 0px
+                }
+            }
+
             </style>
             <form class='medreview-container'>
                 <div class="header-area">
@@ -517,10 +538,10 @@ export default class TMedReviewAppView extends TAppView<UserMedAnswersArray> {
         this.doneButton = this.htmlEl.dom.querySelector<HTMLButtonElement>('.done-button');
         this.doneButtonMainText = this.htmlEl.dom.querySelector<HTMLSpanElement>('.done-button-main-text');
         this.doneButtonSubText = this.htmlEl.dom.querySelector<HTMLSpanElement>('.done-button-sub-text');
-        this.htmlEl.$medicationDisplayArea = this.htmlEl.dom.querySelector<HTMLDivElement>('.medication-display-area');
-        this.htmlEl.$prevMedButton = this.htmlEl.dom.querySelector<HTMLButtonElement>('.prev-med-button');
-        this.htmlEl.$nextMedButton = this.htmlEl.dom.querySelector<HTMLButtonElement>('.next-med-button');
-        this.htmlEl.$medProgressMessage = this.htmlEl.dom.querySelector<HTMLSpanElement>('.medication-progress-message');
+        this.htmlEl.medDisplayAreaEl = this.htmlEl.dom.querySelector<HTMLDivElement>('.medication-display-area');
+        this.htmlEl.prevMedButtonEl = this.htmlEl.dom.querySelector<HTMLButtonElement>('.prev-med-button');
+        this.htmlEl.nextMedButtonEl = this.htmlEl.dom.querySelector<HTMLButtonElement>('.next-med-button');
+        this.htmlEl.medProgMessageEl = this.htmlEl.dom.querySelector<HTMLSpanElement>('.medication-progress-message');
 
         // Populate patient name
         const patientNameEl = this.htmlEl.dom.querySelector<HTMLSpanElement>('.patient-name');
@@ -529,43 +550,7 @@ export default class TMedReviewAppView extends TAppView<UserMedAnswersArray> {
         }
 
         this.setupFormEventListeners();
-
         await this.prePopulateFromServer(); //evokes call to serverDataToForm()
-        /*
-        // Fetch and display medication list
-        try {
-            const sessionID = this.ctrl.loginData?.sessionID;
-            if (sessionID) {
-                const resp = await fetch(`/api/medication_review?sessionID=${encodeURIComponent(sessionID)}`);
-                if (resp.ok) {
-                    const result = await resp.json();
-                    if (result.success && result.data && Array.isArray(result.data)) {
-                        this.medicationData = result.data; // Store the full list
-                        this.currentMedIndex = 0; // Start with the first medication
-                        this.renderCurrentMedication(this.currentMedIndex); // Render the first medication
-                    } else {
-                        if (this.htmlEl.$medicationDisplayArea) {
-                            this.htmlEl.$medicationDisplayArea.innerHTML = '<p>No medication data found or data is not in expected format.</p>';
-                        }
-                    }
-                } else {
-                    if (this.htmlEl.$medicationDisplayArea) {
-                        this.htmlEl.$medicationDisplayArea.innerHTML = `<p>Error fetching medication data: ${resp.status} ${resp.statusText}</p>`;
-                    }
-                }
-            } else {
-                if (this.htmlEl.$medicationDisplayArea) {
-                    this.htmlEl.$medicationDisplayArea.innerHTML = '<p>Session ID not found. Cannot retrieve medication list.</p>';
-                }
-            }
-        } catch (e) {
-            console.error("Failed to fetch or display medication list.", e);
-            if (this.htmlEl.$medicationDisplayArea) {
-                this.htmlEl.$medicationDisplayArea.innerHTML = '<p>An error occurred while loading your medication list.</p>';
-            }
-        }
-        */
-
         this.updateDoneButtonState(); // Update initially
     }
 
@@ -575,9 +560,9 @@ export default class TMedReviewAppView extends TAppView<UserMedAnswersArray> {
      * @param direction 'next' or 'prev' for animation direction
      */
     private renderCurrentMedication(currentMedIndex : number, direction: 'next' | 'prev' | null = null): void {
-        if (!this.htmlEl.$medicationDisplayArea) return;
+        if (!this.htmlEl.medDisplayAreaEl) return;
 
-        const oldCard = this.htmlEl.$medicationDisplayArea.querySelector('.medication-card');
+        const oldCard = this.htmlEl.medDisplayAreaEl.querySelector('.medication-card');
         const currentMedication = this.medicationData[currentMedIndex];
 
         // SVG Checkmark Icon
@@ -589,7 +574,7 @@ export default class TMedReviewAppView extends TAppView<UserMedAnswersArray> {
         `;
 
         if (!currentMedication) {
-            this.htmlEl.$medicationDisplayArea.innerHTML = '<p>No medications to display.</p>';
+            this.htmlEl.medDisplayAreaEl.innerHTML = '<p>No medications to display.</p>';
             this.updateNavigationButtons();
             this.updateDoneButtonState();
             return;
@@ -747,7 +732,7 @@ export default class TMedReviewAppView extends TAppView<UserMedAnswersArray> {
             // Set initial state for the new card before appending
             newCard.style.transform = direction === 'next' ? 'translate(150%, -50%)' : 'translate(-150%, -50%)'; // Start off-screen
             newCard.style.opacity = '0';
-            this.htmlEl.$medicationDisplayArea.appendChild(newCard);
+            this.htmlEl.medDisplayAreaEl.appendChild(newCard);
 
             // Force reflow to ensure the initial state is applied before transition
             newCard.offsetWidth; // Trigger reflow
@@ -766,8 +751,8 @@ export default class TMedReviewAppView extends TAppView<UserMedAnswersArray> {
 
         } else {
             // No animation on initial load
-            this.htmlEl.$medicationDisplayArea.innerHTML = ''; // Clear previous content directly
-            this.htmlEl.$medicationDisplayArea.appendChild(newCard);
+            this.htmlEl.medDisplayAreaEl.innerHTML = ''; // Clear previous content directly
+            this.htmlEl.medDisplayAreaEl.appendChild(newCard);
         }
 
         this.updateNavigationButtons();
@@ -882,9 +867,9 @@ export default class TMedReviewAppView extends TAppView<UserMedAnswersArray> {
             medicationHeader.classList.add('completed'); // Shows the checkmark
 
             // Update Next button color if it exists
-            if (this.htmlEl.$nextMedButton) {
-                this.htmlEl.$nextMedButton.classList.remove('next-button-incomplete');
-                this.htmlEl.$nextMedButton.classList.add('next-button-complete');
+            if (this.htmlEl.nextMedButtonEl) {
+                this.htmlEl.nextMedButtonEl.classList.remove('next-button-incomplete');
+                this.htmlEl.nextMedButtonEl.classList.add('next-button-complete');
             }
         } else {
             cardEl.classList.remove('medication-card-complete');
@@ -892,9 +877,9 @@ export default class TMedReviewAppView extends TAppView<UserMedAnswersArray> {
             medicationHeader.classList.remove('completed'); // Hides the checkmark
 
             // Update Next button color if it exists
-            if (this.htmlEl.$nextMedButton) {
-                this.htmlEl.$nextMedButton.classList.remove('next-button-complete');
-                this.htmlEl.$nextMedButton.classList.add('next-button-incomplete');
+            if (this.htmlEl.nextMedButtonEl) {
+                this.htmlEl.nextMedButtonEl.classList.remove('next-button-complete');
+                this.htmlEl.nextMedButtonEl.classList.add('next-button-incomplete');
             }
         }
     }
@@ -904,34 +889,34 @@ export default class TMedReviewAppView extends TAppView<UserMedAnswersArray> {
      * Updates the enabled/disabled state of the navigation buttons and the progress message.
      */
     private updateNavigationButtons(): void {
-        if (!this.htmlEl.$prevMedButton || !this.htmlEl.$nextMedButton || !this.htmlEl.$medProgressMessage) return;
+        if (!this.htmlEl.prevMedButtonEl || !this.htmlEl.nextMedButtonEl || !this.htmlEl.medProgMessageEl) return;
 
         // Update progress message
         const totalMeds = this.medicationData.length;
         if (totalMeds > 0) {
-            this.htmlEl.$medProgressMessage.textContent = `Medication ${this.currentMedIndex + 1} of ${totalMeds}`;
+            this.htmlEl.medProgMessageEl.textContent = `Medication ${this.currentMedIndex + 1} of ${totalMeds}`;
         } else {
-            this.htmlEl.$medProgressMessage.textContent = 'No medications to review';
+            this.htmlEl.medProgMessageEl.textContent = 'No medications to review';
         }
 
         // Update Previous button visibility
         if (this.currentMedIndex === 0) {
-            this.htmlEl.$prevMedButton.classList.add('hidden');
+            this.htmlEl.prevMedButtonEl.classList.add('hidden');
         } else {
-            this.htmlEl.$prevMedButton.classList.remove('hidden');
+            this.htmlEl.prevMedButtonEl.classList.remove('hidden');
         }
 
         // Update Next button visibility
         if (this.currentMedIndex === totalMeds - 1) {
-            this.htmlEl.$nextMedButton.classList.add('hidden');
+            this.htmlEl.nextMedButtonEl.classList.add('hidden');
         } else {
-            this.htmlEl.$nextMedButton.classList.remove('hidden');
+            this.htmlEl.nextMedButtonEl.classList.remove('hidden');
         }
 
         // If there are no medications at all, hide both buttons
         if (totalMeds === 0) {
-            this.htmlEl.$prevMedButton.classList.add('hidden');
-            this.htmlEl.$nextMedButton.classList.add('hidden');
+            this.htmlEl.prevMedButtonEl.classList.add('hidden');
+            this.htmlEl.nextMedButtonEl.classList.add('hidden');
         }
     }
 
@@ -963,8 +948,8 @@ export default class TMedReviewAppView extends TAppView<UserMedAnswersArray> {
     private setupFormEventListeners = (): void => {
         if (!this.htmlEl) return;
         // Navigation buttons
-        this.htmlEl.$prevMedButton?.addEventListener('click', this.handlePrevMed);
-        this.htmlEl.$nextMedButton?.addEventListener('click', this.handleNextMed);
+        this.htmlEl.prevMedButtonEl?.addEventListener('click', this.handlePrevMed);
+        this.htmlEl.nextMedButtonEl?.addEventListener('click', this.handleNextMed);
 
         // 'Done' button listener
         this.doneButton?.addEventListener('click', (e) => {

@@ -1,17 +1,11 @@
 // /opt/worldvista/EHR/web/previsit/www/components/sig_form.ts
 // Inherits from TAppView, similar to medication_review.ts
 import TAppView from './appview.js';
-// Import the SignaturePad library  -- source: https://github.com/szimek/signature_pad
-import * as SignaturePadModule from 'signature_pad';
 /**
  * Represents the Signature Form component, responsible for displaying a consent
  * form with a graphical signature area.
  */
 export default class TSigFormAppView extends TAppView {
-    // FIX: Use 'any' for the type annotation of signaturePad
-    // This tells TypeScript to temporarily relax type checking for this property,
-    // as the underlying issue is likely with the module's type definition or tsconfig.
-    signaturePad = null; // Instance of SignaturePad
     constructor(aCtrl, opts) {
         super('sig_form', '/api/sig1', aCtrl); // Unique ID, placeholder API URL, controller
         // Define the inner HTML for the component
@@ -55,48 +49,19 @@ export default class TSigFormAppView extends TAppView {
                     font-weight: bold;
                     color: #2c3e50;
                 }
-                canvas {
-                    border: 2px solid #ddd;
-                    border-radius: 6px;
-                    background-color: #fff;
-                    touch-action: none; /* Crucial for touch devices to prevent scrolling/zooming */
-                    width: 100%; /* Make canvas responsive */
-                    height: 200px; /* Fixed height for signature area */
-                    display: block; /* Remove extra space below canvas */
-                    margin: 0 auto; /* Center the canvas */
+                img.loaded-signature-img {
+                    max-width: 100%;
+                    height: auto;
+                    border: 1px solid #ccc;
+                    margin-top: 20px;
+                    display: none; /* Hidden by default */
                 }
-                .signature-buttons {
-                    margin-top: 15px;
-                    display: flex;
-                    justify-content: center;
-                    gap: 15px;
-                }
-                .signature-buttons button {
-                    padding: 10px 25px;
-                    font-size: 1em;
-                    border: none;
-                    border-radius: 5px;
-                    cursor: pointer;
-                    transition: background-color 0.2s ease, transform 0.1s ease;
-                }
-                .signature-buttons button:hover {
-                    transform: translateY(-1px);
-                }
-                /* Clear signature button is now blue */
-                .signature-buttons .clear-btn {
-                    background-color: #3498db; /* Blue */
-                    color: white;
-                }
-                .signature-buttons .clear-btn:hover {
-                    background-color: #2980b9;
-                }
-                /* Removed save-btn styles */
                 .form-actions {
                     text-align: center;
                     margin-top: 40px;
-                    display: flex; /* Added to align buttons */
-                    justify-content: center; /* Center buttons */
-                    gap: 15px; /* Space between buttons */
+                    display: flex;
+                    justify-content: center;
+                    gap: 15px;
                 }
                 .form-actions button {
                     padding: 15px 30px;
@@ -109,21 +74,19 @@ export default class TSigFormAppView extends TAppView {
                 .form-actions button:hover {
                     transform: translateY(-1px);
                 }
-                /* Done button is green by default (when enabled) */
                 .form-actions .done-button {
-                    background-color: #2ecc71; /* Green */
+                    background-color: #2ecc71;
                     color: white;
                 }
                 .form-actions .done-button:disabled {
-                    background-color: #bdc3c7; /* A neutral gray */
+                    background-color: #bdc3c7;
                     cursor: not-allowed;
                 }
                 .form-actions .done-button:hover:not(:disabled) {
                     background-color: #27ae60;
                 }
-                /* New Don't Sign button is red */
                 .form-actions .dont-sign-btn {
-                    background-color: #e74c3c; /* Red */
+                    background-color: #e74c3c;
                     color: white;
                 }
                 .form-actions .dont-sign-btn:hover {
@@ -134,17 +97,15 @@ export default class TSigFormAppView extends TAppView {
                 <h1>Patient Consent Form</h1>
 
                 <div class="content-section">
-                    <p>ZZZLorem ipsum dolor sit amet, consectetur adipiscing elit. Ut enim ad minim veniam, quis nostrud exercitation ullamco laboris nisi ut aliquip ex ea commodo consequat. Duis aute irure dolor in reprehenderit in voluptate velit esse cillum dolore eu fugiat nulla pariatur.</p>
-                    <p>Excepteur sint occaecat cupidatat non proident, sunt in culpa qui officia deserunt mollit anim id est laborum. Sed ut perspiciatis unde omnis iste natus error sit voluptatem accusantium doloremque laudantium, totam rem aperiam, eaque ipsa quae ab illo inventore veritatis et quasi architecto beatae vitae dicta sunt explicabo.</p>
-                    <p>Nemo enim ipsam voluptatem quia voluptas sit aspernatur aut odit aut fugit, sed quia consequuntur magni dolores eos qui ratione voluptatem sequi nesciunt.</p>
+                    <p>Blank text here</p>
                 </div>
 
                 <div class="signature-area">
                     <label for="signature-canvas">Please sign below to confirm your understanding and agreement:</label>
-                    <canvas id="signature-canvas" width="400" height="200"></canvas>
-                    <div class="signature-buttons">
-                        <button type="button" class="clear-btn">Clear Signature</button>
-                    </div>
+                    <signature-pad-component id="sigPad1"></signature-pad-component>
+                    <!--
+                    <img class="loaded-signature-img" src="" alt="Previously Saved Signature" style="display: none;">
+                    -->
                 </div>
 
                 <div class="form-actions">
@@ -154,70 +115,25 @@ export default class TSigFormAppView extends TAppView {
             </form>
         `;
         this.setHTMLEl(tempInnerHTML);
-        // Cache DOM elements for the signature pad after setting HTML
-        this.htmlEl.signatureCanvas = this.htmlEl.dom.querySelector('#signature-canvas');
-        this.htmlEl.clearSignatureBtn = this.htmlEl.dom.querySelector('.clear-btn');
-        // Removed caching for save button: this.htmlEl.$saveSignatureBtn = this.htmlEl.dom.querySelector<HTMLButtonElement>('.save-btn');
-        this.htmlEl.dontSignBtn = this.htmlEl.dom.querySelector('.dont-sign-btn'); // Cache new button
-        this.htmlEl.contentSection = this.htmlEl.dom.querySelector('.content-section'); // Cache content section
-        this.initializeSignaturePad(); // Initialize the signature pad
+        this.cacheDOMElements(); // Cache DOM elements for the signature pad after setting HTML
         if (opts) {
             // Process any options passed to the constructor if needed
         }
     }
-    /**
-     * Resizes the signature canvas to fit its container and adjusts for device pixel ratio.
-     * Clears the signature after resizing.
-     */
-    _resizeSignatureCanvas() {
-        if (this.htmlEl.signatureCanvas && this.signaturePad) {
-            const ratio = Math.max(window.devicePixelRatio || 1, 1);
-            this.htmlEl.signatureCanvas.width = this.htmlEl.signatureCanvas.offsetWidth * ratio;
-            this.htmlEl.signatureCanvas.height = this.htmlEl.signatureCanvas.offsetHeight * ratio;
-            this.htmlEl.signatureCanvas.getContext("2d")?.scale(ratio, ratio);
-            this.signaturePad.clear(); // Clear the pad on resize as drawing coordinates change
-        }
+    cacheDOMElements() {
+        this.htmlEl.signaturePadComponent = this.htmlEl.dom.querySelector('#sigPad1');
+        this.htmlEl.dontSignBtn = this.htmlEl.dom.querySelector('.dont-sign-btn');
+        this.htmlEl.contentSection = this.htmlEl.dom.querySelector('.content-section');
     }
     /**
-     * Initializes the SignaturePad instance on the canvas.
-     */
-    initializeSignaturePad() {
-        if (this.htmlEl.signatureCanvas) {
-            // FIX: Cast SignaturePadModule.default to 'any' when constructing.
-            // This forces TypeScript to accept it as a constructable function at compile time.
-            this.signaturePad = new SignaturePadModule.default(this.htmlEl.signatureCanvas, {
-                minWidth: 0.5,
-                maxWidth: 2.5,
-                penColor: 'rgb(0, 0, 0)',
-                backgroundColor: 'rgb(255, 255, 255)'
-            });
-            // Add event listeners for the clear button
-            this.htmlEl.clearSignatureBtn?.addEventListener('click', () => {
-                this.signaturePad?.clear();
-                this.updateDoneButtonState();
-                console.log("Signature cleared.");
-            });
-            // Add event listener for window resize to maintain responsiveness
-            window.addEventListener('resize', () => this._resizeSignatureCanvas());
-            // Initial resize will be handled in loadForms() after DOM is ready
-        }
-    }
-    /**
-     * Loads the form content and initializes dynamic elements like the signature pad.
+     * Loads the form content and initializes dynamic elements.
      */
     async loadForms() {
         // Restore initial HTML (if the refresh mechanism resets the DOM)
-        this.setHTMLEl(this.sourceHTML);
-        // Re-cache DOM elements after the HTML has potentially been reset/re-rendered.
-        this.htmlEl.signatureCanvas = this.htmlEl.dom.querySelector('#signature-canvas');
-        this.htmlEl.clearSignatureBtn = this.htmlEl.dom.querySelector('.clear-btn');
-        // Removed caching for save button: this.htmlEl.$saveSignatureBtn = this.htmlEl.dom.querySelector<HTMLButtonElement>('.save-btn');
-        this.htmlEl.dontSignBtn = this.htmlEl.dom.querySelector('.dont-sign-btn'); // Re-cache new button
-        this.initializeSignaturePad(); // Re-initialize the signature pad (event listeners will be re-added but this is fine)
+        this.setHTMLEl(this.sourceHTML); // Re-renders the component, recreating the signature-pad-component
+        this.cacheDOMElements(); // Re-cache DOM elements after the HTML has potentially been reset/re-rendered.
         this.setupFormEventListeners(); // Set up any general form event listeners
-        await this.prePopulateFromServer(); //evokes call to serverDataToForm()
-        // Crucial fix: Defer initial resize until after the browser has had a chance to render the canvas
-        setTimeout(() => this._resizeSignatureCanvas(), 0);
+        await this.prePopulateFromServer(); // Evokes call to serverDataToForm()
         console.log("Signature Form loaded successfully.");
     }
     /**
@@ -233,12 +149,17 @@ export default class TSigFormAppView extends TAppView {
         // Add event listener for the new 'Don't sign' button
         this.htmlEl.dontSignBtn?.addEventListener('click', () => {
             console.log("Don't sign button clicked!");
-            this.signaturePad.clear();
+            this.htmlEl.signaturePadComponent?.clear();
             this.updateDoneButtonState();
             this.handleDoneClick(); //this will effect saving an empty signature, removing any prior saved one
         });
-        this.signaturePad.addEventListener("endStroke", () => {
-            console.log("Signature started");
+        // Listen for custom events from the signature pad component
+        this.htmlEl.signaturePadComponent?.addEventListener('signed', () => {
+            console.log("Signature started/updated");
+            this.updateDoneButtonState();
+        });
+        this.htmlEl.signaturePadComponent?.addEventListener('cleared', () => {
+            console.log("Signature cleared.");
             this.updateDoneButtonState();
         });
     }
@@ -247,13 +168,11 @@ export default class TSigFormAppView extends TAppView {
      */
     updateProgressState = () => {
         //NOTE: this overrides ancestor method.
-        this.resetProgressState; // Reset progress data to default
-        if (!this.htmlEl)
-            return;
-        if (!this.signaturePad)
+        this.resetProgressState(); // Reset progress data to default
+        if (!this.htmlEl || !this.htmlEl.signaturePadComponent)
             return;
         let totalQuestions = 1;
-        let answeredCount = this.signaturePad.isEmpty() ? 0 : 1;
+        let answeredCount = this.htmlEl.signaturePadComponent.isEmpty() ? 0 : 1;
         this.progressData.totalItems = totalQuestions;
         this.progressData.answeredItems = answeredCount;
         this.progressData.unansweredItems = totalQuestions - answeredCount;
@@ -276,30 +195,18 @@ export default class TSigFormAppView extends TAppView {
      * @param data A JSON object with data.
      */
     serverDataToForm = (data) => {
-        //to do: put data.encodedSignature into the signature pad if available
         if (data.encodedSignature) {
-            // Also display in the "Previously Saved Signature" image tag
-            if (this.htmlEl.$loadedSignatureImg) {
-                this.htmlEl.$loadedSignatureImg.src = data.encodedSignature;
-                this.htmlEl.$loadedSignatureImg.style.display = 'block';
-            }
-            if (this.signaturePad) {
-                this.signaturePad.fromDataURL(data.encodedSignature);
-                console.log("Signature loaded into pad and display image.");
-            }
+            this.htmlEl.signaturePadComponent?.fromDataURL(data.encodedSignature);
+            console.log("Signature loaded into pad and display image.");
         }
         else {
             console.log("No encoded signature found in server data or signature pad not initialized.");
-            if (this.htmlEl.$loadedSignatureImg) {
-                this.htmlEl.$loadedSignatureImg.style.display = 'none';
-                this.htmlEl.$loadedSignatureImg.src = '';
-            }
+            this.htmlEl.signaturePadComponent?.clear(); // Ensure pad is clear if no data
         }
         if (data.displayText && this.htmlEl.contentSection) {
             this.htmlEl.contentSection.innerHTML = data.displayText.join('');
         }
-        // Update the done button state after loading the data
-        this.updateDoneButtonState();
+        this.updateDoneButtonState(); // Update the done button state after loading the data
     };
     /**
      * Gathers all medication answers into a structured JSON object.
@@ -307,12 +214,12 @@ export default class TSigFormAppView extends TAppView {
      */
     gatherDataForServer = () => {
         let encodedSignature = '';
-        if (this.signaturePad && !this.signaturePad.isEmpty()) {
-            encodedSignature = this.signaturePad.toDataURL('image/png');
+        if (this.htmlEl.signaturePadComponent && !this.htmlEl.signaturePadComponent.isEmpty()) {
+            encodedSignature = this.htmlEl.signaturePadComponent.toDataURL('image/png');
         }
         let result = {
             encodedSignature: encodedSignature,
-            progress: {} // Progress data for the signature form (as per your type)
+            progress: this.progressData // Pass the progress data
         };
         console.log("Gathered signature data for server.");
         return result;

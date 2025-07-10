@@ -11,7 +11,7 @@ process.on('unhandledRejection', (reason, promise) => {
     console.error('Promise:', promise);
     process.exit(1); // Exit with a failure code
 });
-console.log("v0.5");
+console.log("v0.9");
 import express from 'express';
 import { piece, strToNumDef } from './utils.js'; // Import the functions, pointing to the expected .js output
 import { TTMGNetwork } from './TTMGNetwork.js'; // Note: Keep .js in import path for ESM environments
@@ -28,7 +28,7 @@ function rpcErrorCheckOK(rpcResult, res, errIndex, tag, rtn) {
         res.status(500).json({ success: false, message: `Server error: RPC call (${tag}^${rtn}) failed before Mumps execution.` });
         return false;
     }
-    console.log('RPC result:', JSON.stringify(rpcResult));
+    //console.log('RPC result:', JSON.stringify(rpcResult));
     const mumpsResult = strToNumDef(piece(rpcResult.return, '^', 1), 0);
     if (mumpsResult < 0) {
         const errorMessage = rpcResult.args[errIndex] || 'API failure';
@@ -45,13 +45,15 @@ function rpcPrecheckOK(req, res) {
         res.status(400).json({ success: false, message: 'A valid Session ID is required.' });
         result = false;
     }
-    console.log(`Request sessionID: ${sessionID}`);
+    //console.log(`Request sessionID: ${sessionID}`);
     return result;
 }
 //====================================================================================================
 // Handle login request
+// POST only
+//====================================================================================================
 async function hndlLogin(req, res) {
-    console.log("Received login request from browser:", req.body);
+    //console.log("Received login request from browser:", req.body);
     // Explicitly cast req.body to an expected shape for login
     const { lastName, firstName, dob } = req.body;
     if (!lastName || !firstName || !dob) {
@@ -84,18 +86,18 @@ async function hndlLogin(req, res) {
 }
 ;
 //====================================================================================================
-/**
- * Handle request for dashboard forms.
- * This endpoint will provide the list of forms a patient needs to complete.
- */
+//====================================================================================================
+/*
+ Handle request for dashboard forms --  provideS the list of forms a patient needs to complete.
+ GET only
+*/
+//====================================================================================================
 async function hndlDashboard(req, res) {
-    console.log("Received request for dashboard forms.", req.query);
+    //console.log("Received request for dashboard forms.", req.query);
     if (!rpcPrecheckOK(req, res))
         return; //res output object will have already been set in rpcPrecheckOK
-    const { sessionID } = req.query;
     try {
-        // This signals to your RPC wrapper that the first argument is an array.
-        // Using an empty array is a clean way to represent an output parameter.
+        const { sessionID } = req.query;
         const outForms = []; // Output parameter
         let err = "";
         let errIndex = 2;
@@ -115,16 +117,17 @@ async function hndlDashboard(req, res) {
     }
 }
 //====================================================================================================
-/**
- * Handle request for HxUpdate forms.
- * This endpoint will provide the saved form data for a patient (if any).
- */
+//====================================================================================================
+/*
+ Handle request for HxUpdate forms -- provideS saving form data for a patient (if any).
+ GET
+*/
 async function hndlGetHxUpdateData(req, res) {
-    console.log("Received request for HxUpdate data.", req.query);
+    //console.log("Received request for HxUpdate data.", req.query);
     if (!rpcPrecheckOK(req, res))
         return; //res output object will have already been set in rpcPrecheckOK
-    const { sessionID } = req.query;
     try {
+        const { sessionID } = req.query;
         let outData = {}; // The output parameter for the data (should be an object/array)
         let outProgress = {};
         let err = "";
@@ -145,19 +148,19 @@ async function hndlGetHxUpdateData(req, res) {
         res.status(500).json({ success: false, data: {}, message: `Internal server error: ${errorMessage}` });
     }
 }
-//====================================================================================================
-/**
- * Handle saving of HxUpdate form data.
- * This endpoint receives the form data from the client and saves it via RPC.
+//----------------------------------------------------------------------------------------------------
+/*
+ Handle saving of HxUpdate form data -- saves received form data from the client via RPC.
+ POST
  */
 async function hndlSaveHxUpdate(req, res) {
-    console.log("Received request to save HxUpdate data.", req.body);
+    //console.log("Received request to save HxUpdate data.", req.body);
     if (!rpcPrecheckOK(req, res))
         return; //res output object will have already been set in rpcPrecheckOK
-    const { sessionID } = req.query;
-    const data = req.body.data; // Expecting data to be an object
-    const progress = req.body.progress;
     try {
+        const { sessionID } = req.query;
+        const data = req.body.data; // Expecting data to be an object
+        const progress = req.body.progress;
         let err = "";
         let errIndex = 3; // Output parameter for errors from Mumps
         let tag = "SAVEHXDATA";
@@ -174,15 +177,17 @@ async function hndlSaveHxUpdate(req, res) {
     }
 }
 //====================================================================================================
-/**
- * Handle request for ROS data (get).
- */
+//====================================================================================================
+/*
+ Handle request for ROS data
+ GET
+*/
 async function hndlGetRosUpdateData(req, res) {
-    console.log("Received request for ROS data.", req.query);
+    //console.log("Received request for ROS data.", req.query);
     if (!rpcPrecheckOK(req, res))
         return; //res output object will have already been set in rpcPrecheckOK
-    const { sessionID } = req.query;
     try {
+        const { sessionID } = req.query;
         let outData = {};
         let outProgress = {};
         let err = "";
@@ -203,17 +208,19 @@ async function hndlGetRosUpdateData(req, res) {
         res.status(500).json({ success: false, data: {}, message: `Internal server error: ${errorMessage}` });
     }
 }
-/**
- * Handle saving of ROS data (post).
- */
+//----------------------------------------------------------------------------------------------------
+/*
+ Handle saving of ROS data
+ POST
+*/
 async function hndlSaveRosUpdateData(req, res) {
-    console.log("Received request to save ROS data.", req.body);
+    //console.log("Received request to save ROS data.", req.body);
     if (!rpcPrecheckOK(req, res))
         return; //res output object will have already been set in rpcPrecheckOK
-    const { sessionID } = req.query;
-    const data = req.body.data; // Expecting data to be an object
-    const progress = req.body.progress;
     try {
+        const { sessionID } = req.query;
+        const data = req.body.data; // Expecting data to be an object
+        const progress = req.body.progress;
         let err = "";
         let errIndex = 3; // Output parameter for errors from Mumps
         let tag = "SAVEROSDATA";
@@ -230,15 +237,17 @@ async function hndlSaveRosUpdateData(req, res) {
     }
 }
 //====================================================================================================
-/**
- * Handle request for Medication Review data (get).
- */
+//====================================================================================================
+/*
+ Handle request for Medication Review data
+ GET
+*/
 async function hndlGetMedReviewData(req, res) {
-    console.log("Received request for Medication Review data.", req.query);
+    //console.log("Received request for Medication Review data.", req.query);
     if (!rpcPrecheckOK(req, res))
         return; //res output object will have already been set in rpcPrecheckOK
-    const { sessionID } = req.query;
     try {
+        const { sessionID } = req.query;
         let outData = {};
         let outProgress = {};
         let err = "";
@@ -259,17 +268,19 @@ async function hndlGetMedReviewData(req, res) {
         res.status(500).json({ success: false, data: {}, message: `Internal server error: ${errorMessage}` });
     }
 }
-/**
- * Handle saving of Medication Review data (post).
- */
+//----------------------------------------------------------------------------------------------------
+/*
+ Handle saving of Medication Review data
+ POST
+*/
 async function hndlSaveMedReviewData(req, res) {
-    console.log("Received request to save Medication Review data.", req.body);
+    //console.log("Received request to save Medication Review data.", req.body)
     if (!rpcPrecheckOK(req, res))
         return; //res output object will have already been set in rpcPrecheckOK
-    const { sessionID } = req.query;
-    const data = req.body.data; // Expecting data to be an array of UserMedicationAnswers
-    const progress = req.body.progress; // Expecting progress to be of type ProgressData
     try {
+        const { sessionID } = req.query;
+        const data = req.body.data; // Expecting data to be an array of UserMedicationAnswers
+        const progress = req.body.progress; // Expecting progress to be of type ProgressData
         let err = "";
         let errIndex = 3; // Output parameter for errors from Mumps
         let tag = "SAVEMEDS";
@@ -288,15 +299,17 @@ async function hndlSaveMedReviewData(req, res) {
     }
 }
 //====================================================================================================
-/**
- * Handle request for signature data (get).
- */
+//====================================================================================================
+/*
+ Handle request for signature data
+ GET
+*/
 async function hndlGetSig1Data(req, res) {
-    console.log("Received request for signature data.", req.query);
+    //console.log("Received request for signature data.", req.query);
     if (!rpcPrecheckOK(req, res))
         return; //res output object will have already been set in rpcPrecheckOK
-    const { sessionID } = req.query;
     try {
+        const { sessionID } = req.query;
         let outSignature = ""; // Output parameter for the Base64 signature string
         let outProgress = {}; // output parameter for progress object
         let outText = []; // output parameter for display text
@@ -322,20 +335,19 @@ async function hndlGetSig1Data(req, res) {
         res.status(500).json({ success: false, signature: "", message: `Internal server error: ${errorMessage}` });
     }
 }
-//====================================================================================================
-/**
- * Handle saving of signature data.
- * This endpoint receives the Base64 signature data from the client and saves it via RPC.
+//----------------------------------------------------------------------------------------------------
+/*
+ Handle saving of signature data -- receives the Base64 signature data from the client and saves it via RPC.
+ POST
  */
 async function hndlSaveSig1Data(req, res) {
-    console.log("Received request to save signature.", req.body);
+    //console.log("Received request to save signature.", req.body);
     if (!rpcPrecheckOK(req, res))
         return; //res output object will have already been set in rpcPrecheckOK
-    const { sessionID } = req.query;
-    const progress = req.body.progress; // Expecting progress to be of type ProgressData
-    const data = req.body.data.encodedSignature; // The base64 string for signature data representing the image of the signature
-    console.log(`Saving signature for sessionID: ${sessionID}`);
     try {
+        const { sessionID } = req.query;
+        const progress = req.body.progress; // Expecting progress to be of type ProgressData
+        const data = req.body.data.encodedSignature; // The base64 string for signature data representing the image of the signature
         let err = "";
         let errIndex = 3; // Output parameter for errors from Mumps
         let tag = "SAVESIG1";
@@ -351,6 +363,70 @@ async function hndlSaveSig1Data(req, res) {
         res.status(500).json({ success: false, message: `Internal server error: ${errorMessage}` });
     }
 }
+//
+//====================================================================================================
+//====================================================================================================
+/*
+ Handle request for consent data
+ GET
+*/
+async function hndlGetConsentData(req, res) {
+    //console.log("Received request for patient consent data.", req.query);
+    if (!rpcPrecheckOK(req, res))
+        return; //res output object will have already been set in rpcPrecheckOK
+    try {
+        const { sessionID } = req.query;
+        let outData = {}; // Output parameter
+        let outProgress = {}; // output parameter for progress object
+        let err = "";
+        let errIndex = 4; // Output parameter for errors from Mumps
+        let tag = "GETCSNT";
+        let rtn = "TMGPRE01";
+        const rpcResult = await tmg.RPC(tag, rtn, [outData, outProgress, sessionID, err]);
+        if (rpcErrorCheckOK(rpcResult, res, errIndex, tag, rtn)) {
+            res.json({
+                success: true,
+                data: rpcResult.args[0], //type ConsentFormData
+                progress: rpcResult.args[1], //type progressData
+                message: 'Consent data retrieved successfully.'
+            });
+        }
+    }
+    catch (error) {
+        console.error('Error during GET /api/sig1:', error);
+        const errorMessage = error instanceof Error ? error.message : 'Unknown error';
+        res.status(500).json({ success: false, signature: "", message: `Internal server error: ${errorMessage}` });
+    }
+}
+//----------------------------------------------------------------------------------------------------
+/*
+ Handle saving of consent data -- receives data from the client and saves it via RPC.
+ POST
+ */
+async function hndlSaveConsentData(req, res) {
+    //console.log("Received request to save consent.", req.body);
+    if (!rpcPrecheckOK(req, res))
+        return; //res output object will have already been set in rpcPrecheckOK
+    try {
+        const { sessionID } = req.query;
+        const progress = req.body.progress;
+        const data = req.body.data;
+        let err = "";
+        let errIndex = 3; // Output parameter for errors from Mumps
+        let tag = "SAVECSNT";
+        let rtn = "TMGPRE01";
+        const rpcResult = await tmg.RPC(tag, rtn, [sessionID, data, progress, err]);
+        if (rpcErrorCheckOK(rpcResult, res, errIndex, tag, rtn)) {
+            res.status(200).json({ success: true, message: 'Consent data saved successfully.' });
+        }
+    }
+    catch (error) {
+        console.error('Error during POST /api/patient_consent request:', error);
+        const errorMessage = error instanceof Error ? error.message : 'Unknown error';
+        res.status(500).json({ success: false, message: `Internal server error: ${errorMessage}` });
+    }
+}
+//====================================================================================================
 //====================================================================================================
 function close(message) {
     console.log(`here in close() function. Message=${message}`);
@@ -403,8 +479,10 @@ try {
     app.post('/api/rosupdate', hndlSaveRosUpdateData); // Register handler for saving rosupdate data
     app.get('/api/medication_review', hndlGetMedReviewData); // Register handler for getting medication review data
     app.post('/api/medication_review', hndlSaveMedReviewData); // Register handler for saving medication review data
-    app.post('/api/sig1', hndlSaveSig1Data); // Register handler for saving signature
     app.get('/api/sig1', hndlGetSig1Data); // Register handler for getting signature
+    app.post('/api/sig1', hndlSaveSig1Data); // Register handler for saving signature
+    app.get('/api/patient_consent', hndlGetConsentData); // Register handler for getting patient consent form
+    app.post('/api/patient_consent', hndlSaveConsentData); // Register handler for saving  patient consent form
     // Start the server
     app.listen(PORT, () => {
         console.log(`Server listening on port ${PORT}`);

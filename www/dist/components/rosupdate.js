@@ -283,7 +283,7 @@ export default class TRosUpdateAppView extends TAppView {
         //const noneToggleButton = document.createElement('toggle-button') as ToggleButton;
         let toggleButtonOpts = {
             label: 'NONE',
-            colors: { checked: { backgroundColor: '#e74c3c' } },
+            state: { checked: { backgroundColor: '#e74c3c' } },
             name: `${prefix}_none`
         };
         const noneToggleButton = new ToggleButton(toggleButtonOpts);

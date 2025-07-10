@@ -60,3 +60,13 @@ export interface SigFormData {
     displayText?: string[];    // array of html text to be displayed
     progress?: ProgressData; // Progress data for the signature form
 }
+
+export type TAuthorizedPersonsArray = Array<{ name: string; rel: string; phone: string }>;
+
+export interface ConsentFormData {
+    encodedSignature?: string;   // Base64 encoded string of the signature image
+    sectionsAgreed?: boolean[];  // 0=sectionA status, 1=sectionB status etc
+    repName?: string;            // patient representative name
+    relationship?: string;       // patient representative relationship
+    authPersons?: TAuthorizedPersonsArray;
+}
