@@ -76,6 +76,15 @@ export class ToggleButton extends HTMLElement {
         this._showChecked = options.showChecked || this.hasAttribute('show-checked');
         // Determine the base labelText: options.label > label attribute > innerHTML > default 'Toggle'
         this.labelText = options.label || this.getAttribute('label') || initialInnerHTML || 'Toggle';
+        // If a name is provided in options, set it as an attribute on the custom element itself.
+        if (options.name) {
+            this.setAttribute('name', options.name);
+        }
+        else if (!this.hasAttribute('name')) {
+            // If no name in options and no attribute, ensure input name is still handled by render.
+            // This 'else if' block might not be strictly necessary if render() is robust,
+            // but it highlights the intent to ensure the name attribute is present on 'this'.
+        }
         this.render(); // Call render to apply initial styles and create elements
     }
     render() {

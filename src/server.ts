@@ -518,6 +518,73 @@ async function hndlSaveConsentData(req: express.Request, res: express.Response) 
 
 //====================================================================================================
 //====================================================================================================
+/*
+ Handle request for ROS data
+ GET
+*/
+async function hndlGetPhq9UpdateData(req: express.Request, res: express.Response) {
+    //console.log("Received request for PHQ-9 data.", req.query);
+    if (!rpcPrecheckOK(req, res)) return;  //res output object will have already been set in rpcPrecheckOK
+    try {
+        const { sessionID } = req.query;
+        let outData: any = {};
+        let outProgress: any = {};
+        interface RPCResult {
+            return: string;
+            args: [any,      // out outData
+                   any,      // out outProgress  type: ProgressData
+                   string,   // out sessionID
+                   string    // out err
+                  ];
+        }
+        let err = ""; let errIndex = 3; // Output parameter for errors from Mumps
+        let tag="GETPHQ9DATA"; let rtn="TMGPRE01";
+
+        const rpcResult : RPCResult | undefined = await tmg.RPC<RPCResult>(tag, rtn, [outData, outProgress, sessionID, err]);
+
+        if (rpcErrorCheckOK(rpcResult, res, errIndex, tag, rtn)) {
+            res.json({ success: true,
+                        data: rpcResult.args[0],
+                        progress : rpcResult.args[1], // type: ProgressData
+                       });
+        }
+    } catch (error) {
+        console.error('Error during /api/phq9update GET:', error);
+        const errorMessage = error instanceof Error ? error.message : 'Unknown error';
+        res.status(500).json({ success: false, data: {}, message: `Internal server error: ${errorMessage}` });
+    }
+}
+
+//----------------------------------------------------------------------------------------------------
+/*
+ Handle saving of ROS data
+ POST
+*/
+async function hndlSavePhq9UpdateData(req: express.Request, res: express.Response) {
+    //console.log("Received request to save PHQ-9 data.", req.body);
+    if (!rpcPrecheckOK(req, res)) return;  //res output object will have already been set in rpcPrecheckOK
+    try {
+        const { sessionID } = req.query;
+        const data : any = req.body.data; // Expecting data to be an object
+        const progress : ProgressData = req.body.progress;
+        let err = ""; let errIndex = 3; // Output parameter for errors from Mumps
+        let tag="SAVEPHQ9DATA"; let rtn="TMGPRE01";
+
+        const rpcResult : RPCSaveDataResult = await tmg.RPC<RPCSaveDataResult>(tag, rtn, [sessionID, data, progress,err]);
+
+        if (rpcErrorCheckOK(rpcResult, res, errIndex, tag, rtn)) {
+            res.status(200).json({ success: true, message: 'ROS data saved successfully.' });
+        }
+
+    } catch (error) {
+        console.error('Error during POST /api/phq9update:', error);
+        const errorMessage = error instanceof Error ? error.message : 'Unknown error';
+        res.status(500).json({ success: false, message: `Internal server error: ${errorMessage}` });
+    }
+}
+
+//====================================================================================================
+//====================================================================================================
 
 function close(message: string): void { // Add type annotation for 'message' and return type
     console.log(`here in close() function. Message=${message}`);
@@ -567,23 +634,26 @@ try {
     app.use(express.static('www'));
 
     // Register route handlers
-    app.post('/api/login',               hndlLogin             as express.RequestHandler);  // register handler (endpoint) for login
-    app.get('/api/dashboard',            hndlDashboard         as express.RequestHandler);  // Register handler for dashboard dashboard
+    app.post('/api/login',               hndlLogin               as express.RequestHandler);  // register handler (endpoint) for login
+    app.get('/api/dashboard',            hndlDashboard           as express.RequestHandler);  // Register handler for dashboard dashboard
 
-    app.get('/api/hxupdate',             hndlGetHxUpdateData   as express.RequestHandler);  // Register handler for getting hxupdate data
-    app.post('/api/hxupdate',            hndlSaveHxUpdate      as express.RequestHandler);  // Register handler for saving history updates
+    app.get('/api/hxupdate',             hndlGetHxUpdateData     as express.RequestHandler);  // Register handler for getting hxupdate data
+    app.post('/api/hxupdate',            hndlSaveHxUpdate        as express.RequestHandler);  // Register handler for saving history updates
 
-    app.get('/api/rosupdate',            hndlGetRosUpdateData  as express.RequestHandler);  // Register handler for getting rosupdate data
-    app.post('/api/rosupdate',           hndlSaveRosUpdateData as express.RequestHandler);  // Register handler for saving rosupdate data
+    app.get('/api/rosupdate',            hndlGetRosUpdateData    as express.RequestHandler);  // Register handler for getting rosupdate data
+    app.post('/api/rosupdate',           hndlSaveRosUpdateData   as express.RequestHandler);  // Register handler for saving rosupdate data
 
-    app.get('/api/medication_review',    hndlGetMedReviewData  as express.RequestHandler);  // Register handler for getting medication review data
-    app.post('/api/medication_review',   hndlSaveMedReviewData as express.RequestHandler);  // Register handler for saving medication review data
+    app.get('/api/medication_review',    hndlGetMedReviewData    as express.RequestHandler);  // Register handler for getting medication review data
+    app.post('/api/medication_review',   hndlSaveMedReviewData   as express.RequestHandler);  // Register handler for saving medication review data
 
-    app.get('/api/sig1',                 hndlGetSig1Data       as express.RequestHandler);  // Register handler for getting signature
-    app.post('/api/sig1',                hndlSaveSig1Data      as express.RequestHandler);  // Register handler for saving signature
+    app.get('/api/sig1',                 hndlGetSig1Data         as express.RequestHandler);  // Register handler for getting signature
+    app.post('/api/sig1',                hndlSaveSig1Data        as express.RequestHandler);  // Register handler for saving signature
 
-    app.get('/api/patient_consent',      hndlGetConsentData    as express.RequestHandler);  // Register handler for getting patient consent form
-    app.post('/api/patient_consent',     hndlSaveConsentData   as express.RequestHandler);  // Register handler for saving  patient consent form
+    app.get('/api/patient_consent',      hndlGetConsentData      as express.RequestHandler);  // Register handler for getting patient consent form
+    app.post('/api/patient_consent',     hndlSaveConsentData     as express.RequestHandler);  // Register handler for saving  patient consent form
+
+    app.get('/api/phq9update',           hndlGetPhq9UpdateData   as express.RequestHandler);  // Register handler for getting phq9update data
+    app.post('/api/phq9update',          hndlSavePhq9UpdateData  as express.RequestHandler);  // Register handler for saving phq9update data
 
     // Start the server
     app.listen(PORT, () => {

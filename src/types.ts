@@ -19,6 +19,7 @@ export interface LoginApiResponse {
 export interface GetPatientFormsApiResponse {
     text?: string; // The display name of the form
     viewName?: string; // The name of the view to switch to
+    iconName?: string; // The name of the icon to display
     progress?: ProgressData
 }
 
@@ -69,4 +70,9 @@ export interface ConsentFormData {
     repName?: string;            // patient representative name
     relationship?: string;       // patient representative relationship
     authPersons?: TAuthorizedPersonsArray;
+}
+
+export type TPhq9Answers = {
+    questions?: KeyToStrBoolValueObj;
+    resultingTotal?: number;
 }

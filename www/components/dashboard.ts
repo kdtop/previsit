@@ -176,6 +176,8 @@ export default class TDashboardAppView extends TAppView<GetPatientFormsApiRespon
         forms.forEach((item : GetPatientFormsApiResponse) => {
             const displayName = item.text;
             const targetName = item.viewName;
+            const iconName = item.iconName;
+
             if (!displayName || !targetName) return;
 
             const progress = item.progress;

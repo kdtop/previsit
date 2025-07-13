@@ -428,6 +428,66 @@ async function hndlSaveConsentData(req, res) {
 }
 //====================================================================================================
 //====================================================================================================
+/*
+ Handle request for ROS data
+ GET
+*/
+async function hndlGetPhq9UpdateData(req, res) {
+    //console.log("Received request for PHQ-9 data.", req.query);
+    if (!rpcPrecheckOK(req, res))
+        return; //res output object will have already been set in rpcPrecheckOK
+    try {
+        const { sessionID } = req.query;
+        let outData = {};
+        let outProgress = {};
+        let err = "";
+        let errIndex = 3; // Output parameter for errors from Mumps
+        let tag = "GETPHQ9DATA";
+        let rtn = "TMGPRE01";
+        const rpcResult = await tmg.RPC(tag, rtn, [outData, outProgress, sessionID, err]);
+        if (rpcErrorCheckOK(rpcResult, res, errIndex, tag, rtn)) {
+            res.json({ success: true,
+                data: rpcResult.args[0],
+                progress: rpcResult.args[1], // type: ProgressData
+            });
+        }
+    }
+    catch (error) {
+        console.error('Error during /api/phq9update GET:', error);
+        const errorMessage = error instanceof Error ? error.message : 'Unknown error';
+        res.status(500).json({ success: false, data: {}, message: `Internal server error: ${errorMessage}` });
+    }
+}
+//----------------------------------------------------------------------------------------------------
+/*
+ Handle saving of ROS data
+ POST
+*/
+async function hndlSavePhq9UpdateData(req, res) {
+    //console.log("Received request to save PHQ-9 data.", req.body);
+    if (!rpcPrecheckOK(req, res))
+        return; //res output object will have already been set in rpcPrecheckOK
+    try {
+        const { sessionID } = req.query;
+        const data = req.body.data; // Expecting data to be an object
+        const progress = req.body.progress;
+        let err = "";
+        let errIndex = 3; // Output parameter for errors from Mumps
+        let tag = "SAVEPHQ9DATA";
+        let rtn = "TMGPRE01";
+        const rpcResult = await tmg.RPC(tag, rtn, [sessionID, data, progress, err]);
+        if (rpcErrorCheckOK(rpcResult, res, errIndex, tag, rtn)) {
+            res.status(200).json({ success: true, message: 'ROS data saved successfully.' });
+        }
+    }
+    catch (error) {
+        console.error('Error during POST /api/phq9update:', error);
+        const errorMessage = error instanceof Error ? error.message : 'Unknown error';
+        res.status(500).json({ success: false, message: `Internal server error: ${errorMessage}` });
+    }
+}
+//====================================================================================================
+//====================================================================================================
 function close(message) {
     console.log(`here in close() function. Message=${message}`);
     if (tmg) {
@@ -483,6 +543,8 @@ try {
     app.post('/api/sig1', hndlSaveSig1Data); // Register handler for saving signature
     app.get('/api/patient_consent', hndlGetConsentData); // Register handler for getting patient consent form
     app.post('/api/patient_consent', hndlSaveConsentData); // Register handler for saving  patient consent form
+    app.get('/api/phq9update', hndlGetPhq9UpdateData); // Register handler for getting phq9update data
+    app.post('/api/phq9update', hndlSavePhq9UpdateData); // Register handler for saving phq9update data
     // Start the server
     app.listen(PORT, () => {
         console.log(`Server listening on port ${PORT}`);

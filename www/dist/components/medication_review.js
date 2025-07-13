@@ -15,6 +15,12 @@ export default class TMedReviewAppView extends TAppView {
         { //temp scope for tempInnerHTML
             const tempInnerHTML = `
             <style>
+
+            p {
+              margin-top: 0px;
+              margin-bottom: 5px;
+              xbackground-color:rgb(223, 8, 8);
+            }
             .medreview-container {
                 line-height: 1.6;
                 padding: 0 100px; /* Kept for overall container padding */
@@ -54,14 +60,15 @@ export default class TMedReviewAppView extends TAppView {
             h1 {
                 text-align: center;
                 color: #2c3e50;
-                margin-bottom: 30px;
+                margin-top: 25px;
+                margin-bottom: -10px;
             }
 
             h2 {
                 color: #2c3e50;
                 border-bottom: 2px solid #3498db;
                 padding-bottom: 5px;
-                margin-top: 30px;
+                margin-top: 15px;
                 margin-bottom: 15px;
             }
             ul {
@@ -122,14 +129,13 @@ export default class TMedReviewAppView extends TAppView {
                 transform: translateY(-1px);
                 box-shadow: 0 2px 5px rgba(0,0,0,0.2);
             }
-            /* New: I don't know for taking question */
+            /* I don't know for taking question */
             input[name^='taking_'][value='unknown']:checked + .custom-checkbox-text {
                 background-color: #6c757d; /* Dark grey for "I don't know" */
                 color: white;
                 transform: translateY(-1px);
                 box-shadow: 0 2px 5px rgba(0,0,0,0.2);
             }
-
 
             /* Specific colors based on value for 'refill' question */
             input[name^='need_refill_'][value='yes']:checked + .custom-checkbox-text {
@@ -161,8 +167,8 @@ export default class TMedReviewAppView extends TAppView {
             }
 
             .details-input-group {
-                margin-top: 15px;
-                margin-bottom: 25px;
+                margin-top: 0px;
+                margin-bottom: 0px;
             }
 
             .details-input-group label {
@@ -183,7 +189,7 @@ export default class TMedReviewAppView extends TAppView {
                 resize: none;
             }
 
-            /* --- NEW: Specific Styling for Medication Card --- */
+            /* --- Specific Styling for Medication Card --- */
             .medication-display-area {
                 width: 100%;
                 position: relative;
@@ -202,7 +208,7 @@ export default class TMedReviewAppView extends TAppView {
                 padding: 25px;
                 width: 80%;
                 max-width: 900px;
-                box-shadow: 0 4px 8px rgba(0,0,0,0.05);
+                box-shadow: 10px 10px 5px rgba(0, 0, 0, 0.53);
                 position: absolute; /* Keep absolute for transitions */
                 top: 50%;
                 left: 50%;
@@ -244,14 +250,16 @@ export default class TMedReviewAppView extends TAppView {
                 font-size: 1.8em;
                 font-weight: bold;
                 color: #34495e;
-                margin-bottom: 20px;
+                margin-bottom: 5px;
                 text-align: center;
+                border: solid 1px rgb(214, 214, 214);
+                padding: 10px;
             }
 
             .question-group {
-                margin-bottom: 25px;
-                padding-bottom: 15px;
-                border-bottom: solid 1px #ececec;
+                margin-bottom: 0px;
+                padding-bottom: 0px;
+                xborder-bottom: solid 1px #ececec;
             }
 
             .question-group:last-child {
@@ -268,6 +276,24 @@ export default class TMedReviewAppView extends TAppView {
                 text-align: center;
             }
 
+            .refill-question-label {
+                display: block;
+                margin-bottom: 10px;
+                font-weight: bold;
+                font-size: 1.1em;
+                color: #333;
+                text-align: center;
+            }
+
+            .refill-loc-question-label {
+                display: block;
+                margin-bottom: 10px;
+                margin-top: 15px;
+                font-weight: bold;
+                font-size: 1.1em;
+                color: #333;
+                text-align: center;
+            }
             .options-list {
                 display: flex;
                 gap: 15px;
@@ -306,6 +332,7 @@ export default class TMedReviewAppView extends TAppView {
                 border: none;
                 border-radius: 5px;
                 cursor: pointer;
+                height: 10vw;
                 transition: background-color 0.5s ease;
                 flex-shrink: 0; /* Prevent buttons from shrinking */
             }
@@ -384,7 +411,7 @@ export default class TMedReviewAppView extends TAppView {
                 align-items: center; /* Horizontally center content */
             }
 
-            /* NEW: Navigation Buttons & Progress Message */
+            /* Navigation Buttons & Progress Message */
             .navigation-area { /* Container for buttons and message */
                 display: flex;
                 justify-content: space-between;
@@ -398,12 +425,12 @@ export default class TMedReviewAppView extends TAppView {
 
             .medication-header {
                 position: relative;
-                --checkmark-size: 12vw; /* Size of the checkmark icon */
+                --checkmark-size: 5vw; /* Size of the checkmark icon */
             }
             .medication-header .complete-indicator {
                 position: absolute;
-                top: calc(var(--checkmark-size) * -0.75); /* Move up by half its height */
-                left: calc(var(--checkmark-size) * -0.75); /* Move left by half its width */
+                top: calc(var(--checkmark-size) * -0.5); /* Move up by half its height */
+                left: calc(var(--checkmark-size) * -0.5); /* Move left by half its width */
                 z-index: 30;
                 opacity: 0; /* Initially invisible */
                 transform: scale(0.5); /* Initially smaller */
@@ -438,7 +465,8 @@ export default class TMedReviewAppView extends TAppView {
                 }
                 .medication-progress-message {
                     order: -1; /* Move message to the top when stacked */
-                    margin-bottom: 10px;
+                    margin-top: 25px;
+                    margin-bottom: -15px;
                 }
                 .custom-checkbox-text {
                     padding: 6px 10px;
@@ -456,6 +484,16 @@ export default class TMedReviewAppView extends TAppView {
                     font-size: 5.5vw;
                 }
 
+                .refill-question-label {
+                    margin-bottom: 5px;
+                    font-size: 5.5vw;
+                }
+
+                .refill-loc-question-label {
+                    margin-bottom: 5px;
+                    margin-top: 15px;
+                    font-size: 5.5vw;
+                }
                 .custom-checkbox-text {
                     font-size: 3.0vw;
                 }
@@ -476,9 +514,9 @@ export default class TMedReviewAppView extends TAppView {
                     <div class="medication-display-area">
                         </div>
                     <div class="navigation-area">
-                        <button type="button" class="prev-med-button hidden">&larr; Previous</button>
-                        <span class="medication-progress-message"></span>
                         <button type="button" class="next-med-button hidden">Next &rarr;</button>
+                        <span class="medication-progress-message"></span>
+                        <button type="button" class="prev-med-button hidden">&larr; Previous</button>
                     </div>
                 </div>
 
@@ -562,13 +600,13 @@ export default class TMedReviewAppView extends TAppView {
                 </ul>
             </div>
 
-            <div class="question-group refill-question-group hidden"> <label class="main-question-label">Do you need a refill for this medication?</label>
+            <div class="question-group refill-question-group hidden"> <label class="refill-question-label">Do you need a refill for this medication?</label>
                 <ul class="options-list">
                     <li><label><input type="radio" name="need_refill_${currentMedIndex}" value="yes" class="sr-only"><span class="custom-checkbox-text">Yes</span></label></li>
                     <li><label><input type="radio" name="need_refill_${currentMedIndex}" value="no" class="sr-only"><span class="custom-checkbox-text">No</span></label></li>
                 </ul>
                 <div class="refill-sub-questions hidden">
-                    <label class="main-question-label" style="margin-top: 15px;">Where would you like to pick up your refill?</label>
+                    <label class="refill-loc-question-label">Where would you like to pick up your refill?</label>
                     <ul class="options-list">
                         <li><label><input type="radio" name="refill_location_${currentMedIndex}" value="local" class="sr-only"><span class="custom-checkbox-text">Local Pharmacy</span></label></li>
                         <li><label><input type="radio" name="refill_location_${currentMedIndex}" value="mail" class="sr-only"><span class="custom-checkbox-text">Mail Order Pharmacy</span></label></li>
