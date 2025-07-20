@@ -7,6 +7,7 @@ import { ToggleButton } from './components.js';
 export default class TQuestionnaireAppView extends TAppView {
     resultingTotalScore = 0;
     scoring = false;
+    loadingServerData = false; // Flag to indicate if data is currently being loaded into form
     constructor(aName, apiURL = '/api/questionnaireUpdate', aCtrl, opts) {
         super(aName, apiURL, aCtrl);
         if (opts) {
@@ -219,7 +220,7 @@ export default class TQuestionnaireAppView extends TAppView {
         throw new Error("Method 'getQuestionnaireData' must be implemented by subclasses.");
     }
     async renderQuestionnaire(parent, aQuestionnaire) {
-        /*  TQuestionnaireData {
+        /* TQuestionnaireData {
                 instructionsText: string;
                 questGroups : TQuestionGroup[];
                 endingText?: string;
@@ -243,7 +244,7 @@ export default class TQuestionnaireAppView extends TAppView {
         });
     }
     renderAQuestionGroup(parent, aQuestGroup) {
-        /*  TQuestionGroup {
+        /* TQuestionGroup {
               groupHeadingText?: string;
               question: TQuestion[];
             }                                */
@@ -312,12 +313,15 @@ export default class TQuestionnaireAppView extends TAppView {
                 //     This is separate from the none button which is handled separately.  If none is toggled, these buttons won't even be accessible.
                 if (aReplyToggleButton.isRadio) {
                     aReplyToggleButton.addEventListener('change', (event) => {
-                        let questionReplyButtons = section.querySelectorAll(`.${replyButtonClass}`);
-                        questionReplyButtons.forEach((btn) => {
-                            if (btn === aReplyToggleButton)
-                                return;
-                            btn.checked = false;
-                        });
+                        // Only perform radio button logic if not in a loading state
+                        if (!this.loadingServerData) {
+                            let questionReplyButtons = section.querySelectorAll(`.${replyButtonClass}`);
+                            questionReplyButtons.forEach((btn) => {
+                                if (btn === aReplyToggleButton)
+                                    return;
+                                btn.checked = false;
+                            });
+                        }
                     });
                 }
                 if (this.scoring) {
@@ -410,11 +414,15 @@ export default class TQuestionnaireAppView extends TAppView {
             // The change event from ToggleButton is a CustomEvent with detail.checked
             const target = event.target;
             // We only care about toggle-button changes inside the container, and only when they are being checked.
-            if (target.tagName === 'TOGGLE-BUTTON' && target.checked) {
+            // loadingServerData check here prevents mutual exclusion changes during data load
+            if (target.tagName === 'TOGGLE-BUTTON' && target.checked && !this.loadingServerData) {
                 // If "NONE" is currently checked, uncheck it.
                 if (noneToggleButton.checked) {
                     noneToggleButton.checked = false; // Use the setter directly
                     // Dispatch a change event for the noneToggleButton to trigger visibility logic
+                    // This dispatch should always happen if the 'NONE' button's state changes,
+                    // regardless of loading, as it's part of applying the loaded state.
+                    // The _isLoadingData flag only prevents *other* mutual exclusion on the options.
                     noneToggleButton.dispatchEvent(new CustomEvent('change', { detail: { checked: false }, bubbles: true, composed: true }));
                 }
             }
@@ -575,6 +583,8 @@ export default class TQuestionnaireAppView extends TAppView {
         const form = this.htmlEl.dom.querySelector('form.content-container');
         if (!form)
             return;
+        // Set isLoadingData flag to true at the beginning of data loading
+        this.loadingServerData = true;
         for (const key in data) {
             if (Object.prototype.hasOwnProperty.call(data, key)) {
                 const value = data[key];
@@ -583,6 +593,8 @@ export default class TQuestionnaireAppView extends TAppView {
                 if (toggleButton) {
                     toggleButton.checked = (value === true || value === 'true');
                     // Manually dispatch change event to ensure visibility listeners are triggered
+                    // This is still necessary, as programmatically setting 'checked' doesn't fire native 'change'.
+                    // The _isLoadingData flag will prevent radio/mutual exclusion logic *listening* to this event from interfering.
                     toggleButton.dispatchEvent(new CustomEvent('change', { detail: { checked: toggleButton.checked }, bubbles: true, composed: true }));
                     stored[key] = value;
                     continue;
@@ -611,6 +623,8 @@ export default class TQuestionnaireAppView extends TAppView {
                 }
             }
         }
+        // Set isLoadingData flag back to false after all data is loaded
+        this.loadingServerData = false;
         for (const key in data) {
             if (Object.prototype.hasOwnProperty.call(data, key)) {
                 const value = data[key];
@@ -679,7 +693,7 @@ export default class TQuestionnaireAppView extends TAppView {
         const textarea = document.createElement('textarea');
         textarea.id = name;
         textarea.name = name;
-        textarea.placeholder = 'Enter details (optional)...';
+        textarea.placeholder = 'Enter details here (optional)...';
         if (hasLabel && label) {
             div.append(label, textarea);
         }
@@ -756,55 +770,6 @@ export default class TQuestionnaireAppView extends TAppView {
         };
         checkbox.addEventListener('change', () => toggleVisibility(checkbox.checked));
         toggleVisibility(checkbox.checked); // Initial check
-    }
-    /**
-     * Populates the form fields based on a JSON object from the server.
-     * @param data A JSON object with form data.
-     */
-    serverDataToFormContainer(anAppView, containerName, data) {
-        if (!anAppView)
-            return;
-        if (!anAppView.htmlEl)
-            return;
-        const form = anAppView.htmlEl.dom.querySelector(containerName);
-        if (!form)
-            return;
-        // 1. Get all relevant input elements (checkboxes and textareas)
-        let allInputs;
-        allInputs = form.querySelectorAll('input[type="checkbox"], textarea');
-        // 2. First, reset all inputs to their default state (unchecked/empty)
-        allInputs.forEach(element => {
-            if (element.type === 'checkbox') {
-                element.checked = false;
-            }
-            else if (element.tagName === 'TEXTAREA') {
-                element.value = '';
-            }
-        });
-        // 3. Then, apply the data received from the server
-        for (const key in data) { // Iterate only over keys present in 'data'
-            const element = form.querySelector(`[name="${key}"]`);
-            if (element) { // Ensure the element exists in the form
-                if (element.type === 'checkbox') {
-                    element.checked = data[key] === true;
-                }
-                else if (element.tagName === 'TEXTAREA') {
-                    element.value = data[key];
-                }
-            }
-        }
-        // 4. Finally, trigger change events for all relevant checkboxes to ensure UI consistency.
-        // This is crucial because setting 'checked' programmatically does not fire 'change' events,
-        // and our visibility/mutual exclusion logic relies on these events.
-        // Start with 'none' toggles to handle section visibility and clearing.
-        form.querySelectorAll('.none-toggle-checkbox').forEach(cb => {
-            cb.dispatchEvent(new Event('change', { bubbles: true }));
-        });
-        // Then, trigger for any other checkboxes that are now checked, to ensure mutual exclusion
-        // (e.g., if a regular option was checked, it should uncheck 'NONE' if it was still checked).
-        form.querySelectorAll('input[type="checkbox"]:not(.none-toggle-checkbox):checked').forEach(cb => {
-            cb.dispatchEvent(new Event('change', { bubbles: true }));
-        });
     }
 } //class
 // Function to handle the class update logic

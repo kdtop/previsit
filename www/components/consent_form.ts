@@ -2,7 +2,8 @@
 
 import TAppView, {  } from './appview.js';
 import { TCtrl } from '../utility/controller.js';
-import { ToggleButton, SignaturePadComponent } from './components.js'; // Import both components
+import { ToggleButton } from './components.js'; // Import both components
+import { SignaturePadComponent } from './comp_sigpad.js'; // Import both components
 import { ConsentFormData, TAuthorizedPersonsArray, EnhancedHTMLDivElement } from '../utility/types.js';
 
 // Define the specific HTMLElement type for this form's custom elements

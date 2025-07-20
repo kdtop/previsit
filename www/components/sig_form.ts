@@ -4,7 +4,7 @@
 import TAppView, {  } from './appview.js';
 import { TCtrl } from '../utility/controller.js';
 import { SigFormData, EnhancedHTMLDivElement } from '../utility/types.js';
-import { SignaturePadComponent } from './components.js'; // Import the new component
+import { SignaturePadComponent } from './comp_sigpad.js'; // Import both components
 
 // Define the specific HTMLElement type for this form's custom elements
 export type SigFormHTMLElement = EnhancedHTMLDivElement & {

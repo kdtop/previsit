@@ -5,7 +5,7 @@ import { KeyToStrBoolValueObj, TQuestion, TQuestionGroup, TQuestionnaireData,
          TReplyType, TScoreMode, EnhancedHTMLDivElement,
        } from '../utility/types.js';
 import { TCtrl } from '../utility/controller.js';
-import { ToggleButton, ToggleButtonOptions } from './components.js';
+import { ToggleButton, ToggleButtonOptions } from './comp_btns.js';
 
 
 interface questionnaireUpdateOptions {
@@ -39,6 +39,7 @@ export default class TQuestionnaireAppView extends TAppView<KeyToStrBoolValueObj
     declare htmlEl: QuestionnaireHTMLElement; // Use 'declare' to override the type of the inherited property
     public resultingTotalScore : number = 0;
     public scoring : boolean = false;
+    private loadingServerData: boolean = false; // Flag to indicate if data is currently being loaded into form
 
     constructor(aName : string, apiURL : string = '/api/questionnaireUpdate', aCtrl:  TCtrl,  opts?: questionnaireUpdateOptions) {
         super(aName, apiURL, aCtrl);
@@ -261,7 +262,7 @@ export default class TQuestionnaireAppView extends TAppView<KeyToStrBoolValueObj
     }
 
     private async renderQuestionnaire(parent: HTMLElement, aQuestionnaire: TQuestionnaireData) {
-        /*  TQuestionnaireData {
+        /* TQuestionnaireData {
                 instructionsText: string;
                 questGroups : TQuestionGroup[];
                 endingText?: string;
@@ -287,7 +288,7 @@ export default class TQuestionnaireAppView extends TAppView<KeyToStrBoolValueObj
     }
 
     private renderAQuestionGroup(parent: HTMLElement, aQuestGroup : TQuestionGroup) {
-        /*  TQuestionGroup {
+        /* TQuestionGroup {
               groupHeadingText?: string;
               question: TQuestion[];
             }                                */
@@ -370,11 +371,14 @@ export default class TQuestionnaireAppView extends TAppView<KeyToStrBoolValueObj
                 //     This is separate from the none button which is handled separately.  If none is toggled, these buttons won't even be accessible.
                 if (aReplyToggleButton.isRadio) {
                     aReplyToggleButton.addEventListener('change', (event: Event) => {
-                        let questionReplyButtons = section.querySelectorAll<ReplyToggleButton>(`.${replyButtonClass}`);
-                        questionReplyButtons.forEach( (btn : ReplyToggleButton) => {
-                            if (btn === aReplyToggleButton) return;
-                            btn.checked = false;
-                        });
+                        // Only perform radio button logic if not in a loading state
+                        if (!this.loadingServerData) {
+                            let questionReplyButtons = section.querySelectorAll<ReplyToggleButton>(`.${replyButtonClass}`);
+                            questionReplyButtons.forEach( (btn : ReplyToggleButton) => {
+                                if (btn === aReplyToggleButton) return;
+                                btn.checked = false;
+                            });
+                        }
                     });
                 }
                 if (this.scoring) {
@@ -473,11 +477,15 @@ export default class TQuestionnaireAppView extends TAppView<KeyToStrBoolValueObj
             const target = event.target as ToggleButton;
 
             // We only care about toggle-button changes inside the container, and only when they are being checked.
-            if (target.tagName === 'TOGGLE-BUTTON' && target.checked) {
+            // loadingServerData check here prevents mutual exclusion changes during data load
+            if (target.tagName === 'TOGGLE-BUTTON' && target.checked && !this.loadingServerData) {
                 // If "NONE" is currently checked, uncheck it.
                 if (noneToggleButton.checked) {
                     noneToggleButton.checked = false; // Use the setter directly
                     // Dispatch a change event for the noneToggleButton to trigger visibility logic
+                    // This dispatch should always happen if the 'NONE' button's state changes,
+                    // regardless of loading, as it's part of applying the loaded state.
+                    // The _isLoadingData flag only prevents *other* mutual exclusion on the options.
                     noneToggleButton.dispatchEvent(new CustomEvent('change', { detail: { checked: false }, bubbles: true, composed: true }));
                 }
             }
@@ -638,6 +646,9 @@ export default class TQuestionnaireAppView extends TAppView<KeyToStrBoolValueObj
         const form = this.htmlEl.dom.querySelector('form.content-container');
         if (!form) return;
 
+        // Set isLoadingData flag to true at the beginning of data loading
+        this.loadingServerData = true;
+
         for (const key in data) {
             if (Object.prototype.hasOwnProperty.call(data, key)) {
                 const value = data[key];
@@ -647,11 +658,12 @@ export default class TQuestionnaireAppView extends TAppView<KeyToStrBoolValueObj
                 if (toggleButton) {
                     toggleButton.checked = (value === true || value === 'true');
                     // Manually dispatch change event to ensure visibility listeners are triggered
+                    // This is still necessary, as programmatically setting 'checked' doesn't fire native 'change'.
+                    // The _isLoadingData flag will prevent radio/mutual exclusion logic *listening* to this event from interfering.
                     toggleButton.dispatchEvent(new CustomEvent('change', { detail: { checked: toggleButton.checked }, bubbles: true, composed: true }));
                     stored[key] = value;
                     continue;
                 }
-
 
                // Check if it's a free-text-input (an <input type="text"> element)
                 const freeTextInput : HTMLInputElement | null = form.querySelector<HTMLInputElement>(`input.free-text-input[name="${key}"]`);
@@ -679,6 +691,10 @@ export default class TQuestionnaireAppView extends TAppView<KeyToStrBoolValueObj
                 }
             }
         }
+
+        // Set isLoadingData flag back to false after all data is loaded
+        this.loadingServerData = false;
+
 
         for (const key in data) {
             if (Object.prototype.hasOwnProperty.call(data, key)) {
@@ -752,7 +768,7 @@ export default class TQuestionnaireAppView extends TAppView<KeyToStrBoolValueObj
         const textarea = document.createElement('textarea');
         textarea.id = name;
         textarea.name = name;
-        textarea.placeholder = 'Enter details (optional)...';
+        textarea.placeholder = 'Enter details here (optional)...';
         if (hasLabel && label) {
             div.append(label, textarea);
         } else {
@@ -850,6 +866,7 @@ export default class TQuestionnaireAppView extends TAppView<KeyToStrBoolValueObj
      * Populates the form fields based on a JSON object from the server.
      * @param data A JSON object with form data.
      */
+    /*
     serverDataToFormContainer(anAppView : TAppView, containerName : string, data: Record<string, string | boolean>): void
     {
         if (!anAppView) return;
@@ -857,12 +874,9 @@ export default class TQuestionnaireAppView extends TAppView<KeyToStrBoolValueObj
         const form : Element | null = anAppView.htmlEl.dom.querySelector(containerName);
         if (!form) return;
 
-        // 1. Get all relevant input elements (checkboxes and textareas)
-        let allInputs : NodeListOf<HTMLInputElement | HTMLTextAreaElement>;
-        allInputs = form.querySelectorAll<HTMLInputElement | HTMLTextAreaElement>('input[type="checkbox"], textarea');
-
         // 2. First, reset all inputs to their default state (unchecked/empty)
-        allInputs.forEach(element => {
+        //    This is crucial before applying new data to avoid stale states.
+        form.querySelectorAll<HTMLInputElement | HTMLTextAreaElement>('input[type="checkbox"], textarea').forEach(element => {
             if (element.type === 'checkbox') {
                 (element as HTMLInputElement).checked = false;
             } else if (element.tagName === 'TEXTAREA') {
@@ -895,7 +909,7 @@ export default class TQuestionnaireAppView extends TAppView<KeyToStrBoolValueObj
             cb.dispatchEvent(new Event('change', { bubbles: true }));
         });
     }
-
+    */
 
 } //class
 // Function to handle the class update logic

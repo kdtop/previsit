@@ -306,7 +306,7 @@ export class ToggleButton extends HTMLElement {
         return this.input?.checked ?? false;
     }
     set checked(val) {
-        console.log(`ToggleButton: Setting checked for name="${this.getAttribute('name') || 'N/A'}" to value: ${val}`);
+        //console.log(`ToggleButton: Setting checked for name="${this.getAttribute('name') || 'N/A'}" to value: ${val}`);
         if (val) {
             this.setAttribute('checked', '');
         }
