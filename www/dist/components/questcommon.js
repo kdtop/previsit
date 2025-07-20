@@ -44,14 +44,23 @@ export function createDetailsBox(prefix, labelText) {
     const div = document.createElement('div');
     div.className = 'details-input-group';
     const name = `${prefix}_details`;
-    const label = document.createElement('label');
-    label.htmlFor = name;
-    label.textContent = labelText;
+    let label = null;
+    let hasLabel = (labelText && labelText.trim() !== '');
+    if (hasLabel) {
+        label = document.createElement('label');
+        label.htmlFor = name;
+        label.textContent = labelText;
+    }
     const textarea = document.createElement('textarea');
     textarea.id = name;
     textarea.name = name;
     textarea.placeholder = 'Enter details (optional)...';
-    div.append(label, textarea);
+    if (hasLabel && label) {
+        div.append(label, textarea);
+    }
+    else {
+        div.append(textarea);
+    }
     return div;
 }
 /**

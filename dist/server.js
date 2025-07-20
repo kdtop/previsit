@@ -88,11 +88,11 @@ async function hndlLogin(req, res) {
 //====================================================================================================
 //====================================================================================================
 /*
- Handle request for dashboard forms --  provideS the list of forms a patient needs to complete.
+ Handle request for dashboard forms --  provides the list of forms a patient needs to complete.
  GET only
 */
 //====================================================================================================
-async function hndlDashboard(req, res) {
+async function hndlGetDashboard(req, res) {
     //console.log("Received request for dashboard forms.", req.query);
     if (!rpcPrecheckOK(req, res))
         return; //res output object will have already been set in rpcPrecheckOK
@@ -115,6 +115,16 @@ async function hndlDashboard(req, res) {
         const errorMessage = error instanceof Error ? error.message : 'Unknown error';
         res.status(500).json({ success: false, message: `Internal server error: ${errorMessage}` });
     }
+}
+//----------------------------------------------------------------------------------------------------
+/*
+ Handle saving of Dashboard form data -- saves received form data from the client via RPC.
+ POST
+ */
+async function hndlSaveDashboard(req, res) {
+    //NOTE: We don't currently need to save anything for dashboard.  But due to OOP and form consistency, will implement
+    //      something that can be called with empty data.
+    res.status(200).json({ success: true, message: 'OK' });
 }
 //====================================================================================================
 //====================================================================================================
@@ -432,7 +442,7 @@ async function hndlSaveConsentData(req, res) {
  Handle request for ROS data
  GET
 */
-async function hndlGetPhq9UpdateData(req, res) {
+async function hndlGetPhq9QuestData(req, res) {
     //console.log("Received request for PHQ-9 data.", req.query);
     if (!rpcPrecheckOK(req, res))
         return; //res output object will have already been set in rpcPrecheckOK
@@ -453,17 +463,17 @@ async function hndlGetPhq9UpdateData(req, res) {
         }
     }
     catch (error) {
-        console.error('Error during /api/phq9update GET:', error);
+        console.error('Error during /api/phq9Quest GET:', error);
         const errorMessage = error instanceof Error ? error.message : 'Unknown error';
         res.status(500).json({ success: false, data: {}, message: `Internal server error: ${errorMessage}` });
     }
 }
 //----------------------------------------------------------------------------------------------------
 /*
- Handle saving of ROS data
+ Handle saving of PHQ9 data
  POST
 */
-async function hndlSavePhq9UpdateData(req, res) {
+async function hndlSavePhq9QuestData(req, res) {
     //console.log("Received request to save PHQ-9 data.", req.body);
     if (!rpcPrecheckOK(req, res))
         return; //res output object will have already been set in rpcPrecheckOK
@@ -481,7 +491,69 @@ async function hndlSavePhq9UpdateData(req, res) {
         }
     }
     catch (error) {
-        console.error('Error during POST /api/phq9update:', error);
+        console.error('Error during POST /api/phq9Quest:', error);
+        const errorMessage = error instanceof Error ? error.message : 'Unknown error';
+        res.status(500).json({ success: false, message: `Internal server error: ${errorMessage}` });
+    }
+}
+//====================================================================================================
+//====================================================================================================
+//====================================================================================================
+//====================================================================================================
+/*
+ Handle request for AWV data
+ GET
+*/
+async function hndlGetAWVQuestData(req, res) {
+    //console.log("Received request for PHQ-9 data.", req.query);
+    if (!rpcPrecheckOK(req, res))
+        return; //res output object will have already been set in rpcPrecheckOK
+    try {
+        const { sessionID } = req.query;
+        let outData = {};
+        let outProgress = {};
+        let err = "";
+        let errIndex = 3; // Output parameter for errors from Mumps
+        let tag = "GETAWVDATA";
+        let rtn = "TMGPRE01";
+        const rpcResult = await tmg.RPC(tag, rtn, [outData, outProgress, sessionID, err]);
+        if (rpcErrorCheckOK(rpcResult, res, errIndex, tag, rtn)) {
+            res.json({ success: true,
+                data: rpcResult.args[0],
+                progress: rpcResult.args[1], // type: ProgressData
+            });
+        }
+    }
+    catch (error) {
+        console.error('Error during /api/awvQuest GET:', error);
+        const errorMessage = error instanceof Error ? error.message : 'Unknown error';
+        res.status(500).json({ success: false, data: {}, message: `Internal server error: ${errorMessage}` });
+    }
+}
+//----------------------------------------------------------------------------------------------------
+/*
+ Handle saving of AWV data
+ POST
+*/
+async function hndlSaveAWVQuestData(req, res) {
+    //console.log("Received request to save PHQ-9 data.", req.body);
+    if (!rpcPrecheckOK(req, res))
+        return; //res output object will have already been set in rpcPrecheckOK
+    try {
+        const { sessionID } = req.query;
+        const data = req.body.data; // Expecting data to be an object
+        const progress = req.body.progress;
+        let err = "";
+        let errIndex = 3; // Output parameter for errors from Mumps
+        let tag = "SAVEAWVDATA";
+        let rtn = "TMGPRE01";
+        const rpcResult = await tmg.RPC(tag, rtn, [sessionID, data, progress, err]);
+        if (rpcErrorCheckOK(rpcResult, res, errIndex, tag, rtn)) {
+            res.status(200).json({ success: true, message: 'ROS data saved successfully.' });
+        }
+    }
+    catch (error) {
+        console.error('Error during POST /api/awvQuest:', error);
         const errorMessage = error instanceof Error ? error.message : 'Unknown error';
         res.status(500).json({ success: false, message: `Internal server error: ${errorMessage}` });
     }
@@ -532,7 +604,8 @@ try {
     app.use(express.static('www'));
     // Register route handlers
     app.post('/api/login', hndlLogin); // register handler (endpoint) for login
-    app.get('/api/dashboard', hndlDashboard); // Register handler for dashboard dashboard
+    app.get('/api/dashboard', hndlGetDashboard); // Register handler for getting dashboard dashboard
+    app.post('/api/dashboard', hndlSaveDashboard); // Register handler for saving dashboard dashboard
     app.get('/api/hxupdate', hndlGetHxUpdateData); // Register handler for getting hxupdate data
     app.post('/api/hxupdate', hndlSaveHxUpdate); // Register handler for saving history updates
     app.get('/api/rosupdate', hndlGetRosUpdateData); // Register handler for getting rosupdate data
@@ -543,8 +616,10 @@ try {
     app.post('/api/sig1', hndlSaveSig1Data); // Register handler for saving signature
     app.get('/api/patient_consent', hndlGetConsentData); // Register handler for getting patient consent form
     app.post('/api/patient_consent', hndlSaveConsentData); // Register handler for saving  patient consent form
-    app.get('/api/phq9update', hndlGetPhq9UpdateData); // Register handler for getting phq9update data
-    app.post('/api/phq9update', hndlSavePhq9UpdateData); // Register handler for saving phq9update data
+    app.get('/api/phq9Quest', hndlGetPhq9QuestData); // Register handler for getting phq9Quest data
+    app.post('/api/phq9Quest', hndlSavePhq9QuestData); // Register handler for saving phq9Quest data
+    app.get('/api/awvQuest', hndlGetAWVQuestData); // Register handler for getting awvQuest data
+    app.post('/api/awvQuest', hndlSaveAWVQuestData); // Register handler for saving awvQuest data
     // Start the server
     app.listen(PORT, () => {
         console.log(`Server listening on port ${PORT}`);

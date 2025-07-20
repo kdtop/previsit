@@ -8,8 +8,13 @@ import TAppView from './appview.js';
 export default class TSigFormAppView extends TAppView {
     constructor(aCtrl, opts) {
         super('sig_form', '/api/sig1', aCtrl); // Unique ID, placeholder API URL, controller
-        // Define the inner HTML for the component
-        const tempInnerHTML = `
+        if (opts) {
+            // Process any options passed to the constructor if needed
+        }
+    }
+    getCSSContent() {
+        let result = super.getCSSContent() +
+            `
             <style>
                 .sig-form-container {
                     padding: 20px;
@@ -93,6 +98,11 @@ export default class TSigFormAppView extends TAppView {
                     background-color: #c0392b;
                 }
             </style>
+        `;
+        return result;
+    }
+    getHTMLTagContent() {
+        let result = `
             <form class="sig-form-container">
                 <h1>Patient Consent Form</h1>
 
@@ -114,27 +124,17 @@ export default class TSigFormAppView extends TAppView {
                 </div>
             </form>
         `;
-        this.setHTMLEl(tempInnerHTML);
-        this.cacheDOMElements(); // Cache DOM elements for the signature pad after setting HTML
-        if (opts) {
-            // Process any options passed to the constructor if needed
-        }
+        return result;
     }
     cacheDOMElements() {
         this.htmlEl.signaturePadComponent = this.htmlEl.dom.querySelector('#sigPad1');
         this.htmlEl.dontSignBtn = this.htmlEl.dom.querySelector('.dont-sign-btn');
         this.htmlEl.contentSection = this.htmlEl.dom.querySelector('.content-section');
     }
-    /**
-     * Loads the form content and initializes dynamic elements.
-     */
-    async loadForms() {
-        // Restore initial HTML (if the refresh mechanism resets the DOM)
-        this.setHTMLEl(this.sourceHTML); // Re-renders the component, recreating the signature-pad-component
-        this.cacheDOMElements(); // Re-cache DOM elements after the HTML has potentially been reset/re-rendered.
-        this.setupFormEventListeners(); // Set up any general form event listeners
-        await this.prePopulateFromServer(); // Evokes call to serverDataToForm()
-        console.log("Signature Form loaded successfully.");
+    clearCachedDOMElements() {
+        this.htmlEl.signaturePadComponent = null;
+        this.htmlEl.dontSignBtn = null;
+        this.htmlEl.contentSection = null;
     }
     /**
      * Sets up general event listeners for the form (e.g., form submission).
@@ -150,17 +150,17 @@ export default class TSigFormAppView extends TAppView {
         this.htmlEl.dontSignBtn?.addEventListener('click', () => {
             console.log("Don't sign button clicked!");
             this.htmlEl.signaturePadComponent?.clear();
-            this.updateDoneButtonState();
+            this.updatePageState();
             this.handleDoneClick(); //this will effect saving an empty signature, removing any prior saved one
         });
         // Listen for custom events from the signature pad component
         this.htmlEl.signaturePadComponent?.addEventListener('signed', () => {
             console.log("Signature started/updated");
-            this.updateDoneButtonState();
+            this.updatePageState();
         });
         this.htmlEl.signaturePadComponent?.addEventListener('cleared', () => {
             console.log("Signature cleared.");
-            this.updateDoneButtonState();
+            this.updatePageState();
         });
     }
     /**
@@ -178,7 +178,10 @@ export default class TSigFormAppView extends TAppView {
         this.progressData.unansweredItems = totalQuestions - answeredCount;
         this.progressData.progressPercentage = totalQuestions > 0 ? Math.round((answeredCount / totalQuestions) * 100) : 0;
     };
-    updateDoneButtonState = () => {
+    updatePageState() {
+        super.updatePageState(); //will effect call to this.updateProgressState() and this.updateDoneButtonState
+    }
+    updateDoneButtonState() {
         //NOTE: this overrides ancestor method.
         this.updateProgressState(); //updates this.progressData
         if (!this.htmlEl)
@@ -189,7 +192,8 @@ export default class TSigFormAppView extends TAppView {
         const unansweredCount = this.progressData.unansweredItems || 0;
         // The button is active (not disabled) only when all items are answered.
         doneButton.disabled = (unansweredCount !== 0);
-    };
+    }
+    ;
     /**
      * Populates the signature image based on a JSON object from the server.
      * @param data A JSON object with data.
@@ -206,7 +210,7 @@ export default class TSigFormAppView extends TAppView {
         if (data.displayText && this.htmlEl.contentSection) {
             this.htmlEl.contentSection.innerHTML = data.displayText.join('');
         }
-        this.updateDoneButtonState(); // Update the done button state after loading the data
+        this.updatePageState(); // Update the done button state after loading the data
     };
     /**
      * Gathers all medication answers into a structured JSON object.
@@ -229,12 +233,6 @@ export default class TSigFormAppView extends TAppView {
      */
     about() {
         console.log("Signature Form Component instance initialized.");
-    }
-    /**
-     * Refresh method, typically called when the view needs to be re-rendered or data reloaded.
-     */
-    async refresh() {
-        await this.loadForms();
     }
 }
 //# sourceMappingURL=sig_form.js.map

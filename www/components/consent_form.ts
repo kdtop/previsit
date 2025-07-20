@@ -1,22 +1,21 @@
 // /opt/worldvista/EHR/web/previsit/www/components/consent_form.ts
 
-import TAppView, { EnhancedHTMLElement } from './appview.js';
+import TAppView, {  } from './appview.js';
 import { TCtrl } from '../utility/controller.js';
 import { ToggleButton, SignaturePadComponent } from './components.js'; // Import both components
-import { ConsentFormData, TAuthorizedPersonsArray } from '../utility/types.js';
+import { ConsentFormData, TAuthorizedPersonsArray, EnhancedHTMLDivElement } from '../utility/types.js';
 
 // Define the specific HTMLElement type for this form's custom elements
-export type PatientConsentFormHTMLElement = EnhancedHTMLElement & {
+export type PatientConsentFormHTMLElement = EnhancedHTMLDivElement & {
     toggleButtons?: (ToggleButton | undefined | null)[];
-    //sectionCount?: number;
     answeredSections?: number;
     signaturePadComponent?: SignaturePadComponent | null;
     repNameInputEl?: HTMLInputElement | null;
     relationshipInputEl?: HTMLInputElement | null;
     dontSignBtn?: HTMLButtonElement | null;
     doneBtn?: HTMLButtonElement | null;
-    patientNameEls?: NodeListOf<HTMLSpanElement>;
-    patientDOBEls?: NodeListOf<HTMLSpanElement>;
+    patientNameEls?: NodeListOf<HTMLSpanElement> | null;
+    patientDOBEls?: NodeListOf<HTMLSpanElement> | null;
     signatureSection?: HTMLDivElement | null;
 };
 
@@ -28,25 +27,13 @@ export default class TPatientConsentFormAppView extends TAppView<ConsentFormData
 
     constructor(aCtrl: TCtrl, opts?: any) {
         super('patient_consent_form', '/api/patient_consent', aCtrl); // Unique ID, API URL, controller
+    }
 
-        const tempInnerHTML = `
+    public getCSSContent() : string
+    {
+        let result : string = super.getCSSContent() +
+        `
             <style>
-                body { font-family: Arial, sans-serif;
-                       margin: 20px;
-                       line-height: 1.6;
-                        background-color: #ffffff;
-                        color: #003366;
-                      }
-
-
-                h2 { color: #003366; text-align: center;}
-
-                h3 { color: #2c3e50; margin-top: 10px; border-bottom: 1px solid #eee; padding-bottom: 5px;}
-
-                h4 { color: #555; margin-top: 20px; }
-
-                label { display: block; margin-top: 10px; font-weight: bold;}
-
                 .patient-consent-form-container {
                     padding: 50px;
                     margin: 0px;
@@ -60,35 +47,15 @@ export default class TPatientConsentFormAppView extends TAppView<ConsentFormData
 
                 .fullwidth { width: 95%; padding: 8px; margin-top: 5px; border: 1px solid #ccc; border-radius: 4px;}
 
-                input[type="text"], input[type="date"] { padding: 8px; margin-top: 5px; border: 1px solid #ccc; border-radius: 4px; }
-
-                textarea { width: 100%; height: 100px; margin-top: 5px; border: 1px solid #ccc; border-radius: 4px; }
-
-                .checkbox-group { margin-bottom: 20px; background: #f7f4f2; padding: 15px; border-radius: 5px;}
-
-                .checkbox-group label {  margin-right: 10px; }
-
-                table { width: 100%; border-collapse: collapse; margin-top: 10px; }
-
-                table, th, td { border: 1px solid #ccc; }
-
-                th, td { padding: 8px; text-align: left; }
-
                 .fullname {display: inline-block;  padding-left: 5px; font-weight: normal; }
 
                 .patient-dob {margin-left: 10px;}
 
-                table { margin-bottom: 10px }
-
-                p, .shaded-text {background: #f7f4f2; padding: 10px; border-radius: 5px;}
-
-                .shaded-text {margin-bottom: 10px;}
-
-                ul {background: #f7f4f2; padding: 10px 10px 10px 30px; border-radius: 5px;}
-
-                hr { margin: 30px 0; border: 0; border-top: 1px solid #eee; }
-
-                .hidden { xdisplay: none !important; }
+                ul {
+                    background: #f7f4f2;
+                    padding: 10px 10px 10px 30px;
+                    border-radius: 5px;
+                }
 
                 #signature-section {
                     opacity: 1; /* Start fully visible */
@@ -162,8 +129,13 @@ export default class TPatientConsentFormAppView extends TAppView<ConsentFormData
                     color: #2c3e50;
                 }
             </style>
+        `;
+        return result;
+    }
 
-
+    public getHTMLTagContent() : string
+    {
+        let result : string = `
             <form class="patient-consent-form-container">
                 <h2>Patient Consent to Use and Disclose Protected Health Information</h2>
 
@@ -174,7 +146,7 @@ export default class TPatientConsentFormAppView extends TAppView<ConsentFormData
                         <h3>Section A: Consent for Treatment, Payment, and Healthcare Operations</h3>
                     </div>
                     <p>
-                        Family Physicians of Greeneville's (FPG) <strong></strong>Notice of Privacy Practices</strong> may be found <a href="https://www.familyphysiciansofgreeneville.com/_files/ugd/bd7ca0_69a0b3bae5c14551b7ffba431d2bac3b.pdf" target="_blank">by clicking here.</a>
+                        Family Physicians of Greeneville's <strong></strong>Notice of Privacy Practices</strong> may be found <a href="https://www.familyphysiciansofgreeneville.com/_files/ugd/bd7ca0_69a0b3bae5c14551b7ffba431d2bac3b.pdf" target="_blank">by clicking here.</a>
                         It provides information about how FPG may use and disclose protected health information (PHI) about you. You have the right to, and should, review our
                         Notice before signing this consent. The terms of our Notice may change, and if so, you may obtain a
                         revised copy by contacting the HIPAA Privacy Officer.
@@ -277,7 +249,7 @@ export default class TPatientConsentFormAppView extends TAppView<ConsentFormData
                         </thead>
                         <tbody>
                             <tr><td><input class="authperson" type="text" name="authName1" /></td><td><input class="authperson" type="text" name="authRel1" /></td><td><input class="authphone" type="text" name="authPhone1" /></td></tr>
-                            <tr><td><input class="authperson" type="text" name="authName2" /></td><td><input class="authperson" type="text" name="authRel2" /></td><td><input class="authphone" type="text" name="authPhone2" /></td></tr>
+                            <tr><td><input class="authperson" type="text" name="authRel2" /></td><td><input class="authperson" type="text" name="authRel2" /></td><td><input class="authphone" type="text" name="authPhone2" /></td></tr>
                             <tr><td><input class="authperson" type="text" name="authName3" /></td><td><input class="authperson" type="text" name="authRel3" /></td><td><input class="authphone" type="text" name="authPhone3" /></td></tr>
                         </tbody>
                     </table>
@@ -287,7 +259,6 @@ export default class TPatientConsentFormAppView extends TAppView<ConsentFormData
                                 checked-text="Above is OK"
                                 unchecked-text="Click if OK (even if none listed)"
                                 checked-background-color="#2ecc71"
-                                checked-color="white"
                                 unchecked-background-color="#709bb8"
                                 show-checked="true"
                                 unchecked-color="white"             ></toggle-button>
@@ -301,10 +272,7 @@ export default class TPatientConsentFormAppView extends TAppView<ConsentFormData
                     <label for="signature">Signature of patient (or patient's representative):</label>
                     <div class="signature-area">
                         <signature-pad-component id="patient-consent-signature-pad"></signature-pad-component>
-                        <!--
-                        <img class="loaded-signature-img" src="" alt="Previously Saved Signature" style="display: none;">
-                        -->
-                    </div>
+                        </div>
 
                     <label for="repName">If signature is of representative, enter representative's printed name:</label>
                     <input class="fullwidth" type="text" id="repName" name="repName" />
@@ -319,17 +287,15 @@ export default class TPatientConsentFormAppView extends TAppView<ConsentFormData
                 </div>
             </form>
         `;
-        this.setHTMLEl(tempInnerHTML);
-        this.cacheDOMElements();
+        return result;
     }
 
-    private cacheDOMElements() {
+    public cacheDOMElements() {
         this.htmlEl.toggleButtons = [];
         this.htmlEl.toggleButtons?.push(this.htmlEl.dom.querySelector<ToggleButton>('#sectionA-toggle'));
         this.htmlEl.toggleButtons?.push(this.htmlEl.dom.querySelector<ToggleButton>('#sectionB-toggle'));
         this.htmlEl.toggleButtons?.push(this.htmlEl.dom.querySelector<ToggleButton>('#sectionC-toggle'));
         this.htmlEl.toggleButtons?.push(this.htmlEl.dom.querySelector<ToggleButton>('#sectionD-toggle'));
-        //this.htmlEl.sectionCount = this.htmlEl.toggleButtons?.length ?? 0;
 
         this.htmlEl.signaturePadComponent = this.htmlEl.dom.querySelector<SignaturePadComponent>('#patient-consent-signature-pad');
         this.htmlEl.repNameInputEl = this.htmlEl.dom.querySelector<HTMLInputElement>('#repName');
@@ -340,20 +306,24 @@ export default class TPatientConsentFormAppView extends TAppView<ConsentFormData
         this.htmlEl.signatureSection = this.htmlEl.dom.querySelector<HTMLDivElement>('#signature-section');
     }
 
-    private async loadForms(): Promise<void> {
-        this.setHTMLEl(this.sourceHTML); // Re-renders the component, recreating web components
-        this.cacheDOMElements();         // Re-cache DOM elements after re-render
-
-        if (this.htmlEl.patientNameEls) this.htmlEl.patientNameEls.forEach(el => el.textContent = this.ctrl.patientFullName || "zz");
-        if (this.htmlEl.patientDOBEls) this.htmlEl.patientDOBEls.forEach(el => el.textContent = this.ctrl.patientDOB || "zz");
-
-        this.setupFormEventListeners();
-        await this.prePopulateFromServer();
-
-        console.log("Patient Consent Form loaded successfully.");
+    public clearCachedDOMElements() {
+        this.htmlEl.toggleButtons = [];
+        this.htmlEl.signaturePadComponent = null;
+        this.htmlEl.repNameInputEl = null;
+        this.htmlEl.relationshipInputEl = null;
+        this.htmlEl.dontSignBtn = null;
+        this.htmlEl.patientNameEls = null;
+        this.htmlEl.patientDOBEls = null;
+        this.htmlEl.signatureSection = null;
     }
 
-    private setupFormEventListeners(): void {
+    public setupPatientNameDisplay() {
+        if (this.htmlEl.patientNameEls) this.htmlEl.patientNameEls.forEach(el => el.textContent = this.ctrl.patientFullName || "zz");
+        if (this.htmlEl.patientDOBEls) this.htmlEl.patientDOBEls.forEach(el => el.textContent = this.ctrl.patientDOB || "zz");
+    }
+
+
+    public setupFormEventListeners(): void {
         if (this.htmlEl.toggleButtons) this.htmlEl.toggleButtons.forEach(button => {
             button?.addEventListener('change', () => { // ToggleButton dispatches 'change' event
                 console.log(`${button?.id} changed to: ${button?.checked}`);
@@ -441,7 +411,7 @@ export default class TPatientConsentFormAppView extends TAppView<ConsentFormData
             let answeredSections = this.htmlEl.answeredSections ?? 0;
             this.setSigAreaVisibility(answeredSections === totalSections);
         }
-        this.updateDoneButtonState();
+        this.updatePageState();
     }
 
     private setSigAreaVisibility(visible : boolean) {
@@ -464,23 +434,8 @@ export default class TPatientConsentFormAppView extends TAppView<ConsentFormData
         }
     }
 
-    /**
-     * Smoothly scrolls to a target HTML element on the page.
-     * @param targetElement The HTML element to scroll into view.
-     */
-    scrollToElementSmoothly(targetElement: HTMLElement): void {
-      if (targetElement) {
-        targetElement.scrollIntoView({
-          behavior: 'smooth', // Makes the scroll animation smooth
-          block: 'start',     // Aligns the top of the element with the top of the scroll area
-          inline: 'nearest'   // Aligns the element within the horizontal scroll area if needed
-        });
-      } else {
-        console.warn("Target element not found for smooth scrolling.");
-      }
-    }
-
-    public updateDoneButtonState = (): void => {
+    public updateDoneButtonState(): void
+    {
         //NOTE: This function overrides ancestor method
 
         let unansweredCount = this.progressData.unansweredItems || 0;
@@ -560,10 +515,10 @@ export default class TPatientConsentFormAppView extends TAppView<ConsentFormData
 
         const authPersonsArr: TAuthorizedPersonsArray = [];
         const authPersonRows = this.htmlEl.dom.querySelectorAll<HTMLTableRowElement>('table tbody tr');
-        authPersonRows.forEach(row => {
-            const nameInput = row.querySelector<HTMLInputElement>('.authperson[name^="authName"]');
-            const relInput = row.querySelector<HTMLInputElement>('.authperson[name^="authRel"]');
-            const phoneInput = row.querySelector<HTMLInputElement>('.authphone[name^="authPhone"]');
+        authPersonRows.forEach( (row : HTMLTableRowElement) => {
+            const nameInput : HTMLInputElement | null = row.querySelector<HTMLInputElement>('.authperson[name^="authName"]');
+            const relInput : HTMLInputElement | null = row.querySelector<HTMLInputElement>('.authperson[name^="authRel"]');
+            const phoneInput : HTMLInputElement | null = row.querySelector<HTMLInputElement>('.authphone[name^="authPhone"]');
 
             const name = nameInput?.value || '';
             const rel = relInput?.value || '';
@@ -595,7 +550,4 @@ export default class TPatientConsentFormAppView extends TAppView<ConsentFormData
         console.log("Patient Consent Form Component instance initialized.");
     }
 
-    public async refresh(): Promise<void> {
-        await this.loadForms();
-    }
 }

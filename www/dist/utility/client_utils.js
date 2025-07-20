@@ -86,4 +86,61 @@ delimiter, pieceNumber, endPieceNumber) {
     const selectedParts = parts.slice(pFrom - 1, actualEndPieceArrayIndex);
     return selectedParts.join(delimiter);
 }
+/**
+ * Moves all child nodes from an element to a new DocumentFragment.
+ * @param el The element to extract children from.
+ * @returns A DocumentFragment containing the children of the element.
+ */
+export function toFragment(el) {
+    const f = document.createDocumentFragment();
+    if (el) {
+        while (el.firstChild) {
+            f.appendChild(el.firstChild);
+        }
+    }
+    return f;
+}
+/**
+ * Sets properties on an element's shadow DOM.
+ * @param el The HTMLDivElement (which now contains the shadow DOM).
+ * @param opts The properties to set, e.g., { innerHTML: '...' }.
+ */
+export function properties(el, opts) {
+    if (!opts)
+        return;
+    for (const [key, value] of Object.entries(opts)) {
+        // This is intentionally dynamic to match original behavior.
+        el.dom[key] = value;
+    }
+}
+/**
+ * Creates shortcut properties on the ELInstance for elements with class names.
+ * For an element like `<div class="login-form">`, it creates `el.$loginform` on the HTMLDivElement.
+ * @param el The HTMLDivElement to add shortcuts to.
+ */
+export function addShortcuts(el) {
+    const allElements = el.dom.querySelectorAll('*');
+    for (const element of allElements) {
+        // The original logic uses the first class name.
+        if (element.className && typeof element.className === 'string') {
+            const firstClassName = element.className.split(/\s+/g)[0];
+            if (firstClassName) {
+                const shortcutName = '$' + firstClassName.replace(/[^a-z0-9]/gi, '').toLowerCase();
+                // The index signature on ELInstance allows this.
+                el[shortcutName] = element;
+            }
+        }
+    }
+}
+/**
+ * Creates a DocumentFragment from an HTML string.
+ * @param opts Can be a string of HTML or an options object with an `innerHTML` property.
+ * @returns A DocumentFragment.
+ */
+export function Fragment(opts) {
+    const el = document.createElement('div');
+    const innerHTML = (typeof opts === 'string') ? opts : opts?.innerHTML || '';
+    el.innerHTML = innerHTML;
+    return toFragment(el);
+}
 //# sourceMappingURL=client_utils.js.map

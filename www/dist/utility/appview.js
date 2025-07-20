@@ -2,7 +2,7 @@
 /*
 export interface AppViewInstance {
     // The actual HTMLDivElement, enhanced with its Shadow DOM and dynamic shortcut properties.
-    html: EnhancedHTMLElement;
+    html: EnhancedHTMLDivElement;
 }
 */
 // --- Utility Functions ---

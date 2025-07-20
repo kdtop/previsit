@@ -7,16 +7,16 @@
 //     	(if display size big enough)
 //
 
-//import AppView, { AppViewInstance, EnhancedHTMLElement } from '../utility/appview.js';
-import TAppView, { EnhancedHTMLElement } from './appview.js';
+//import AppView, { AppViewInstance, EnhancedHTMLDivElement } from '../utility/appview.js';
+import TAppView, {  } from './appview.js';
 import { padZero } from '../utility/client_utils.js';
 import { TCtrl } from '../utility/controller.js';
-import { LoginApiResponse, LoginRequestData } from '../utility/types.js';
+import { LoginApiResponse, LoginRequestData, EnhancedHTMLDivElement } from '../utility/types.js';
 
 // --- Type Definitions ---
 // No change to types, they are already aligned with the class structure
-export type LoginHTMLElement = EnhancedHTMLElement & {
-    // Extend the base EnhancedHTMLElement html property with specific DOM elements
+export type LoginHTMLElement = EnhancedHTMLDivElement & {
+    // Extend the base EnhancedHTMLDivElement html property with specific DOM elements
     $loginform?: HTMLFormElement;
     $loginbutton?: HTMLButtonElement;
     $welcomename?: HTMLSpanElement;
@@ -39,143 +39,174 @@ export default class TLoginAppView extends TAppView {   //implements LoginAppVie
     constructor(aCtrl:  TCtrl,  opts?: LoginOptions) {
         // Define innerHTML here, before calling super()
         super('login', '/api/login', aCtrl);
-        {  //temp scope for tempInnerHTML
-            const tempInnerHTML = `
-                <style>
-                /* Basic styling for the app container and welcome view */
-                .body {
-                    font-family: sans-serif;
-                    margin: 0;
-                    display: flex;
-                    justify-content: center; /* Center horizontally */
-                    align-items: center;     /* Center vertically */
-                    min-height: 100vh;       /* Take full viewport height */
-                    background-color: #f4f4f4; /* Light background for the page */
-                    color:rgb(63, 58, 58);
+        this.formAutoSaves = false;  //login form doesn't need to save off data
+        this.htmlEl = this.newEnhancedHTMDivElement(this.getInnerHTML()) as LoginHTMLElement;
+        const debug=true;
+        if (debug==true) {
+            const map = {"loginDobMonth": "06", "loginDobDay": "23", "loginDobYear": "1947", "loginFirstName": "Judith"};
+            for (const [key, value] of Object.entries(map)) {
+                let input = this.htmlEl.dom.getElementById(key) as HTMLInputElement | null;
+                if (input) {
+                    input.value = value; // Set the value of the input field
                 }
-                #app {
-                    width: 100%;
-                    display: flex;
-                    flex-direction: column; /* Stack children vertically */
-                    align-items: center;    /* Center children horizontally */
-                }
-                .form-container {
-                    background-color: #ffffff;
-                    padding: 30px;
-                    border-radius: 8px;
-                    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
-                    width: 100%;
-                    max-width: 400px; /* Limit width for popup effect */
-                    text-align: center; /* Center content within the container */
-                }
-                .welcome-container { /* Style for the welcome message area */
-                    background-color: #ffffff;
-                    padding: 30px;
-                    border-radius: 8px;
-                    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
-                    width: 100%;
-                    max-width: 400px;
-                    text-align: center;
+            }
+        }
+        //this.htmlEl = this.htmlEl as LoginHTMLElement; // typecast as relevent for this object.
 
-                }
-                .welcome-container button {
-                    margin-top: 10px;
-                    margin-bottom: 10px;
-                }
+        if (opts) {
+          //process opts -- if any added later
 
-                #logout-button {
-                    background-color: #e74c3c; /* red */
-                }
-                #logout-button:hover {
-                    background-color: #c0392b; /* darker red */
-                }
+        }
+        // Attach event listeners in the constructor or a dedicated setup method
+        this.setupEventListeners();
+    }  //constructor
 
-                h1 {
-                    color: #333;
-                    margin-bottom: 20px;
-                }
-                form {
-                    margin-top: 20px;
-                }
-                label {
-                    display: block;
-                    margin-bottom: 5px;
-                    text-align: left; /* Align labels to the left */
-                    color: #555;
-                    font-weight: bold;
-                }
-                input[type="text"], input[type="password"] {
-                    padding: 10px;
-                    margin-bottom: 15px;
-                    border: 1px solid #ddd;
-                    border-radius: 5px;
-                    width: calc(100% - 22px); /* Full width minus padding/border */
-                    box-sizing: border-box; /* Include padding/border in width */
-                    font-size: 1em;
-                }
-                .dob-group {
-                    display: flex; /* Use flexbox for DOB inputs */
-                    justify-content: space-between; /* Distribute space between inputs */
-                    margin-bottom: 15px;
-                }
-                .dob-group input {
-                    width: calc(33% - 10px); /* Roughly 1/3rd width minus some margin */
-                    padding: 10px;
-                    border: 1px solid #ddd;
-                    border-radius: 5px;
-                    box-sizing: border-box;
-                    text-align: center; /* Center text in DOB inputs */
-                    font-size: 1em;
-                }
-                .dob-group input:not(:last-child) {
-                    margin-right: 10px; /* Space between inputs */
-                }
-                button {
-                    padding: 12px 20px;
-                    background-color: #007bff;
-                    color: white;
-                    border: none;
-                    border-radius: 5px;
-                    cursor: pointer;
-                    font-size: 1.1em;
-                    width: 100%; /* Make button full width */
-                    box-sizing: border-box;
-                    transition: background-color 0.3s ease;
-                }
-                button:hover {
-                    background-color: #0056b3;
-                }
-                #message {
-                    margin-top: 20px;
-                    padding: 12px;
-                    border-radius: 5px;
-                    /*display: none;  Hidden by default */
-                    font-weight: bold;
-                    xtext-align: left; /* Align messages to the left */
-                }
-                #message.success {
-                    background-color: #d4edda;
-                    color: #155724;
-                    border: 1px solid #c3e6cb;
-                }
-                #message.error {
-                    background-color: #f8d7da;
-                    color: #721c24;
-                    border: 1px solid #f5c6cb;
-                }
-                /* . means class, # means ID
-                   .class1.class2 means class1 AND class2
-                   class1 <space> class2 means class2 is a decendant of a node with class 1
-                 */
-                .body.logged-in .hide-if-logged-in {
-                    display: none;
-                }
-                .body:not(.logged-in) .hide-if-not-logged-in {
-                    display: none;
-                }
+    public getCSSContent() : string
+    //Can put anything here that applies to all descendant classes.
+    {
+        let result : string = super.getCSSContent() +
+        `
+            <style>
+            /* Basic styling for the app container and welcome view */
+            .body {
+                font-family: sans-serif;
+                margin: 0;
+                display: flex;
+                justify-content: center; /* Center horizontally */
+                align-items: center;     /* Center vertically */
+                min-height: 100vh;       /* Take full viewport height */
+                background-color: #f4f4f4; /* Light background for the page */
+                color:rgb(63, 58, 58);
+            }
+            #app {
+                width: 100%;
+                display: flex;
+                flex-direction: column; /* Stack children vertically */
+                align-items: center;    /* Center children horizontally */
+            }
+            .form-container {
+                background-color: #ffffff;
+                padding: 30px;
+                border-radius: 8px;
+                box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+                width: 100%;
+                max-width: 400px; /* Limit width for popup effect */
+                text-align: center; /* Center content within the container */
+            }
+            .welcome-container { /* Style for the welcome message area */
+                background-color: #ffffff;
+                padding: 30px;
+                border-radius: 8px;
+                box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+                width: 100%;
+                max-width: 400px;
+                text-align: center;
 
-                </style>
+            }
+            .welcome-container button {
+                margin-top: 10px;
+                margin-bottom: 10px;
+            }
 
+            #logout-button {
+                background-color: #e74c3c; /* red */
+            }
+            #logout-button:hover {
+                background-color: #c0392b; /* darker red */
+            }
+
+            h1 {
+                color: #333;
+                margin-bottom: 20px;
+            }
+            form {
+                margin-top: 20px;
+            }
+            label {
+                display: block;
+                margin-bottom: 5px;
+                text-align: left; /* Align labels to the left */
+                color: #555;
+                font-weight: bold;
+            }
+            input[type="text"], input[type="password"] {
+                padding: 10px;
+                margin-bottom: 15px;
+                border: 1px solid #ddd;
+                border-radius: 5px;
+                width: calc(100% - 22px); /* Full width minus padding/border */
+                box-sizing: border-box; /* Include padding/border in width */
+                font-size: 1em;
+            }
+            .dob-group {
+                display: flex; /* Use flexbox for DOB inputs */
+                justify-content: space-between; /* Distribute space between inputs */
+                margin-bottom: 15px;
+            }
+            .dob-group input {
+                width: calc(33% - 10px); /* Roughly 1/3rd width minus some margin */
+                padding: 10px;
+                border: 1px solid #ddd;
+                border-radius: 5px;
+                box-sizing: border-box;
+                text-align: center; /* Center text in DOB inputs */
+                font-size: 1em;
+            }
+            .dob-group input:not(:last-child) {
+                margin-right: 10px; /* Space between inputs */
+            }
+            button {
+                padding: 12px 20px;
+                background-color: #007bff;
+                color: white;
+                border: none;
+                border-radius: 5px;
+                cursor: pointer;
+                font-size: 1.1em;
+                width: 100%; /* Make button full width */
+                box-sizing: border-box;
+                transition: background-color 0.3s ease;
+            }
+            button:hover {
+                background-color: #0056b3;
+            }
+            #message {
+                margin-top: 20px;
+                padding: 12px;
+                border-radius: 5px;
+                /*display: none;  Hidden by default */
+                font-weight: bold;
+                xtext-align: left; /* Align messages to the left */
+            }
+            #message.success {
+                background-color: #d4edda;
+                color: #155724;
+                border: 1px solid #c3e6cb;
+            }
+            #message.error {
+                background-color: #f8d7da;
+                color: #721c24;
+                border: 1px solid #f5c6cb;
+            }
+            /* . means class, # means ID
+               .class1.class2 means class1 AND class2
+               class1 <space> class2 means class2 is a decendant of a node with class 1
+             */
+            .body.logged-in .hide-if-logged-in {
+                display: none;
+            }
+            .body:not(.logged-in) .hide-if-not-logged-in {
+                display: none;
+            }
+            </style>
+        `;
+        return result;
+    }
+
+    public getHTMLTagContent() : string
+    //This should be overridden by descendant classes
+    {
+       let result : string = `
                 <div class="body">
                     <div id="app">
                         <div class="form-container hide-if-logged-in">
@@ -206,28 +237,10 @@ export default class TLoginAppView extends TAppView {   //implements LoginAppVie
 
                     </div>
                 </div>
-            `;      //<-- note end backtick
-            this.setHTMLEl(tempInnerHTML);
-            const debug=true;
-            if (debug==true) {
-                const map = {"loginDobMonth": "06", "loginDobDay": "23", "loginDobYear": "1947", "loginFirstName": "Judith"};
-                for (const [key, value] of Object.entries(map)) {
-                    let input = this.htmlEl.dom.getElementById(key) as HTMLInputElement | null;
-                    if (input) {
-                        input.value = value; // Set the value of the input field
-                    }
-                }
-            }
-        }
-        this.htmlEl = this.htmlEl as LoginHTMLElement; // typecast as relevent for this object.
+       `;
+       return result;
+    }
 
-        if (opts) {
-          //process opts -- if any added later
-
-        }
-        // Attach event listeners in the constructor or a dedicated setup method
-        this.setupEventListeners();
-    }  //constructor
 
     private async doLogin(): Promise<void> {
         if (!this.htmlEl.$loginform) {
@@ -323,8 +336,5 @@ export default class TLoginAppView extends TAppView {   //implements LoginAppVie
         }
     } //setupEventListeners
 
-    public async refresh() : Promise<void> {
-        //put any code needed to be executed prior to this class being displayed to user.
-    }
 
 }

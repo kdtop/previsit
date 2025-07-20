@@ -1,15 +1,17 @@
 // /opt/worldvista/EHR/web/previsit/www/components/medciation_review.ts
 
-import TAppView, { EnhancedHTMLElement } from './appview.js';
+import TAppView, {  } from './appview.js';
 import { TCtrl } from '../utility/controller.js';
 import { AreTakingStatus, YesNoStatus, RefillLocation,
-         UserMedicationAnswers, UserMedAnswersArray     } from '../utility/types.js';
+         UserMedicationAnswers, UserMedAnswersArray,
+         EnhancedHTMLDivElement
+       } from '../utility/types.js';
 
 interface MedReviewOptions {
     someOption : any;
 }
 
-export type MedReviewHTMLElement = EnhancedHTMLElement & {
+export type MedReviewHTMLElement = EnhancedHTMLDivElement & {
     $patientname?: HTMLSpanElement;
     $formscontainer?: HTMLDivElement;
     medDisplayAreaEl?: HTMLDivElement | null;
@@ -39,8 +41,16 @@ export default class TMedReviewAppView extends TAppView<UserMedAnswersArray> {
 
     constructor(aCtrl: TCtrl, opts?: MedReviewOptions) {
         super('medication_review', '/api/medication_review', aCtrl);
-        {   //temp scope for tempInnerHTML
-            const tempInnerHTML = `
+        //this.htmlEl = this.newEnhancedHTMDivElement(this.getInnerHTML());
+        if (opts) {
+            //process opts -- if any added later
+        }
+    } //constructor
+
+    public getCSSContent() : string
+    {
+        let result : string = super.getCSSContent() +
+        `
             <style>
 
             p {
@@ -529,8 +539,14 @@ export default class TMedReviewAppView extends TAppView<UserMedAnswersArray> {
                     margin: 5px 0px
                 }
             }
-
             </style>
+        `;
+        return result;
+    }
+
+    public getHTMLTagContent() : string
+    {
+        let result : string = `
             <form class='medreview-container'>
                 <div class="header-area">
                     <h1>Review Your Medication List</h1>
@@ -556,23 +572,11 @@ export default class TMedReviewAppView extends TAppView<UserMedAnswersArray> {
                     </div>
                 </div>
             </form>
-            `; //end of innerHTML
+        `;
+        return result;
+    }
 
-            this.setHTMLEl(tempInnerHTML);
-        } //end of scope
-        if (opts) {
-            //process opts -- if any added later
-        }
-    } //constructor
-
-    /**
-     * Builds the entire history update form dynamically within the component.
-     * This method is called on refresh and can be adapted later to pre-fill data.
-     */
-    private async loadForms(): Promise<void> {
-        this.setHTMLEl(this.sourceHTML); //restore initial html
-
-        // NEW: Cache the done button elements and new navigation elements
+    public cacheDOMElements() {
         this.doneButton = this.htmlEl.dom.querySelector<HTMLButtonElement>('.done-button');
         this.doneButtonMainText = this.htmlEl.dom.querySelector<HTMLSpanElement>('.done-button-main-text');
         this.doneButtonSubText = this.htmlEl.dom.querySelector<HTMLSpanElement>('.done-button-sub-text');
@@ -580,17 +584,24 @@ export default class TMedReviewAppView extends TAppView<UserMedAnswersArray> {
         this.htmlEl.prevMedButtonEl = this.htmlEl.dom.querySelector<HTMLButtonElement>('.prev-med-button');
         this.htmlEl.nextMedButtonEl = this.htmlEl.dom.querySelector<HTMLButtonElement>('.next-med-button');
         this.htmlEl.medProgMessageEl = this.htmlEl.dom.querySelector<HTMLSpanElement>('.medication-progress-message');
+    }
 
+    public clearCachedDOMElements() {
+        this.doneButton = null;
+        this.doneButtonMainText = null;
+        this.doneButtonSubText = null;
+        this.htmlEl.medDisplayAreaEl = null;
+        this.htmlEl.prevMedButtonEl = null;
+        this.htmlEl.nextMedButtonEl = null;
+        this.htmlEl.medProgMessageEl = null;
+    }
+
+    public setupPatientNameDisplay() {
         // Populate patient name
         const patientNameEl = this.htmlEl.dom.querySelector<HTMLSpanElement>('.patient-name');
-        if (patientNameEl) {
-            patientNameEl.textContent = this.ctrl.patientFullName || "Valued Patient";
-        }
-
-        this.setupFormEventListeners();
-        await this.prePopulateFromServer(); //evokes call to serverDataToForm()
-        this.updateDoneButtonState(); // Update initially
+        if (patientNameEl) patientNameEl.textContent = this.ctrl.patientFullName || "Valued Patient";
     }
+
 
     /**
      * Renders the current medication with its questions.
@@ -614,7 +625,7 @@ export default class TMedReviewAppView extends TAppView<UserMedAnswersArray> {
         if (!currentMedication) {
             this.htmlEl.medDisplayAreaEl.innerHTML = '<p>No medications to display.</p>';
             this.updateNavigationButtons();
-            this.updateDoneButtonState();
+            this.updatePageState();
             return;
         }
 
@@ -796,7 +807,7 @@ export default class TMedReviewAppView extends TAppView<UserMedAnswersArray> {
         this.updateNavigationButtons();
         this.addCardEventListeners(newCard); // Removed medicationName parameter
         this.updateCardCompletionState(newCard); // Update card color, checkmark, and next button
-        this.updateDoneButtonState(); // Update the done button state after rendering a new card
+        this.updatePageState(); // Update the done button state after rendering a new card
     }
 
     /**
@@ -807,16 +818,14 @@ export default class TMedReviewAppView extends TAppView<UserMedAnswersArray> {
         cardEl.addEventListener('change', (e) => {
             this.captureMedicationAnswer(e.target as HTMLInputElement | HTMLTextAreaElement);
             this.updateCardCompletionState(cardEl); // Update card color, checkmark, and next button on change
-            this.resetAutosaveTimer();
-            this.updateDoneButtonState();
+            this.updatePageState();
         });
         cardEl.addEventListener('input', (e) => {
             // For textareas, 'input' event captures changes more granularly
             const target = e.target as HTMLTextAreaElement;
             if (target.tagName === 'TEXTAREA') {
                 this.captureMedicationAnswer(target);
-                this.resetAutosaveTimer();
-                this.updateDoneButtonState();
+                this.updatePageState();
             }
         });
     }
@@ -983,7 +992,7 @@ export default class TMedReviewAppView extends TAppView<UserMedAnswersArray> {
     /**
      * Sets up event listeners for the form, including the autosave mechanism and the 'Done' button.
      */
-    private setupFormEventListeners = (): void => {
+    public setupFormEventListeners = (): void => {
         if (!this.htmlEl) return;
         // Navigation buttons
         this.htmlEl.prevMedButtonEl?.addEventListener('click', this.handlePrevMed);
@@ -1025,9 +1034,7 @@ export default class TMedReviewAppView extends TAppView<UserMedAnswersArray> {
         this.medicationData = data; // Store the full list
         this.currentMedIndex = 0; // Start with the first medication
         this.renderCurrentMedication(this.currentMedIndex); // Render the first medication
-
-        // Update the done button state after loading the data
-        this.updateDoneButtonState();
+        this.updatePageState();    // Update the done button state after loading the data
     }
 
 
@@ -1037,10 +1044,6 @@ export default class TMedReviewAppView extends TAppView<UserMedAnswersArray> {
      */
     public gatherDataForServer = (): UserMedAnswersArray => {
         return this.medicationData;
-    }
-
-    public async refresh(): Promise<void> {
-        await this.loadForms();
     }
 
 }

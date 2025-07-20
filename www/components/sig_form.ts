@@ -1,13 +1,13 @@
 // /opt/worldvista/EHR/web/previsit/www/components/sig_form.ts
 
 // Inherits from TAppView, similar to medication_review.ts
-import TAppView, { EnhancedHTMLElement } from './appview.js';
+import TAppView, {  } from './appview.js';
 import { TCtrl } from '../utility/controller.js';
-import { SigFormData } from '../utility/types.js';
+import { SigFormData, EnhancedHTMLDivElement } from '../utility/types.js';
 import { SignaturePadComponent } from './components.js'; // Import the new component
 
 // Define the specific HTMLElement type for this form's custom elements
-export type SigFormHTMLElement = EnhancedHTMLElement & {
+export type SigFormHTMLElement = EnhancedHTMLDivElement & {
     signaturePadComponent?: SignaturePadComponent | null; // Use the new component type
     dontSignBtn?: HTMLButtonElement | null;
     contentSection?: HTMLDivElement | null;
@@ -23,8 +23,15 @@ export default class TSigFormAppView extends TAppView<SigFormData> {
     constructor(aCtrl: TCtrl, opts?: any) {
         super('sig_form', '/api/sig1', aCtrl); // Unique ID, placeholder API URL, controller
 
-        // Define the inner HTML for the component
-        const tempInnerHTML = `
+        if (opts) {
+            // Process any options passed to the constructor if needed
+        }
+    }
+
+    public getCSSContent() : string
+    {
+        let result : string = super.getCSSContent() +
+        `
             <style>
                 .sig-form-container {
                     padding: 20px;
@@ -108,6 +115,13 @@ export default class TSigFormAppView extends TAppView<SigFormData> {
                     background-color: #c0392b;
                 }
             </style>
+        `;
+        return result;
+    }
+
+    public getHTMLTagContent() : string
+    {
+        let result : string = `
             <form class="sig-form-container">
                 <h1>Patient Consent Form</h1>
 
@@ -129,36 +143,25 @@ export default class TSigFormAppView extends TAppView<SigFormData> {
                 </div>
             </form>
         `;
-        this.setHTMLEl(tempInnerHTML);
-        this.cacheDOMElements();  // Cache DOM elements for the signature pad after setting HTML
-        if (opts) {
-            // Process any options passed to the constructor if needed
-        }
+        return result;
     }
 
-    private cacheDOMElements() {
+    public cacheDOMElements() {
         this.htmlEl.signaturePadComponent = this.htmlEl.dom.querySelector<SignaturePadComponent>('#sigPad1');
         this.htmlEl.dontSignBtn = this.htmlEl.dom.querySelector<HTMLButtonElement>('.dont-sign-btn');
         this.htmlEl.contentSection = this.htmlEl.dom.querySelector<HTMLDivElement>('.content-section');
     }
 
-    /**
-     * Loads the form content and initializes dynamic elements.
-     */
-    private async loadForms(): Promise<void> {
-        // Restore initial HTML (if the refresh mechanism resets the DOM)
-        this.setHTMLEl(this.sourceHTML);    // Re-renders the component, recreating the signature-pad-component
-        this.cacheDOMElements();            // Re-cache DOM elements after the HTML has potentially been reset/re-rendered.
-        this.setupFormEventListeners();     // Set up any general form event listeners
-        await this.prePopulateFromServer(); // Evokes call to serverDataToForm()
-
-        console.log("Signature Form loaded successfully.");
+    public clearCachedDOMElements() {
+        this.htmlEl.signaturePadComponent = null;
+        this.htmlEl.dontSignBtn = null;
+        this.htmlEl.contentSection = null;
     }
 
     /**
      * Sets up general event listeners for the form (e.g., form submission).
      */
-    private setupFormEventListeners(): void {
+    public setupFormEventListeners(): void {
         // Add a click listener for the done button
         this.htmlEl.dom.querySelector('.done-button')?.addEventListener('click', (e) => {
             e.preventDefault(); // Prevent default form submission
@@ -170,19 +173,19 @@ export default class TSigFormAppView extends TAppView<SigFormData> {
         this.htmlEl.dontSignBtn?.addEventListener('click', () => {
             console.log("Don't sign button clicked!");
             this.htmlEl.signaturePadComponent?.clear();
-            this.updateDoneButtonState();
+            this.updatePageState();
             this.handleDoneClick();  //this will effect saving an empty signature, removing any prior saved one
         });
 
         // Listen for custom events from the signature pad component
         this.htmlEl.signaturePadComponent?.addEventListener('signed', () => {
             console.log("Signature started/updated");
-            this.updateDoneButtonState();
+            this.updatePageState();
         });
 
         this.htmlEl.signaturePadComponent?.addEventListener('cleared', () => {
             console.log("Signature cleared.");
-            this.updateDoneButtonState();
+            this.updatePageState();
         });
     }
 
@@ -205,7 +208,13 @@ export default class TSigFormAppView extends TAppView<SigFormData> {
         this.progressData.progressPercentage = totalQuestions > 0 ? Math.round((answeredCount / totalQuestions) * 100) : 0;
     }
 
-    public updateDoneButtonState = (): void => {
+    public updatePageState(): void
+    {
+        super.updatePageState(); //will effect call to this.updateProgressState() and this.updateDoneButtonState
+    }
+
+    public updateDoneButtonState(): void
+    {
         //NOTE: this overrides ancestor method.
         this.updateProgressState();  //updates this.progressData
 
@@ -233,7 +242,7 @@ export default class TSigFormAppView extends TAppView<SigFormData> {
         if (data.displayText && this.htmlEl.contentSection) {
             this.htmlEl.contentSection.innerHTML = data.displayText.join('');
         }
-        this.updateDoneButtonState();  // Update the done button state after loading the data
+        this.updatePageState();  // Update the done button state after loading the data
     }
 
     /**
@@ -262,10 +271,4 @@ export default class TSigFormAppView extends TAppView<SigFormData> {
         console.log("Signature Form Component instance initialized.");
     }
 
-    /**
-     * Refresh method, typically called when the view needs to be re-rendered or data reloaded.
-     */
-    public async refresh(): Promise<void> {
-        await this.loadForms();
-    }
 }

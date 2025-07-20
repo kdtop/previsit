@@ -1,5 +1,9 @@
 // /opt/worldvista/EHR/web/previsit/www/utility/client_utils.ts
 
+import { EnhancedHTMLDivElement, AppViewOptions
+       } from './types.js';
+
+
 /**
  * Pads a single-digit number string with a leading zero.
  * e.g., "7" becomes "07".
@@ -96,4 +100,68 @@ export function piece(sourceString: string | number | null | undefined,
   const actualEndPieceArrayIndex = Math.min(pTo, parts.length);
   const selectedParts = parts.slice(pFrom - 1, actualEndPieceArrayIndex);
   return selectedParts.join(delimiter);
+}
+
+/**
+ * Moves all child nodes from an element to a new DocumentFragment.
+ * @param el The element to extract children from.
+ * @returns A DocumentFragment containing the children of the element.
+ */
+export function toFragment(el: HTMLElement | null): DocumentFragment {
+    const f = document.createDocumentFragment();
+    if (el) {
+        while (el.firstChild) {
+            f.appendChild(el.firstChild);
+        }
+    }
+    return f;
+}
+
+
+/**
+ * Sets properties on an element's shadow DOM.
+ * @param el The HTMLDivElement (which now contains the shadow DOM).
+ * @param opts The properties to set, e.g., { innerHTML: '...' }.
+ */
+export function properties(el: EnhancedHTMLDivElement, opts?: AppViewOptions): void {
+    if (!opts) return;
+    for (const [key, value] of Object.entries(opts)) {
+        // This is intentionally dynamic to match original behavior.
+        (el.dom as any)[key] = value;
+    }
+}
+
+
+/**
+ * Creates shortcut properties on the ELInstance for elements with class names.
+ * For an element like `<div class="login-form">`, it creates `el.$loginform` on the HTMLDivElement.
+ * @param el The HTMLDivElement to add shortcuts to.
+ */
+export function addShortcuts(el: EnhancedHTMLDivElement): void {
+    const allElements = el.dom.querySelectorAll<HTMLElement>('*');
+
+    for (const element of allElements) {
+        // The original logic uses the first class name.
+        if (element.className && typeof element.className === 'string') {
+            const firstClassName = element.className.split(/\s+/g)[0];
+            if (firstClassName) {
+                const shortcutName = '$' + firstClassName.replace(/[^a-z0-9]/gi, '').toLowerCase();
+                // The index signature on ELInstance allows this.
+                el[shortcutName] = element;
+            }
+        }
+    }
+}
+
+
+/**
+ * Creates a DocumentFragment from an HTML string.
+ * @param opts Can be a string of HTML or an options object with an `innerHTML` property.
+ * @returns A DocumentFragment.
+ */
+export function Fragment(opts?: string | AppViewOptions): DocumentFragment {
+    const el : HTMLDivElement = document.createElement('div');
+    const innerHTML = (typeof opts === 'string') ? opts : opts?.innerHTML || '';
+    el.innerHTML = innerHTML;
+    return toFragment(el);
 }

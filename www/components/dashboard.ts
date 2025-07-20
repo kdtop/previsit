@@ -1,14 +1,17 @@
 // /opt/worldvista/EHR/web/previsit/www/components/dashboard.ts
 // Compiles to --> /opt/worldvista/EHR/web/previsit/www/dist/components/dashboard.js
 
-import TAppView, { EnhancedHTMLElement } from './appview.js';
+import TAppView, {  } from './appview.js';
 import { TCtrl } from '../utility/controller.js';
-import type { GetPatientFormsApiResponseArray, GetPatientFormsApiResponse } from '../utility/types.js'; // Import types for type safety
+import type { GetPatientFormsApiResponseArray, GetPatientFormsApiResponse,
+              EnhancedHTMLDivElement
+            } from '../utility/types.js'; // Import types for type safety
+import { resourceLimits } from 'worker_threads';
 
 // --- Type Definitions ---
 
-export type DashboardHTMLElement = EnhancedHTMLElement & {
-    // Extend the base EnhancedHTMLElement html property with specific DOM elements
+export type DashboardHTMLElement = EnhancedHTMLDivElement & {
+    // Extend the base EnhancedHTMLDivElement html property with specific DOM elements
     $patientname?: HTMLSpanElement;
     $formscontainer?: HTMLDivElement;
 };
@@ -94,6 +97,12 @@ const svgIcons: Record<string, string> = {
             <path d="M26 44V40H30V44L28 42.5L26 44Z" fill="currentColor"/>
         </svg>
     `,
+    "HealthCurve": `
+        <svg width="24" height="24" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+            <path d="M2 2V20C2 21.1046 2.89543 22 4 22H22V20H4V19H5.17877C6.14495 19 7.15879 18.9817 8.17714 18.8485C9.26237 18.7065 10.8525 18.4278 12.0312 17.8851C14.8102 16.6054 16.5215 15.1423 18.1176 12.3578C18.7638 11.2304 19.1289 10.134 19.3195 9.08968L20.4775 10.367L21.9592 9.02372L18.7767 5.51314L14.7497 8.01049L15.8038 9.71018L17.348 8.75251C17.1918 9.595 16.8969 10.4656 16.3824 11.3632C15.0069 13.7629 13.6219 14.9507 11.1946 16.0684C10.3118 16.4749 8.98335 16.726 7.91776 16.8654C7.0352 16.9808 6.1297 17 5.17877 17H4V2H2Z" fill="currentColor"/>
+            <path d="M13 4.5H10.5V2H8.5V4.5H6V6.5H8.5V9H10.5V6.5H13V4.5Z" fill="currentColor"/>
+        </svg>
+    `,
 
     // Add more icons here as needed
     // "anotherIcon": `<svg>...</svg>`
@@ -109,129 +118,132 @@ export default class TDashboardAppView extends TAppView<GetPatientFormsApiRespon
 
     constructor(aCtrl:  TCtrl,  opts?: DashboardOptions) {
         super('dashboard', '/api/dashboard', aCtrl);
-        { //temp scope for tempInnerHTML
-            const tempInnerHTML = `
-                <style>
-                    .dashboard-container {
-                        padding: 30px;
-                        text-align: center;
-                        background-color: #ffffff;
-                        xborder-radius: 8px;
-                        xbox-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
-                        xwidth: 100%;
-                        xmax-width: 500px;
-                        min-height: 100vh;
-                    }
-                    .dashboard-container h1 {
-                        color: #333;
-                        margin-top: 15px;
-                    }
-                    .dashboard-container svg {
-                        /* Adjust SVG size as needed */
-                        width: 24px;
-                        height: 24px;
-                        margin-right: 10px; /* Space between icon and text */
-                        vertical-align: middle;
-                    }
-                    .forms-container {
-                        margin-top: 25px;
-                        display: flex;
-                        flex-direction: column;
-                        gap: 10px;
-                    }
-                    .forms-container button {
-                        padding: 12px 20px;
-                        background-color: #007bff;
-                        color: white;
-                        border: none;
-                        border-radius: 5px;
-                        cursor: pointer;
-                        font-size: 1.05em;
-                        text-align: left;
-                        transition: background-color 0.3s ease, border-color 0.3s ease;
-                        display: flex;
-                        justify-content: space-between;
-                        align-items: center;
-                    }
-                    .forms-container button:hover {
-                        background-color: #0056b3;
-                    }
-                    .forms-container button.completed {
-                        background-color: #28a745; /* Green for completed */
-                        border-color: #218838;
-                    }
-                    .forms-container button.completed:hover {
-                        background-color: #218838;
-                    }
-                    .button-text {
-                        flex-grow: 1;
-                    }
-                    .progress-container {
-                        display: flex;
-                        align-items: center;
-                        gap: 10px;
-                        margin-left: 20px; /* Space between text and progress */
-                    }
-                    .progress-bar-container {
-                        width: 120px; /* A fixed width for the bar */
-                        height: 12px;
-                        background-color: rgba(255, 255, 255, 0.3); /* Lighter background for the bar */
-                        border-radius: 6px;
-                        overflow: hidden;
-                        border: 1px solid rgba(0, 0, 0, 0.1);
-                    }
-                    .progress-bar {
-                        height: 100%;
-                        background-color: #f1c40f; /* A distinct color for progress */
-                        border-radius: 6px 0 0 6px; /* Keep left radius */
-                        transition: width 0.4s ease-in-out;
-                    }
-                    .progress-text {
-                        font-size: 0.9em;
-                        min-width: 45px; /* Prevents layout shift */
-                        text-align: right;
-                    }
-                    .instructions {
-                        background-color:rgb(236, 231, 231);
-                        text-align: center;
-                        color: #400909;
-                    }
-                </style>
-
-                <div class='container dashboard-container'>
-                    <h1>Welcome, <span class="patient-name"></span>!</h1>
-                    <div class="instructions">
-                        <p>Please select a form to begin.</p>
-                    </div>
-                    <div class="forms-container"></div>
-                </div>
-            `;  //end of innerHTML
-            this.setHTMLEl(tempInnerHTML);
-        }  //end of temp scope for tempInnerHTML
+        this.formAutoSaves = false;  //dashboard doesn't need to save off data
         if (opts) {
           //process opts -- if any added later
         }
-
     }  //constructor
 
-    /** Fetches the list of required forms from the server. */
-    private async loadForms(): Promise<void>
-    {
-        const sessionID = this.ctrl.loginData?.sessionID;
-        if (!sessionID) {
-            console.error("No session ID found. Cannot load forms."); // Corrected typo: 'sessionID'
-            if (this.htmlEl.$formscontainer) this.htmlEl.$formscontainer.textContent = "No session ID found. Cannot load forms.";
-            return;
-        }
+    public getCSSContent(): string {
+        let result : string = `
+            <style>
+                .dashboard-container {
+                    padding: 30px;
+                    text-align: center;
+                    background-color: #ffffff;
+                    xborder-radius: 8px;
+                    xbox-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+                    xwidth: 100%;
+                    xmax-width: 500px;
+                    min-height: 100vh;
+                }
+                .dashboard-container h1 {
+                    color: #333;
+                    margin-top: 15px;
+                }
+                .dashboard-container svg {
+                    /* Adjust SVG size as needed */
+                    width: 24px;
+                    height: 24px;
+                    margin-right: 10px; /* Space between icon and text */
+                    vertical-align: middle;
+                }
+                .forms-container {
+                    margin-top: 25px;
+                    display: flex;
+                    flex-direction: column;
+                    gap: 10px;
+                }
+                .forms-container button {
+                    padding: 12px 20px;
+                    background-color: #007bff;
+                    color: white;
+                    border: none;
+                    border-radius: 5px;
+                    cursor: pointer;
+                    font-size: 1.05em;
+                    text-align: left;
+                    transition: background-color 0.3s ease, border-color 0.3s ease;
+                    display: flex;
+                    justify-content: space-between;
+                    align-items: center;
+                }
+                .forms-container button:hover {
+                    background-color: #0056b3;
+                }
+                .forms-container button.completed {
+                    background-color: #28a745; /* Green for completed */
+                    border-color: #218838;
+                }
+                .forms-container button.completed:hover {
+                    background-color: #218838;
+                }
+                .button-text {
+                    flex-grow: 1;
+                }
+                .progress-container {
+                    display: flex;
+                    align-items: center;
+                    gap: 10px;
+                    margin-left: 20px; /* Space between text and progress */
+                }
+                .progress-bar-container {
+                    width: 120px; /* A fixed width for the bar */
+                    height: 12px;
+                    background-color: rgba(255, 255, 255, 0.3); /* Lighter background for the bar */
+                    border-radius: 6px;
+                    overflow: hidden;
+                    border: 1px solid rgba(0, 0, 0, 0.1);
+                }
+                .progress-bar {
+                    height: 100%;
+                    background-color: #f1c40f; /* A distinct color for progress */
+                    border-radius: 6px 0 0 6px; /* Keep left radius */
+                    transition: width 0.4s ease-in-out;
+                }
+                .progress-text {
+                    font-size: 0.9em;
+                    min-width: 45px; /* Prevents layout shift */
+                    text-align: right;
+                }
+                .instructions {
+                    background-color:rgb(236, 231, 231);
+                    text-align: center;
+                    color: #400909;
+                }
+            </style>
+        `;
+        return result;
+    }
 
-        this.setHTMLEl(this.sourceHTML);  //This is initial HTML.  Patient-specific parts will be inserted below
+    public getHTMLTagContent(): string {
+        let result : string = `
+            <div class='container dashboard-container'>
+                <h1>Welcome, <span class="patient-name"></span>!</h1>
+                <div class="instructions">
+                    <p>Please select a form to begin.</p>
+                </div>
+                <div class="forms-container"></div>
+            </div>
+        `;
+        return result;
+    }
+
+    public setupPatientNameDisplay() {
+        //NOTE: This is a virtual method, to be overridden by descendant classes
         // Populate the patient's name from the shared controller
         if (this.htmlEl.$patientname) {
             this.htmlEl.$patientname.textContent = this.ctrl.patientFullName || "Valued Patient";
         }
+    }
 
-        await this.prePopulateFromServer(); //evokes call to serverDataToForm()
-    }  //loadForms
+    public gatherDataForServer = (): GetPatientFormsApiResponseArray => {
+        //NOTE: There is no data to send back, but to be consistent with other forms,
+        //      we'll still implement the method.  This will result in call to "save" an empty array
+        let result : GetPatientFormsApiResponseArray = [];
+        return result;
+    }
+
 
     /** Renders the buttons for each form. */
     public serverDataToForm = (forms: GetPatientFormsApiResponseArray): void => {
@@ -297,11 +309,6 @@ export default class TDashboardAppView extends TAppView<GetPatientFormsApiRespon
             };
             container.appendChild(button);
         });
-    }
-
-    public async refresh() : Promise<void> {
-        //put any code needed to be executed prior to this class being displayed to user.
-        await this.loadForms();
     }
 
 }

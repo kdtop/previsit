@@ -254,6 +254,12 @@ export class ToggleButton extends HTMLElement {
         cursor: not-allowed;
       }
 
+      .label-text-wrapper {
+        word-break: normal;
+        overflow-wrap: normal; /* Modern equivalent of word-wrap */
+        white-space: nowrap; /* Ensure text doesn't wrap unless explicitly told to */
+      }
+
       /* Styles for the checkmark SVG */
       .checkmark {
         width: 1.5em; /* Adjust size as needed, e.g., based on font-size */
@@ -300,6 +306,7 @@ export class ToggleButton extends HTMLElement {
         return this.input?.checked ?? false;
     }
     set checked(val) {
+        console.log(`ToggleButton: Setting checked for name="${this.getAttribute('name') || 'N/A'}" to value: ${val}`);
         if (val) {
             this.setAttribute('checked', '');
         }

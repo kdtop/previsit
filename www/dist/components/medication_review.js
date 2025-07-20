@@ -12,8 +12,14 @@ export default class TMedReviewAppView extends TAppView {
     medicationData = [];
     constructor(aCtrl, opts) {
         super('medication_review', '/api/medication_review', aCtrl);
-        { //temp scope for tempInnerHTML
-            const tempInnerHTML = `
+        //this.htmlEl = this.newEnhancedHTMDivElement(this.getInnerHTML());
+        if (opts) {
+            //process opts -- if any added later
+        }
+    } //constructor
+    getCSSContent() {
+        let result = super.getCSSContent() +
+            `
             <style>
 
             p {
@@ -502,8 +508,12 @@ export default class TMedReviewAppView extends TAppView {
                     margin: 5px 0px
                 }
             }
-
             </style>
+        `;
+        return result;
+    }
+    getHTMLTagContent() {
+        let result = `
             <form class='medreview-container'>
                 <div class="header-area">
                     <h1>Review Your Medication List</h1>
@@ -529,20 +539,10 @@ export default class TMedReviewAppView extends TAppView {
                     </div>
                 </div>
             </form>
-            `; //end of innerHTML
-            this.setHTMLEl(tempInnerHTML);
-        } //end of scope
-        if (opts) {
-            //process opts -- if any added later
-        }
-    } //constructor
-    /**
-     * Builds the entire history update form dynamically within the component.
-     * This method is called on refresh and can be adapted later to pre-fill data.
-     */
-    async loadForms() {
-        this.setHTMLEl(this.sourceHTML); //restore initial html
-        // NEW: Cache the done button elements and new navigation elements
+        `;
+        return result;
+    }
+    cacheDOMElements() {
         this.doneButton = this.htmlEl.dom.querySelector('.done-button');
         this.doneButtonMainText = this.htmlEl.dom.querySelector('.done-button-main-text');
         this.doneButtonSubText = this.htmlEl.dom.querySelector('.done-button-sub-text');
@@ -550,14 +550,21 @@ export default class TMedReviewAppView extends TAppView {
         this.htmlEl.prevMedButtonEl = this.htmlEl.dom.querySelector('.prev-med-button');
         this.htmlEl.nextMedButtonEl = this.htmlEl.dom.querySelector('.next-med-button');
         this.htmlEl.medProgMessageEl = this.htmlEl.dom.querySelector('.medication-progress-message');
+    }
+    clearCachedDOMElements() {
+        this.doneButton = null;
+        this.doneButtonMainText = null;
+        this.doneButtonSubText = null;
+        this.htmlEl.medDisplayAreaEl = null;
+        this.htmlEl.prevMedButtonEl = null;
+        this.htmlEl.nextMedButtonEl = null;
+        this.htmlEl.medProgMessageEl = null;
+    }
+    setupPatientNameDisplay() {
         // Populate patient name
         const patientNameEl = this.htmlEl.dom.querySelector('.patient-name');
-        if (patientNameEl) {
+        if (patientNameEl)
             patientNameEl.textContent = this.ctrl.patientFullName || "Valued Patient";
-        }
-        this.setupFormEventListeners();
-        await this.prePopulateFromServer(); //evokes call to serverDataToForm()
-        this.updateDoneButtonState(); // Update initially
     }
     /**
      * Renders the current medication with its questions.
@@ -579,7 +586,7 @@ export default class TMedReviewAppView extends TAppView {
         if (!currentMedication) {
             this.htmlEl.medDisplayAreaEl.innerHTML = '<p>No medications to display.</p>';
             this.updateNavigationButtons();
-            this.updateDoneButtonState();
+            this.updatePageState();
             return;
         }
         // Create the new card
@@ -749,7 +756,7 @@ export default class TMedReviewAppView extends TAppView {
         this.updateNavigationButtons();
         this.addCardEventListeners(newCard); // Removed medicationName parameter
         this.updateCardCompletionState(newCard); // Update card color, checkmark, and next button
-        this.updateDoneButtonState(); // Update the done button state after rendering a new card
+        this.updatePageState(); // Update the done button state after rendering a new card
     }
     /**
      * Adds event listeners to the currently displayed medication card for data capture.
@@ -759,16 +766,14 @@ export default class TMedReviewAppView extends TAppView {
         cardEl.addEventListener('change', (e) => {
             this.captureMedicationAnswer(e.target);
             this.updateCardCompletionState(cardEl); // Update card color, checkmark, and next button on change
-            this.resetAutosaveTimer();
-            this.updateDoneButtonState();
+            this.updatePageState();
         });
         cardEl.addEventListener('input', (e) => {
             // For textareas, 'input' event captures changes more granularly
             const target = e.target;
             if (target.tagName === 'TEXTAREA') {
                 this.captureMedicationAnswer(target);
-                this.resetAutosaveTimer();
-                this.updateDoneButtonState();
+                this.updatePageState();
             }
         });
     }
@@ -966,8 +971,7 @@ export default class TMedReviewAppView extends TAppView {
         this.medicationData = data; // Store the full list
         this.currentMedIndex = 0; // Start with the first medication
         this.renderCurrentMedication(this.currentMedIndex); // Render the first medication
-        // Update the done button state after loading the data
-        this.updateDoneButtonState();
+        this.updatePageState(); // Update the done button state after loading the data
     };
     /**
      * Gathers all medication answers into a structured JSON object.
@@ -976,8 +980,5 @@ export default class TMedReviewAppView extends TAppView {
     gatherDataForServer = () => {
         return this.medicationData;
     };
-    async refresh() {
-        await this.loadForms();
-    }
 }
 //# sourceMappingURL=medication_review.js.map
