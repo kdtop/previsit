@@ -2,7 +2,7 @@
 
 import TAppView, {  } from './appview.js';
 import { TCtrl } from '../utility/controller.js';
-import { ToggleButton } from './components.js'; // Import both components
+import { ToggleButton } from './comp_btns.js'; // Import both components
 import { SignaturePadComponent } from './comp_sigpad.js'; // Import both components
 import { ConsentFormData, TAuthorizedPersonsArray, EnhancedHTMLDivElement } from '../utility/types.js';
 

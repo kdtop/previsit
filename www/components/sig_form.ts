@@ -26,6 +26,9 @@ export default class TSigFormAppView extends TAppView<SigFormData> {
         if (opts) {
             // Process any options passed to the constructor if needed
         }
+
+        //Below is to force the page to load the file, so that when encountered in innerHTML, it will have component to match.
+        let forceLoad = new SignaturePadComponent();
     }
 
     public getCSSContent() : string

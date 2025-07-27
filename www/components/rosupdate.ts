@@ -121,11 +121,6 @@ export default class TRosUpdateAppView extends TQuestionnaireAppView {
                     hasDetailsArea : true,
                     replies      : ['2 or more falls in the past year','Any fall with injury in past year']
                 },
-                {
-                    dataNamespace    : 'test question',
-                    questionText : 'Blood Type',
-                    replyType    : 'freeText',
-                }
             ],
         }
         let formData :  TQuestionnaireData = {

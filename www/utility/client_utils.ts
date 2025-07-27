@@ -4,6 +4,22 @@ import { EnhancedHTMLDivElement, AppViewOptions
        } from './types.js';
 
 
+function isBoolean(value : any) {
+  return typeof value === 'boolean';
+}
+
+export function camelCase(s : string) : string {  //not a true camel case.  Just first letter capitalized.
+    return s.charAt(0).toUpperCase() + s.slice(1);
+}
+
+export function toNumStrDef(s : string | null | undefined, defaultNumStr = '0') : string
+{
+  if (!s) s = defaultNumStr;
+  let floatVal = parseFloat(s);
+  if (isNaN(floatVal)) return defaultNumStr;
+  return floatVal.toString();
+}
+
 /**
  * Pads a single-digit number string with a leading zero.
  * e.g., "7" becomes "07".
@@ -165,3 +181,78 @@ export function Fragment(opts?: string | AppViewOptions): DocumentFragment {
     el.innerHTML = innerHTML;
     return toFragment(el);
 }
+
+
+/*
+// -- debouncing functionality -----
+
+// 1. Define a type for a generic procedure (a function that returns nothing).
+//    This type represents any function that takes any number of arguments
+//    of any type, and does not return a value.
+export type Procedure = (...args: any[]) => void;
+
+// 2. Now, let's redefine the type for the function that will be debounced.
+//    The generic type 'T' must now extend our 'Procedure' type.
+export type DebouncedFunction<T extends Procedure> = T;   //<-- shows that this new type is really the same as T (just with more definition)
+
+// 3. Define the type for the function that the debounce wrapper will return.
+//    It's a function that takes the exact same arguments as the original
+//    function 'T' and returns nothing.
+export type DebounceWrapper<T extends Procedure> = (...args: Parameters<T>) => void;
+
+
+// 4. Finally, here's the function signature using these more explicit types.
+export function debounce<T extends Procedure>(func: DebouncedFunction<T>, wait: number): DebounceWrapper<T> {
+  let timeout: ReturnType<typeof setTimeout> | null = null;
+  return function(this: ThisParameterType<T>, ...args: Parameters<T>): void {
+    const context : ThisParameterType<T> = this;
+    //-------------------------------------------------------
+    //NOTE: If I come back to this, try this code:
+    const myCopiedEvent = { ...event }
+              // call(...args) --> same as call(args[0], arg[1], args[2])
+
+    function defCall(...args) {   <-- if called like this  defCall(a,b,c,d), then args[0]=a, args[1]=b etc...
+       ... ==> args
+       args ==> ...
+    }
+    //-------------------------------------------------------
+
+    // --- ADD THESE DEBUG LOGS ---
+    console.log('Debounced function called!');
+    console.log('Arguments:', args);
+    if (args[0] instanceof Event) {
+        console.log('Event target (inside debounce):', (args[0] as Event).target);
+    }
+    // --- END DEBUG LOGS ---
+    if (timeout) {
+      clearTimeout(timeout);
+    }
+    //NOTICE!!! Below doesn't
+    timeout = setTimeout(() => {
+      func.apply(context, args);  //<--- try replacing args with myCopiedEvent
+    }, wait);
+  };
+}
+*/
+
+// Example debounce usage:
+/*
+  const myUpdateFunction = (value: string, id: number) => {
+    console.log(`Updating value: ${value} for ID: ${id}`);
+  };
+
+  const debouncedMyUpdateFunction = debounce(myUpdateFunction, 500);
+
+  // These calls will be debounced
+  debouncedMyUpdateFunction('hello', 1);
+  debouncedMyUpdateFunction('world', 2); // This will cancel the 'hello' call
+  debouncedMyUpdateFunction('typescript', 3); // This will cancel the 'world' call
+
+  // Only 'Updating value: typescript for ID: 3' will log after 500ms pause
+  setTimeout(() => {
+    debouncedMyUpdateFunction('final update', 4);
+  }, 600); // After the previous debounce has likely fired
+
+*/
+
+//---------------------------------------------------------------

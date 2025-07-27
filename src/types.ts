@@ -123,6 +123,11 @@ export interface TQuestion {
   noneButtonLabel       ?: string;          // if replyType mode includes none button, then this label will be for none button.  Default is 'NONE'
 }
 
+export interface QuestionResults {
+    questionText : string;
+    value : string;
+    details?: string;
+}
 /**
  * Represents an instance created by the EL utility.
  * This is the object returned by `new EL(...)`.

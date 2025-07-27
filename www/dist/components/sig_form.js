@@ -1,6 +1,7 @@
 // /opt/worldvista/EHR/web/previsit/www/components/sig_form.ts
 // Inherits from TAppView, similar to medication_review.ts
 import TAppView from './appview.js';
+import { SignaturePadComponent } from './comp_sigpad.js'; // Import both components
 /**
  * Represents the Signature Form component, responsible for displaying a consent
  * form with a graphical signature area.
@@ -11,6 +12,8 @@ export default class TSigFormAppView extends TAppView {
         if (opts) {
             // Process any options passed to the constructor if needed
         }
+        //Below is to force the page to load the file, so that when encountered in innerHTML, it will have component to match.
+        let forceLoad = new SignaturePadComponent();
     }
     getCSSContent() {
         let result = super.getCSSContent() +

@@ -557,9 +557,9 @@ export default class TMedReviewAppView extends TAppView<UserMedAnswersArray> {
                     <div class="medication-display-area">
                         </div>
                     <div class="navigation-area">
-                        <button type="button" class="next-med-button hidden">Next &rarr;</button>
-                        <span class="medication-progress-message"></span>
                         <button type="button" class="prev-med-button hidden">&larr; Previous</button>
+                        <span class="medication-progress-message"></span>
+                        <button type="button" class="next-med-button hidden">Next &rarr;</button>
                     </div>
                 </div>
 

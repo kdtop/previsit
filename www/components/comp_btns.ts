@@ -32,6 +32,11 @@ export interface ToggleButtonOptions {
     showChecked?: boolean;
 }
 
+export interface ReplyToggleButton extends ToggleButton {
+    isRadio?: boolean;
+    unitScore?: number;
+}
+
 export class ToggleButton extends HTMLElement {
   static get observedAttributes() {
     return [
@@ -53,18 +58,17 @@ export class ToggleButton extends HTMLElement {
   private input: HTMLInputElement | null = null;
   private span: HTMLSpanElement | null = null;
   private checkmarkSvg: SVGSVGElement | null = null;
-  private labelText: string = 'Option'; // This will be the base label / fallback
+  public labelText: string = 'Option'; // This will be the base label / fallback
 
   private _checkedBackgroundColor: string = '#3498db';
   private _checkedColor: string = 'white';
   private _uncheckedBackgroundColor: string = '#f0f0f0';
   private _uncheckedColor: string = '#555555';
   private _showChecked: boolean = false;
-
   private _checkedText: string = 'Checked'; // Default internal checked text
   private _uncheckedText: string = 'Unchecked'; // Default internal unchecked text
 
-  // NEW: Flags to know if text attributes were explicitly set by the user
+  // Flags to know if text attributes were explicitly set by the user
   private _hasCheckedTextAttribute: boolean = false;
   private _hasUncheckedTextAttribute: boolean = false;
 
@@ -104,7 +108,7 @@ export class ToggleButton extends HTMLElement {
     this._uncheckedBackgroundColor = this.getAttribute('unchecked-background-color') || this._uncheckedBackgroundColor;
     this._uncheckedColor = this.getAttribute('unchecked-color') || this._uncheckedColor;
 
-    // NEW: Initialize text properties from attributes and set flags
+    // Initialize text properties from attributes and set flags
     this._hasCheckedTextAttribute = this.hasAttribute('checked-text');
     this._checkedText = this.getAttribute('checked-text') || this._checkedText;
 
@@ -126,7 +130,7 @@ export class ToggleButton extends HTMLElement {
     }
 
     this.render(); // Call render to apply initial styles and create elements
-  }
+  }  //constructor
 
   private render(): void {
       this.dom.innerHTML = `

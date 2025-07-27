@@ -78,6 +78,10 @@ export default class TDashboardAppView extends TAppView {
             //process opts -- if any added later
         }
     } //constructor
+    async refresh() {
+        this.htmlEl = null; //force reload of form.
+        await super.refresh();
+    }
     getCSSContent() {
         let result = `
             <style>
@@ -184,7 +188,7 @@ export default class TDashboardAppView extends TAppView {
     setupPatientNameDisplay() {
         //NOTE: This is a virtual method, to be overridden by descendant classes
         // Populate the patient's name from the shared controller
-        if (this.htmlEl.$patientname) {
+        if (this.htmlEl && this.htmlEl.$patientname) {
             this.htmlEl.$patientname.textContent = this.ctrl.patientFullName || "Valued Patient";
         }
     }
@@ -196,7 +200,7 @@ export default class TDashboardAppView extends TAppView {
     };
     /** Renders the buttons for each form. */
     serverDataToForm = (forms) => {
-        const container = this.htmlEl.$formscontainer;
+        const container = this.htmlEl?.$formscontainer;
         if (!container)
             return;
         container.innerHTML = ''; // Clear previous content

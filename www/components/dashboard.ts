@@ -114,7 +114,7 @@ const svgIcons: Record<string, string> = {
 // Purpose: Represents the Dashboard component as a class.
 //export default class DashboardAppView extends TAppView implements DashboardAppViewInstance {
 export default class TDashboardAppView extends TAppView<GetPatientFormsApiResponseArray> {   // implements DashboardAppViewInstance
-    declare htmlEl: DashboardHTMLElement; // Use 'declare' to override the type of the inherited property
+    declare htmlEl: DashboardHTMLElement | null; // Use 'declare' to override the type of the inherited property
 
     constructor(aCtrl:  TCtrl,  opts?: DashboardOptions) {
         super('dashboard', '/api/dashboard', aCtrl);
@@ -123,6 +123,11 @@ export default class TDashboardAppView extends TAppView<GetPatientFormsApiRespon
           //process opts -- if any added later
         }
     }  //constructor
+
+    public async refresh() : Promise<void> {
+        this.htmlEl = null;  //force reload of form.
+        await super.refresh();
+    }
 
     public getCSSContent(): string {
         let result : string = `
@@ -232,7 +237,7 @@ export default class TDashboardAppView extends TAppView<GetPatientFormsApiRespon
     public setupPatientNameDisplay() {
         //NOTE: This is a virtual method, to be overridden by descendant classes
         // Populate the patient's name from the shared controller
-        if (this.htmlEl.$patientname) {
+        if (this.htmlEl && this.htmlEl.$patientname) {
             this.htmlEl.$patientname.textContent = this.ctrl.patientFullName || "Valued Patient";
         }
     }
@@ -247,7 +252,7 @@ export default class TDashboardAppView extends TAppView<GetPatientFormsApiRespon
 
     /** Renders the buttons for each form. */
     public serverDataToForm = (forms: GetPatientFormsApiResponseArray): void => {
-        const container = this.htmlEl.$formscontainer;
+        const container = this.htmlEl?.$formscontainer;
         if (!container) return;
         container.innerHTML = '';  // Clear previous content
         forms.forEach((item : GetPatientFormsApiResponse) => {
