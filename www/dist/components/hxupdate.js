@@ -34,7 +34,7 @@ export default class THxUpdateAppView extends TQuestionnaireAppView {
     getQuestionnaireData() {
         let mainQuestGroup = {
             groupHeadingText: 'Welcome!',
-            question: [
+            questionDefinition: [
                 {
                     dataNamespace: 'hx_why_see',
                     questionText: 'Why are you seeing the doctor today?',
@@ -47,7 +47,7 @@ export default class THxUpdateAppView extends TQuestionnaireAppView {
         };
         let hxUpdateGroup = {
             groupHeadingText: 'Since your last visit, have you had any of the following?',
-            question: [
+            questionDefinition: [
                 {
                     dataNamespace: 'hx_new_prob',
                     questionText: 'New medical problems?',

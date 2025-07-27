@@ -9,6 +9,7 @@ import { TCtrl } from '../utility/controller.js';
 
 import { QuestionAnswerComponent, QuestionAnswerChangeEventDetail, NoneButtonToggleEventDetail, QACompOptions } from './comp_quest.js'; // NEW: Import QuestionAnswerComponent
 import { piece } from '../utility/client_utils.js';
+import { argv } from 'process';
 
 interface questionnaireUpdateOptions {
     someOption : any;
@@ -33,6 +34,9 @@ export default class TQuestionnaireAppView extends TAppView<KeyToStrBoolValueObj
     public resultingTotalScore : number = 0;
     public scoring : boolean = false;
     private loadingServerData: boolean = false; // Flag to indicate if data is currently being loaded into form
+    private formData : TQuestionnaireData = {   instructionsText: '',
+                                                questGroups : [],
+                                            };
 
     constructor(aName : string, apiURL : string = '/api/questionnaireUpdate', aCtrl:  TCtrl,  opts?: questionnaireUpdateOptions) {
         super(aName, apiURL, aCtrl);
@@ -237,9 +241,9 @@ export default class TQuestionnaireAppView extends TAppView<KeyToStrBoolValueObj
     }
 
     public async renderContent(parent: HTMLElement) {
-        let formData : TQuestionnaireData =this.getQuestionnaireData();
+        this.formData = this.getQuestionnaireData();
         this.scoring = false;  //default
-        await this.renderQuestionnaire(parent, formData);
+        await this.renderQuestionnaire(parent, this.formData);
     }
 
     public getQuestionnaireData() : TQuestionnaireData {
@@ -273,7 +277,7 @@ export default class TQuestionnaireAppView extends TAppView<KeyToStrBoolValueObj
         });
     }
 
-    private renderAQuestionGroup(parent: HTMLElement, aQuestGroup : TQuestionGroup, groupIndex : number) {
+    private renderAQuestionGroup(parent: HTMLElement, aQuestGroup : TQuestionGroup, groupIndex : number) : void {
         /* TQuestionGroup {
               groupHeadingText?: string;
               question: TQuestion[];
@@ -282,16 +286,32 @@ export default class TQuestionnaireAppView extends TAppView<KeyToStrBoolValueObj
         if (!aQuestGroup) return;
         parent.appendChild(this.createHeading(1, aQuestGroup.groupHeadingText));
 
-        aQuestGroup.question.forEach( (aQuestion : TQuestion, questionIndex : number) => {
-            this.createAQuestionSection(parent, aQuestion, groupIndex, questionIndex);
+        aQuestGroup.questionInstance = [];
+        aQuestGroup.questionDefinition.forEach( (aQuestion : TQuestion, questionIndex : number) => {
+            let qaComponent : QuestionAnswerComponent = this.createAQuestionSection(parent, aQuestion, groupIndex, questionIndex);
+            if (!aQuestGroup.questionInstance) aQuestGroup.questionInstance = [];
+            aQuestGroup.questionInstance.push(qaComponent);
         });
     }
 
-    private createAQuestionSection(parent: HTMLElement, aQuestion : TQuestion, groupIndex : number, questionIndex : number): HTMLDivElement
+    /*
+        TQuestionnaireData {
+            instructionsText?: string;
+            questGroups : TQuestionGroup[]; <-- a single element of this is 'aQuestGroup'
+                          TQuestionGroup {
+                            groupHeadingText: string;
+                            questionDefinition: TQuestion[];
+                              TQuestion {
+                               ... (defining items)
+                              }
+                            questionInstance: HTMLElement[];  //will really hold QuestionAnswerComponent (extended from HTMlElement) that implements TQuestion definition
+                          }
+            endingText?: string;
+        }
+    */
+
+    private createAQuestionSection(parent: HTMLElement, aQuestion : TQuestion, groupIndex : number, questionIndex : number): QuestionAnswerComponent
     {
-        const questionText: string = aQuestion.questionText || this.camelCase(aQuestion.dataNamespace);
-        const namespace: string = aQuestion.dataNamespace;
-        // replyType, replyList, scoreMode etc. are now passed directly to QuestionAnswerComponent
         let scoreMode : string = aQuestion.scoreMode?.toLowerCase() ?? '';
         this.scoring = this.scoring || scoreMode === "0indexed" || scoreMode === "1indexed" || scoreMode === "custom";
 
@@ -300,8 +320,7 @@ export default class TQuestionnaireAppView extends TAppView<KeyToStrBoolValueObj
 
         // Create the new QuestionAnswerComponent
         const options : QACompOptions = {
-            id : `qa-${namespace}`, // Assign a unique ID for easy lookup
-            namespace : namespace, // Store data
+            id : `qa-${aQuestion.dataNamespace}`, // Assign a unique ID for easy lookup
             questionData : aQuestion,
             groupIndex : groupIndex,
             questionIndex : questionIndex,
@@ -315,7 +334,7 @@ export default class TQuestionnaireAppView extends TAppView<KeyToStrBoolValueObj
         });
 
         section.appendChild(qaComponent);
-        return section; // Return the created section for further use if needed
+        return qaComponent; // Return the created component for further use if needed
     }
 
     // --- Data, Submission, and Autosave Logic ---
@@ -362,7 +381,7 @@ export default class TQuestionnaireAppView extends TAppView<KeyToStrBoolValueObj
         let answeredCount = 0;
 
         questions.forEach(qSection => {
-            const qaComponent = qSection.querySelector<QuestionAnswerComponent>('question-answer-component');
+            const qaComponent : QuestionAnswerComponent | null = qSection.querySelector<QuestionAnswerComponent>('question-answer-component');
             let isQuestionAnswered = false;
 
             if (qaComponent && qaComponent.value !== null && qaComponent.value !== '') {
@@ -383,39 +402,53 @@ export default class TQuestionnaireAppView extends TAppView<KeyToStrBoolValueObj
 
         if (this.scoring) {
             this.resultingTotalScore = 0;
-            questions.forEach(qSection => {
-                const qaComponent = qSection.querySelector<QuestionAnswerComponent>('question-answer-component');
-                const questionData = qaComponent?.questionData; // Access the original TQuestion data
+            this.formData.questGroups.forEach( (qGroup: TQuestionGroup) => {
+                if (qGroup.questionInstance) qGroup.questionInstance.forEach( (element: HTMLElement) => {
+                    let aQuestInstance = element as QuestionAnswerComponent;
+                    this.resultingTotalScore += aQuestInstance.getUnitScore();
+                });
+            });
+        }
 
-                if (qaComponent && qaComponent.value !== null && qaComponent.value !== '' && questionData) {
-                    if (questionData.replyType === 'numeric' && typeof qaComponent.value === 'number') {
-                        // For numeric inputs, the score might be the value itself
-                        if (questionData.scoreMode?.toLowerCase() !== 'custom') {
-                            this.resultingTotalScore += qaComponent.value as number;
-                        }
-                    } else if (questionData.replies && (questionData.replyType.includes('buttons') || questionData.replyType.includes('radioButtons'))) {
-                        const selectedReplies = qaComponent.value.toString().split('^');
-                        selectedReplies.forEach(selectedReply => {
-                            const index = questionData.replies!.indexOf(selectedReply);
-                            if (index !== -1) {
-                                let scoreValue: number = 0;
-                                if (questionData.scoreMode?.toLowerCase() === "0indexed") {
-                                    scoreValue = index;
-                                } else if (questionData.scoreMode?.toLowerCase() === "1indexed") {
-                                    scoreValue = index + 1;
-                                } else if (questionData.scoreMode?.toLowerCase() === "custom" && questionData.repliesCustomScore) {
-                                    scoreValue = questionData.repliesCustomScore[index] || 0;
-                                }
-                                this.resultingTotalScore += scoreValue;
-                            } else if (questionData.noneButtonLabel && selectedReply === questionData.noneButtonLabel) {
-                                // If "None" is selected, and it's a scoring item, its score is usually 0.
-                                this.resultingTotalScore += 0;
-                            }
-                        });
+        /*
+        if (this.scoring) {
+            this.resultingTotalScore = 0;
+            questions.forEach(qSection => {
+                const qaComponent : QuestionAnswerComponent | null = qSection.querySelector<QuestionAnswerComponent>('question-answer-component');
+                if (!qaComponent || !qaComponent.value) return;
+                const questionData = qaComponent.questionData; // Access the original TQuestion data
+                if (!questionData) return;
+                const replyType = (questionData.replyType || '').toLowerCase();
+                const scoreMode = (questionData.scoreMode || '').toLowerCase();
+
+                if (replyType === 'numeric' && typeof qaComponent.value === 'number') {
+                    // For numeric inputs, the score might be the value itself
+                    if (scoreMode !== 'custom') {
+                        this.resultingTotalScore += qaComponent.value as number;
                     }
+                } else if (questionData.replies && replyType.includes('buttons')) {
+                    const selectedReplies = qaComponent.value.toString().split('^');
+                    selectedReplies.forEach( (selectedReply : string) : void => {
+                        const index = questionData.replies!.indexOf(selectedReply);
+                        if (index !== -1) {
+                            let scoreValue: number = 0;
+                            if (scoreMode === "0indexed") {
+                                scoreValue = index;
+                            } else if (scoreMode === "1indexed") {
+                                scoreValue = index + 1;
+                            } else if (scoreMode === "custom" && questionData.repliesCustomScore) {
+                                scoreValue = questionData.repliesCustomScore[index] || 0;
+                            }
+                            this.resultingTotalScore += scoreValue;
+                        } else if (questionData.noneButtonLabel && selectedReply === questionData.noneButtonLabel) {
+                            // If "None" is selected, and it's a scoring item, its score is usually 0.
+                            this.resultingTotalScore += 0;
+                        }
+                    });
                 }
             });
         }
+        */
 
         const unansweredCount = totalQuestions - answeredCount;
 

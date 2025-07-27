@@ -26,7 +26,7 @@ export default class TRosUpdateAppView extends TQuestionnaireAppView {
 
         let testQuestGroup : TQuestionGroup = {
             groupHeadingText : 'Review of Systems',
-            question : [
+            questionDefinition : [
                 {
                     dataNamespace    : 'constitutional',
                     replyType    : 'noneOrButtons',

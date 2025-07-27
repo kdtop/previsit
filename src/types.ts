@@ -105,7 +105,8 @@ export interface TQuestionnaireData {
 // Define the main interface for the JSON structure
 export interface TQuestionGroup {
   groupHeadingText: string;
-  question: TQuestion[];
+  questionDefinition: TQuestion[];
+  questionInstance ?: HTMLElement[];  //will really hold QuestionAnswerComponent (extended from HTMlElement. )
 }
 // Define the interface for a single question object
 export interface TQuestion {

@@ -26,7 +26,7 @@ export default class TAwvQuestionnaireAppView extends TQuestionnaireAppView {
 
         let num1QuestGroup : TQuestionGroup = {
             groupHeadingText : 'Physical Activity',
-            question : [
+            questionDefinition : [
                 {
                     dataNamespace    : 'pa1',
                     questionText : 'Do you exercise regularly?',
@@ -39,7 +39,7 @@ export default class TAwvQuestionnaireAppView extends TQuestionnaireAppView {
 
         let num2QuestGroup : TQuestionGroup = {
             groupHeadingText : 'Tobacco Use',
-            question : [
+            questionDefinition : [
                 {
                     dataNamespace    : 'tobac1',
                     questionText : 'In the last 30 days, have you used tobacco (Smoked)?',
@@ -75,7 +75,7 @@ export default class TAwvQuestionnaireAppView extends TQuestionnaireAppView {
         }
         let num3QuestGroup : TQuestionGroup = {
             groupHeadingText : 'Alcohol Use',
-            question : [
+            questionDefinition : [
                 {
                     dataNamespace    : 'alcohol1',
                     questionText : 'In the past 7 days, on how many days did you drink alcohol?',
@@ -104,7 +104,7 @@ export default class TAwvQuestionnaireAppView extends TQuestionnaireAppView {
         }
         let num4QuestGroup : TQuestionGroup = {
             groupHeadingText : 'Seat Belt Use',
-            question : [
+            questionDefinition : [
                 {
                     dataNamespace    : 'seatBelt1',
                     questionText : 'Do you always fasten your seat belt when you are in a car?',
@@ -115,7 +115,7 @@ export default class TAwvQuestionnaireAppView extends TQuestionnaireAppView {
         }
         let num5QuestGroup : TQuestionGroup = {
             groupHeadingText : 'Activities of Daily Living',
-            question : [
+            questionDefinition : [
                 {
                     dataNamespace    : 'adl1',
                     questionText : 'In the past 7 days, did you need help from others to perform everyday activities such as eating, getting dressed, grooming, bathing, walking, or using the toilet?',
@@ -128,7 +128,7 @@ export default class TAwvQuestionnaireAppView extends TQuestionnaireAppView {
         }
         let num6QuestGroup : TQuestionGroup = {
             groupHeadingText : 'Instrumental Activities of Daily Living',
-            question : [
+            questionDefinition : [
                 {
                     dataNamespace    : 'iadl1',
                     questionText : 'In the past 7 days, did you need help from others to take care of things such as laundry and housekeeping, banking, shopping, using the telephone, food preparation, transportation, or taking your own medications?',
@@ -141,7 +141,7 @@ export default class TAwvQuestionnaireAppView extends TQuestionnaireAppView {
         }
         let num7QuestGroup : TQuestionGroup = {
             groupHeadingText : 'Sleep',
-            question : [
+            questionDefinition : [
                 {
                     dataNamespace    : 'sleep1',
                     questionText : 'Each night, how many hours of sleep do you usually get?',
@@ -169,7 +169,7 @@ export default class TAwvQuestionnaireAppView extends TQuestionnaireAppView {
         }
         let num8QuestGroup : TQuestionGroup = {
             groupHeadingText : 'Fall Risk',
-            question : [
+            questionDefinition : [
                 {
                     dataNamespace    : 'fallRisk1',
                     questionText : 'Have you had any falls in the past year?',
@@ -219,7 +219,7 @@ export default class TAwvQuestionnaireAppView extends TQuestionnaireAppView {
         }
         let num9QuestGroup : TQuestionGroup = {
             groupHeadingText : 'Hearing',
-            question : [
+            questionDefinition : [
                 {
                     dataNamespace    : 'hearing1',
                     questionText : 'Have you noticed any hearing difficulties?',
@@ -233,7 +233,7 @@ export default class TAwvQuestionnaireAppView extends TQuestionnaireAppView {
 
         let num10QuestGroup : TQuestionGroup = {
             groupHeadingText : 'Pain',
-            question : [
+            questionDefinition : [
                 {
                     dataNamespace    : 'pain1',
                     questionText : ' Have you had significant pain in the last week?',

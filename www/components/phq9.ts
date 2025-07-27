@@ -26,67 +26,67 @@ export default class TPhq9UpdateAppView extends TQuestionnaireAppView {
 
         let mainQuestGroup : TQuestionGroup = {
             groupHeadingText : 'Questions',
-            question : [
+            questionDefinition : [
                 {
                     dataNamespace    : 'q1',
                     questionText : 'Little interest or pleasure in doing things',
-                    replyType    : 'noneOrButtons',
+                    replyType    : 'noneOrRadioButtons',
                     scoreMode    :  "1Indexed",
                     replies      : commonAnswers
                 },
                 {
                     dataNamespace    : 'q2',
                     questionText : 'Feeling down, depressed, or hopeless.',
-                    replyType    : 'noneOrButtons',
+                    replyType    : 'noneOrRadioButtons',
                     scoreMode    :  "1Indexed",
                     replies      : commonAnswers
                 },
                 {
                     dataNamespace    : 'q3',
                     questionText : 'Trouble falling or staying asleep, or sleeping too much',
-                    replyType    : 'noneOrButtons',
+                    replyType    : 'noneOrRadioButtons',
                     scoreMode    :  "1Indexed",
                     replies      : commonAnswers
                 },
                 {
                     dataNamespace    : 'q4',
                     questionText : 'Feeling tired or having little energy',
-                    replyType    : 'noneOrButtons',
+                    replyType    : 'noneOrRadioButtons',
                     scoreMode    :  "1Indexed",
                     replies      : commonAnswers
                 },
                 {
                     dataNamespace    : 'q5',
                     questionText : 'Poor appetite or overeating',
-                    replyType    : 'noneOrButtons',
+                    replyType    : 'noneOrRadioButtons',
                     scoreMode    :  "1Indexed",
                     replies      : commonAnswers
                 },
                 {
                     dataNamespace    : 'q6',
                     questionText : 'Feeling bad about yourself - or that you are a failure or have let yourself or your family down',
-                    replyType    : 'noneOrButtons',
+                    replyType    : 'noneOrRadioButtons',
                     scoreMode    :  "1Indexed",
                     replies      : commonAnswers
                 },
                 {
                     dataNamespace    : 'q7',
                     questionText : 'Trouble concentrating on things, such as reading the newspaper or watching television',
-                    replyType    : 'noneOrButtons',
+                    replyType    : 'noneOrRadioButtons',
                     scoreMode    :  "1Indexed",
                     replies      : commonAnswers
                 },
                 {
                     dataNamespace    : 'q8',
                     questionText : 'Moving or speaking so slowly that other people could have noticed? Or the opposite - being so fidgety or restless that you have been moving around a lot more than usual',
-                    replyType    : 'noneOrButtons',
+                    replyType    : 'noneOrRadioButtons',
                     scoreMode    :  "1Indexed",
                     replies      : commonAnswers
                 },
                 {
                     dataNamespace    : 'q9',
                     questionText : 'Thoughts that you would be better off dead, or of hurting yourself in some way',
-                    replyType    : 'noneOrButtons',
+                    replyType    : 'noneOrRadioButtons',
                     scoreMode    :  "1Indexed",
                     replies      : commonAnswers
                 },
@@ -95,11 +95,11 @@ export default class TPhq9UpdateAppView extends TQuestionnaireAppView {
 
         let impactQuestGroup : TQuestionGroup = {
             groupHeadingText : 'Life Impact',
-            question : [
+            questionDefinition : [
                 {
                     dataNamespace    : 'q10',
                     questionText : 'If you checked any problems, how difficult have these problems made it for you to do your work, take care of things at home, or getting along with other people?',
-                    replyType    : 'noneOrButtons',
+                    replyType    : 'noneOrRadioButtons',
                     replies      : ['Somewhat difficult','Very difficult','Extremely difficult']
                 },
             ]

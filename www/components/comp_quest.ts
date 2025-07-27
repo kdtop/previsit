@@ -18,7 +18,6 @@ export interface NoneButtonToggleEventDetail {
 
 export interface QACompOptions {
     id : string; // Assign a unique ID for easy lookup
-    namespace : string; // Store dataNamespace as an attribute
     questionData :  TQuestion; // the question object
     groupIndex : number;
     questionIndex : number;
@@ -54,7 +53,7 @@ export class QuestionAnswerComponent extends HTMLElement {
     static get observedAttributes() {
         return ['value',
                 'details',
-                'disabled'
+                'disabled',
                ];
     }
 
@@ -73,7 +72,7 @@ export class QuestionAnswerComponent extends HTMLElement {
     public scoring : boolean = false;
     public questionData: TQuestion | null = null; // Changed from private to public for external access (e.g., scoring)
 
-    //NOTES ABOUT LOADING....
+    //NOTES ABOUT LOADING....    <----- NOTE: I'm not sure this was implemented....
     //If loading is TRUE,  then only data -> controls (but not controls -> data).
     //If loading is FALSE, then only controls -> data (but not data -> controls)
     //The exception is when changes are made via attributes.  These will always be put into data and controls updated UNLESS attributeChangeFromInternalFlag=true
@@ -87,10 +86,10 @@ export class QuestionAnswerComponent extends HTMLElement {
         if (opts) {
             this.questionData = opts.questionData;
             this.id = opts.id;
-            this.dataset.namespace = opts.namespace;
             this.dataset.groupIndex = opts.groupIndex.toString();
             this.dataset.questionIndex = opts.questionIndex.toString();
         }
+        this.dataset.namespace = opts.questionData.dataNamespace
         this.renderContent();
     }
 
@@ -241,7 +240,6 @@ export class QuestionAnswerComponent extends HTMLElement {
                 <textarea id="constitutional_details" name="constitutional_details" placeholder="Enter details here (optional)..."></textarea>
             </div>
         </div>
-
         */
 
         const qaContainer = document.createElement('div');
@@ -315,8 +313,9 @@ export class QuestionAnswerComponent extends HTMLElement {
                     }
                     aReplyToggleButton.unitScore = scoreValue;
                     aReplyToggleButton.classList.add('scoring-item');
+                } else {
+                    aReplyToggleButton.unitScore = 0;
                 }
-
                 li.appendChild(aReplyToggleButton);
                 replyULContainer.appendChild(li);
             });
@@ -935,6 +934,13 @@ export class QuestionAnswerComponent extends HTMLElement {
         this._operationDataFlowMode = savedMode;
     }
 
+    public getUnitScore() : number {
+        let result : number = 0;
+        this.toggleButtons.forEach( (aToggleButton : ReplyToggleButton) : void => {
+            if (aToggleButton.checked) result += (aToggleButton?.unitScore || 0);
+        });
+        return result;
+    }
 
     public getValues() : QuestionResults
     {

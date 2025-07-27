@@ -20,7 +20,7 @@ export class QuestionAnswerComponent extends HTMLElement {
     static get observedAttributes() {
         return ['value',
             'details',
-            'disabled'
+            'disabled',
         ];
     }
     dom;
@@ -36,7 +36,7 @@ export class QuestionAnswerComponent extends HTMLElement {
     sectionContainer = null;
     scoring = false;
     questionData = null; // Changed from private to public for external access (e.g., scoring)
-    //NOTES ABOUT LOADING....
+    //NOTES ABOUT LOADING....    <----- NOTE: I'm not sure this was implemented....
     //If loading is TRUE,  then only data -> controls (but not controls -> data).
     //If loading is FALSE, then only controls -> data (but not data -> controls)
     //The exception is when changes are made via attributes.  These will always be put into data and controls updated UNLESS attributeChangeFromInternalFlag=true
@@ -49,10 +49,10 @@ export class QuestionAnswerComponent extends HTMLElement {
         if (opts) {
             this.questionData = opts.questionData;
             this.id = opts.id;
-            this.dataset.namespace = opts.namespace;
             this.dataset.groupIndex = opts.groupIndex.toString();
             this.dataset.questionIndex = opts.questionIndex.toString();
         }
+        this.dataset.namespace = opts.questionData.dataNamespace;
         this.renderContent();
     }
     get loading() {
@@ -183,7 +183,6 @@ export class QuestionAnswerComponent extends HTMLElement {
                 <textarea id="constitutional_details" name="constitutional_details" placeholder="Enter details here (optional)..."></textarea>
             </div>
         </div>
-
         */
         const qaContainer = document.createElement('div');
         this.dom.appendChild(qaContainer);
@@ -249,6 +248,9 @@ export class QuestionAnswerComponent extends HTMLElement {
                     }
                     aReplyToggleButton.unitScore = scoreValue;
                     aReplyToggleButton.classList.add('scoring-item');
+                }
+                else {
+                    aReplyToggleButton.unitScore = 0;
                 }
                 li.appendChild(aReplyToggleButton);
                 replyULContainer.appendChild(li);
@@ -861,6 +863,14 @@ export class QuestionAnswerComponent extends HTMLElement {
         }
         this.setDisabledState(val);
         this._operationDataFlowMode = savedMode;
+    }
+    getUnitScore() {
+        let result = 0;
+        this.toggleButtons.forEach((aToggleButton) => {
+            if (aToggleButton.checked)
+                result += (aToggleButton?.unitScore || 0);
+        });
+        return result;
     }
     getValues() {
         //should be already updated via event handlers --> this.updateValuesFromComponents();
