@@ -35,6 +35,7 @@ export default class TAppView<TServerData = any> {
     }; // Initialize progressData to an empty object
     public autosaveTimer: number | null = null;
     public formAutoSaves : boolean = true;
+    public needPrepopulateWithEachShow : boolean = false;
 
     apiURL: string = '/invalid'; // Default API URL, will be set in the constructor
 
@@ -247,6 +248,8 @@ export default class TAppView<TServerData = any> {
     public async refresh() : Promise<void> {
         if (!this.htmlEl) {
             await this.loadForm();
+            await this.prePopulateFromServer(); //evokes call to serverDataToForm()
+        } else if (this.needPrepopulateWithEachShow) {
             await this.prePopulateFromServer(); //evokes call to serverDataToForm()
         }
         this.updatePageState(); //Set the initial state of the form (and done button) after the form is rendered

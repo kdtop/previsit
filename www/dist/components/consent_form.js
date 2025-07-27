@@ -6,6 +6,7 @@ import TAppView from './appview.js';
 export default class TPatientConsentFormAppView extends TAppView {
     constructor(aCtrl, opts) {
         super('patient_consent_form', '/api/patient_consent', aCtrl); // Unique ID, API URL, controller
+        this.needPrepopulateWithEachShow = true;
     }
     getCSSContent() {
         let result = super.getCSSContent() +

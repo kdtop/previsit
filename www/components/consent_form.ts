@@ -28,6 +28,7 @@ export default class TPatientConsentFormAppView extends TAppView<ConsentFormData
 
     constructor(aCtrl: TCtrl, opts?: any) {
         super('patient_consent_form', '/api/patient_consent', aCtrl); // Unique ID, API URL, controller
+        this.needPrepopulateWithEachShow = true;
     }
 
     public getCSSContent() : string

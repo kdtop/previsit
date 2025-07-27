@@ -12,6 +12,60 @@ CONTENTS:
 
 import * as SignaturePadModule from 'signature_pad';
 
+// Hard-coded SVG icons
+const svgIcons: Record<string, string> = {
+    "SignatureIcon": `
+        <?xml version="1.0" encoding="utf-8"?>
+            <!-- Uploaded to: SVG Repo, www.svgrepo.com, Generator: SVG Repo Mixer Tools -->
+            <svg
+                width="800px"
+                height="800px"
+                viewBox="0 0 24 24"
+                fill="none"
+                xmlns="http://www.w3.org/2000/svg">
+            <path
+                d="M7 7.64848C8 5.40663 10.5 4.2217 12 7.64844C12.3571 8.46415 12.5547 9.27985 12.6158 10.0793M12.6158 10.0793C12.897 13.7579 10.2859 17.0925 7 18.5V14.4233C7 13.6278 7 13.23 7.12969 12.8876C7.24426 12.5852 7.43048 12.315 7.67238 12.1003C7.94619 11.8573 8.3179 11.7158 9.06133 11.4327L12.6158 10.0793ZM12.6158 10.0793L16 8.79077L15.5 12.2176H18M21 16H15M4 16H3"
+                stroke="#000000"
+                stroke-width="2"
+                stroke-linecap="round"
+                stroke-linejoin="round"/>
+        </svg>
+    `,
+    "SignatureCancelIcon": `
+        <?xml version="1.0" encoding="UTF-8" standalone="no"?>
+        <svg
+           width="800px"
+           height="800px"
+           viewBox="0 0 24 24"
+           version="1.1"
+           xmlns="http://www.w3.org/2000/svg">
+          <path
+             d="M7 7.64848C8 5.40663 10.5 4.2217 12 7.64844C12.3571 8.46415 12.5547 9.27985 12.6158 10.0793M12.6158 10.0793C12.897 13.7579 10.2859 17.0925 7 18.5V14.4233C7 13.6278 7 13.23 7.12969 12.8876C7.24426 12.5852 7.43048 12.315 7.67238 12.1003C7.94619 11.8573 8.3179 11.7158 9.06133 11.4327L12.6158 10.0793ZM12.6158 10.0793L16 8.79077L15.5 12.2176H18M21 16H15M4 16H3"
+             stroke="#000000"
+             stroke-width="2"
+             stroke-linecap="round"
+             stroke-linejoin="round"
+             fill="none"  id="path10" />
+          <ellipse
+             style="fill:none;stroke:#d70000;stroke-width:1.99516;"
+             id="path846"
+             cx="11.983898"
+             cy="12.338481"
+             rx="10.750201"
+             ry="10.332856" />
+          <path
+             style="fill:none;stroke:#d70000;stroke-width:2.1;stroke-linecap:butt;stroke-linejoin:miter;"
+             d="M 19.560628,4.8625463 4.3940324,20.029142"
+             id="path866" />
+        </svg>
+    `,
+    // Add more icons here as needed
+    // "anotherIcon": `<svg>...</svg>`
+    //Looke here: https://healthicons.org/ or here https://www.svgrepo.com/vectors/medical/ or here https://www.reshot.com/free-svg-icons/medical/
+};
+
+
+
 /**
  * Options for the SignaturePadComponent constructor.
  */
@@ -77,13 +131,82 @@ export class SignaturePadComponent extends HTMLElement {
                     border: 2px solid #ddd;
                     border-radius: 6px;
                     background-color: #fff;
-                    touch-action: none; /* Crucial for touch devices to prevent scrolling/zooming */
-                    /*  width: ${canvasWidth};  Make canvas responsive */
+                    touch-action: none;
                     width: 500px;
                     height: 100px;
-                    /*  height: ${canvasHeight};  Fixed height for signature area */
-                    display: block; /* Remove extra space below canvas */
-                    margin: 0 auto; /* Center the canvas */
+                    display: block;
+                    margin: 0 auto;
+                }
+                .signature-buttons {
+                    margin-top: 15px;
+                    display: flex;
+                    justify-content: center;
+                    gap: 15px;
+                }
+                .signature-buttons button {
+                    padding: 10px 25px;
+                    font-size: 1em;
+                    border: none;
+                    border-radius: 5px;
+                    cursor: pointer;
+                    transition: background-color 0.2s ease, transform 0.1s ease;
+                    display: flex; /* Added for icon alignment */
+                    align-items: center; /* Added for icon alignment */
+                    gap: 8px; /* Space between icon and text */
+                }
+                .signature-buttons button svg { /* Style for the SVG icon */
+                    height: 2em; /* Adjust size as needed, relative to font-size */
+                    width: 2em;
+                    fill: currentColor; /* Inherit button text color */
+                }
+                .signature-buttons button:hover {
+                    transform: translateY(-1px);
+                }
+                .signature-buttons .clear-btn {
+                    background-color: #3498db;
+                    color: white;
+                }
+                .signature-buttons .clear-btn:hover {
+                    background-color: #2980b9;
+                }
+                .hidden {
+                    display: none;
+                }
+
+            </style>
+            <div class="signature-area-wrapper">
+                <canvas id="signature-canvas"></canvas>
+                <div class="signature-buttons">
+                    <button type="button" class="clear-btn hidden">
+                        ${svgIcons["SignatureCancelIcon"]} Clear Signature
+                    </button>
+                </div>
+            </div>
+        `;
+
+        this.signatureCanvas = this.dom.querySelector<HTMLCanvasElement>('#signature-canvas');
+        this.clearSignatureBtn = this.dom.querySelector<HTMLButtonElement>('.clear-btn');
+    }
+
+    /*
+    private render(options: SignaturePadOptions): void {
+        const canvasWidth = options.width || this.getAttribute('width') || '100%';
+        const canvasHeight = options.height || this.getAttribute('height') || '200px';
+
+        this.dom.innerHTML = `
+            <style>
+                .signature-area-wrapper {
+                    text-align: center;
+                }
+                canvas {
+                    border: 2px solid #ddd;
+                    border-radius: 6px;
+                    background-color: #fff;
+                    touch-action: none;
+                    width: 500px;
+                    height: 100px;
+                    display: block;
+                    margin: 0 auto;
                 }
                 .signature-buttons {
                     margin-top: 15px;
@@ -103,7 +226,7 @@ export class SignaturePadComponent extends HTMLElement {
                     transform: translateY(-1px);
                 }
                 .signature-buttons .clear-btn {
-                    background-color: #3498db; /* Blue */
+                    background-color: #3498db;
                     color: white;
                 }
                 .signature-buttons .clear-btn:hover {
@@ -125,6 +248,7 @@ export class SignaturePadComponent extends HTMLElement {
         this.signatureCanvas = this.dom.querySelector<HTMLCanvasElement>('#signature-canvas');
         this.clearSignatureBtn = this.dom.querySelector<HTMLButtonElement>('.clear-btn');
     }
+    */
 
     private initializeSignaturePad(options: SignaturePadOptions): void {
         if (this.signatureCanvas) {
