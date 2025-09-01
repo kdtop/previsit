@@ -182,9 +182,12 @@ export default class TSigFormAppView extends TAppView {
         this.progressData.unansweredItems = totalQuestions - answeredCount;
         this.progressData.progressPercentage = totalQuestions > 0 ? Math.round((answeredCount / totalQuestions) * 100) : 0;
     };
-    updatePageState() {
+    /*
+    public updatePageState(): void
+    {
         super.updatePageState(); //will effect call to this.updateProgressState() and this.updateDoneButtonState
     }
+    */
     updateDoneButtonState() {
         //NOTE: this overrides ancestor method.
         this.updateProgressState(); //updates this.progressData

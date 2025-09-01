@@ -213,10 +213,12 @@ export default class TSigFormAppView extends TAppView<SigFormData> {
         this.progressData.progressPercentage = totalQuestions > 0 ? Math.round((answeredCount / totalQuestions) * 100) : 0;
     }
 
+    /*
     public updatePageState(): void
     {
         super.updatePageState(); //will effect call to this.updateProgressState() and this.updateDoneButtonState
     }
+    */
 
     public updateDoneButtonState(): void
     {

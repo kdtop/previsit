@@ -8,7 +8,7 @@ import { KeyToStrBoolValueObj, TQuestion, TQuestionGroup, TQuestionnaireData,
 import { TCtrl } from '../utility/controller.js';
 
 import { QuestionAnswerComponent, QuestionAnswerChangeEventDetail, NoneButtonToggleEventDetail, QACompOptions } from './comp_quest.js'; // NEW: Import QuestionAnswerComponent
-import { piece } from '../utility/client_utils.js';
+import { piece, debounce } from '../utility/client_utils.js';
 import { argv } from 'process';
 
 interface questionnaireUpdateOptions {
@@ -51,141 +51,117 @@ export default class TQuestionnaireAppView extends TAppView<KeyToStrBoolValueObj
         `
             <style>
                 .content-container {
-                  line-height: 1.6;
-                  padding: 0 100px;
-                  background-color: #ffffff;
-                  color:rgb(43, 42, 42);
-                }
-
-                xh2 {
-                  color: #2c3e50;
-                  border-bottom: 2px solid #3498db;
-                  padding-bottom: 5px;
-                  margin-top: 30px;
-                  margin-bottom: 15px;
-                }
-                xul {
-                  list-style: none;
-                  padding: 0;
-                  margin-bottom: 20px;
-                  display: flex;
-                  flex-wrap: wrap;
-                  gap: 10px;
-                }
-                xli {
-                  margin-bottom: 0;
+                  line-height:      1.6;
+                  padding:          0 100px;
+                  background-color: var(--whiteColor);
+                  color:            var(--grayBlue);
                 }
 
                 /* --- Details Textarea Styling (General) --- */
                 .details-input-group {
                   /* This general style applies to sections where NONE is not used this way */
-                  margin-top: 15px;
-                  margin-bottom: 25px;
+                  margin-top:       15px;
+                  margin-bottom:    25px;
                 }
 
                 .details-input-group label {
-                  display: block;
-                  margin-bottom: 5px;
-                  font-weight: bold;
-                  color: #444;
+                  display:          block;
+                  margin-bottom:    5px;
+                  font-weight:      bold;
+                  color:            var(--grayBlue);
                 }
 
                 .details-input-group textarea {
-                  width: 100%;
-                  min-height: 50px;
-                  padding: 8px 10px;
-                  border: 1px solid #ccc;
-                  border-radius: 4px;
-                  font-size: 1em;
-                  box-sizing: border-box;
-                  resize: none;
+                  width:            100%;
+                  min-height:       50px;
+                  padding:          8px 10px;
+                  border:           1px solid var(--lightGray);
+                  border-radius:    4px;
+                  font-size:        1em;
+                  box-sizing:       border-box;
+                  resize:           none;
                 }
 
                 .question-group {
-                  margin-bottom: 25px; /* Space between each question group */
-                  padding-bottom: 25px;
-                  border-bottom: solid 2px #ececec;
+                  margin-bottom:    25px; /* Space between each question group */
+                  padding-bottom:   25px;
+                  border-bottom:    solid 2px var(--lightLightGray);
                 }
 
                 .main-question-label { /* Style for the main question label */
-                  display: block; /* Ensures it's on its own line */
-                  margin-bottom: 10px; /* Space below the main question */
-                  font-weight: bold; /* Make the main question prominent */
-                  font-size: large;
-                  color: #333;
+                  display:          block; /* Ensures it's on its own line */
+                  margin-bottom:    10px; /* Space below the main question */
+                  font-weight:      bold; /* Make the main question prominent */
+                  font-size:        large;
+                  color:            var(--grayBlue);
                 }
 
                 .details-options-row { /* This might be less relevant if comp_quest handles it */
-                  display: flex; /* Use flexbox to align 'NONE' and 'Details:' side-by-side */
-                  align-items: center; /* Vertically align items */
-                  gap: 15px; /* Space between 'NONE' and 'Details:' */
-                  margin-bottom: 10px; /* Space above textarea */
+                  display:          flex; /* Use flexbox to align 'NONE' and 'Details:' side-by-side */
+                  align-items:      center; /* Vertically align items */
+                  gap:              15px; /* Space between 'NONE' and 'Details:' */
+                  margin-bottom:    10px; /* Space above textarea */
                 }
 
                 .details-label { /* Style for the 'Details:' label in this specific context */
-                  font-weight: bold;
-                  color: #444;
-                  white-space: nowrap; /* Prevent 'Details:' from wrapping */
+                  font-weight:      bold;
+                  color:            var(--grayBlue);
+                  white-space:      nowrap; /* Prevent 'Details:' from wrapping */
                 }
 
                 .details-textarea-container {
-                  margin-top: 5px; /* Space below the details/none row */
+                  margin-top:       5px; /* Space below the details/none row */
                 }
 
                 .details-textarea-container textarea {
-                  width: 100%;
-                  min-height: 30px;
-                  padding: 8px 10px;
-                  border: 1px solid #ccc;
-                  border-radius: 4px;
-                  font-size: 1em;
-                  box-sizing: border-box;
-                  resize: none;
+                  width:            100%;
+                  min-height:       30px;
+                  padding:          8px 10px;
+                  border:           1px solid #ccc;
+                  border-radius:    4px;
+                  font-size:        1em;
+                  box-sizing:       border-box;
+                  resize:           none;
                 }
 
                 .button-container {
-                    display : flex;
-                    flex-wrap : wrap;
-                    gap : 10px;
-                    align-items : center;
-                    margin-bottom : 20px; /* Maintain spacing from the details box */
+                  display :         flex;
+                  flex-wrap :       wrap;
+                  gap :             10px;
+                  align-items :     center;
+                  margin-bottom :   20px; /* Maintain spacing from the details box */
                 }
 
                 .free-text-input, .numeric-input { /* These styles should be moved to comp_quest.ts if internal to component */
-                  width: 100%;
-                  padding: 8px 10px;
-                  border: 1px solid #ccc;
-                  border-radius: 4px;
-                  font-size: 1em;
-                  box-sizing: border-box;
-                  margin-top: 10px; /* For spacing */
+                  width:            100%;
+                  padding:          8px 10px;
+                  border:           1px solid var(--gray);
+                  border-radius:    4px;
+                  font-size:        1em;
+                  box-sizing:       border-box;
+                  margin-top:       10px; /* For spacing */
                 }
 
                 .numeric-input { /* This style should be moved to comp_quest.ts if internal to component */
-                    height: 30px;
-                    width: 150px;
-                    border-radius: 12px;
-                    text-align: center;
+                    height:         30px;
+                    width:          150px;
+                    border-radius:  12px;
+                    text-align:     center;
                 }
 
-                .numeric-input-has-value { /* This style should be moved to comp_quest.ts if internal to component */
-                    background-color: #3498db;
+                .numeric-input-has-value {
+                    background-color: var(--niceBlue);
                 }
-
-                .hidden {
-                    display: none !important;
-                }
-
 
                 /* Responsive adjustments */
                 @media (max-width: 768px) {
                   ul {
-                    gap: 8px;
+                    gap:            8px;
                   }
                   .details-options-row {
                     flex-direction: column; /* Stack 'NONE' and 'Details:' vertically on small screens */
-                    align-items: flex-start;
-                    gap: 5px;
+                    align-items:    flex-start;
+                    gap:            5px;
                   }
                 }
             </style>
@@ -207,8 +183,16 @@ export default class TQuestionnaireAppView extends TAppView<KeyToStrBoolValueObj
                 <div class="result-container"></div>
                 <div class="submission-controls">
                     <button type="button" class="done-button">
-                        <span class="done-button-main-text"></span>
-                        <span class="done-button-sub-text" style="font-size: 0.8em; opacity: 0.9;"></span>
+                        <!-- Icon on the left -->
+                        <span class="done-button-icon-area">
+                            ${this.getDoneIncompleteSVGIcon()}
+                            ${this.getDoneCompleteSVGIcon()}
+                        </span>
+                        <!-- Text container -->
+                        <span class="done-button-text">
+                          <span class="done-button-main-text">Main Text</span>
+                          <span class="done-button-sub-text">Sub Text</span>
+                        </span>
                     </button>
                 </div>
             </form>
@@ -410,46 +394,6 @@ export default class TQuestionnaireAppView extends TAppView<KeyToStrBoolValueObj
             });
         }
 
-        /*
-        if (this.scoring) {
-            this.resultingTotalScore = 0;
-            questions.forEach(qSection => {
-                const qaComponent : QuestionAnswerComponent | null = qSection.querySelector<QuestionAnswerComponent>('question-answer-component');
-                if (!qaComponent || !qaComponent.value) return;
-                const questionData = qaComponent.questionData; // Access the original TQuestion data
-                if (!questionData) return;
-                const replyType = (questionData.replyType || '').toLowerCase();
-                const scoreMode = (questionData.scoreMode || '').toLowerCase();
-
-                if (replyType === 'numeric' && typeof qaComponent.value === 'number') {
-                    // For numeric inputs, the score might be the value itself
-                    if (scoreMode !== 'custom') {
-                        this.resultingTotalScore += qaComponent.value as number;
-                    }
-                } else if (questionData.replies && replyType.includes('buttons')) {
-                    const selectedReplies = qaComponent.value.toString().split('^');
-                    selectedReplies.forEach( (selectedReply : string) : void => {
-                        const index = questionData.replies!.indexOf(selectedReply);
-                        if (index !== -1) {
-                            let scoreValue: number = 0;
-                            if (scoreMode === "0indexed") {
-                                scoreValue = index;
-                            } else if (scoreMode === "1indexed") {
-                                scoreValue = index + 1;
-                            } else if (scoreMode === "custom" && questionData.repliesCustomScore) {
-                                scoreValue = questionData.repliesCustomScore[index] || 0;
-                            }
-                            this.resultingTotalScore += scoreValue;
-                        } else if (questionData.noneButtonLabel && selectedReply === questionData.noneButtonLabel) {
-                            // If "None" is selected, and it's a scoring item, its score is usually 0.
-                            this.resultingTotalScore += 0;
-                        }
-                    });
-                }
-            });
-        }
-        */
-
         const unansweredCount = totalQuestions - answeredCount;
 
         // Update progress data
@@ -562,33 +506,5 @@ export default class TQuestionnaireAppView extends TAppView<KeyToStrBoolValueObj
         h.textContent = text;
         return h;
     }
-
-    /**
-     * Creates a details box (label + textarea) for the given prefix and label text.
-     */
-    /*
-    createDetailsBox(prefix: string, labelText: string): HTMLDivElement {
-        const div = document.createElement('div');
-        div.className = 'details-input-group';
-        const name = `${prefix}_details`;
-        let label : HTMLLabelElement | null = null;
-        let hasLabel = (labelText && labelText.trim() !== '');
-        if (hasLabel)  {
-            label = document.createElement('label');
-            label.htmlFor = name;
-            label.textContent = labelText;
-        }
-        const textarea = document.createElement('textarea');
-        textarea.id = name;
-        textarea.name = name;
-        textarea.placeholder = 'Enter details here (optional)...';
-        if (hasLabel && label) {
-            div.append(label, textarea);
-        } else {
-            div.append(textarea);
-        }
-        return div;
-    }
-    */
 
 } //class

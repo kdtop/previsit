@@ -72,8 +72,19 @@ async function hndlLogin(req, res) {
         const rpcResult = await tmg.RPC(tag, rtn, [lastName, firstName, dob, err]);
         if (rpcErrorCheckOK(rpcResult, res, errIndex, tag, rtn)) {
             const sessionID = piece(rpcResult.return, '^', 2);
+            //NOTE: If user entered an incomplete last name, or an alias name, it might still be sufficient for finding unique patient
+            //      So the RPC will pass back name and DOB as found on server.
+            const fullName = piece(rpcResult.return, '^', 3);
+            const lastName = piece(fullName, ',', 1);
+            const firstName = piece(fullName, ',', 2);
+            const aDOB = piece(rpcResult.return, '^', 4); //string external form of date.
+            //json below should match LoginApiResponse
             res.json({ success: true,
+                lastName: piece(fullName, ",", 1),
+                firstName: piece(fullName, ",", 2), //may also include middle name or middle initial, e.g. 'BEATRICE L'
                 message: 'Authentication successful.',
+                fullName: firstName + ' ' + lastName,
+                dob: aDOB,
                 sessionID: sessionID
             });
         }
@@ -248,12 +259,9 @@ async function hndlSaveRosUpdateData(req, res) {
 }
 //====================================================================================================
 //====================================================================================================
-/*
- Handle request for Medication Review data
- GET
-*/
-async function hndlGetMedReviewData(req, res) {
-    //console.log("Received request for Medication Review data.", req.query);
+async function hndlGetMedReviewDataCommon(req, res, mode = 0) {
+    //This is A UNIFIED FUNCTION for OTC and/or regular Rx
+    //console.log("Received request for Medication/OTC-Rx Review data.", req.query);
     if (!rpcPrecheckOK(req, res))
         return; //res output object will have already been set in rpcPrecheckOK
     try {
@@ -264,7 +272,7 @@ async function hndlGetMedReviewData(req, res) {
         let errIndex = 3; // Output parameter for errors from Mumps
         let tag = "GETMEDS";
         let rtn = "TMGPRE01";
-        const rpcResult = await tmg.RPC(tag, rtn, [outData, outProgress, sessionID, err]);
+        const rpcResult = await tmg.RPC(tag, rtn, [outData, outProgress, sessionID, err, mode]);
         if (rpcErrorCheckOK(rpcResult, res, errIndex, tag, rtn)) {
             res.json({ success: true,
                 data: rpcResult.args[0], //type: UserMedAnswersArray
@@ -278,12 +286,8 @@ async function hndlGetMedReviewData(req, res) {
         res.status(500).json({ success: false, data: {}, message: `Internal server error: ${errorMessage}` });
     }
 }
-//----------------------------------------------------------------------------------------------------
-/*
- Handle saving of Medication Review data
- POST
-*/
-async function hndlSaveMedReviewData(req, res) {
+async function hndlSaveMedReviewDataCommon(req, res, mode = 0) {
+    //This is A UNIFIED FUNCTION for OTC and/or regular Rx
     //console.log("Received request to save Medication Review data.", req.body)
     if (!rpcPrecheckOK(req, res))
         return; //res output object will have already been set in rpcPrecheckOK
@@ -295,7 +299,7 @@ async function hndlSaveMedReviewData(req, res) {
         let errIndex = 3; // Output parameter for errors from Mumps
         let tag = "SAVEMEDS";
         let rtn = "TMGPRE01";
-        const rpcResult = await tmg.RPC(tag, rtn, [sessionID, data, progress, err]);
+        const rpcResult = await tmg.RPC(tag, rtn, [sessionID, data, progress, err, mode]);
         if (rpcErrorCheckOK(rpcResult, res, errIndex, tag, rtn)) {
             res.status(200).json({ success: true,
                 message: 'Medication Review data saved successfully.'
@@ -307,6 +311,40 @@ async function hndlSaveMedReviewData(req, res) {
         const errorMessage = error instanceof Error ? error.message : 'Unknown error';
         res.status(500).json({ success: false, message: `Internal server error: ${errorMessage}` });
     }
+}
+//====================================================================================================
+//====================================================================================================
+/*
+ Handle request for Medication (and/or OTC Rx) Review data
+ GET
+*/
+async function hndlGetMedReviewData(req, res) {
+    await hndlGetMedReviewDataCommon(req, res, 1); //1 is mode, meaning Rx only (no OTC)
+}
+//----------------------------------------------------------------------------------------------------
+/*
+ Handle saving of Medication Review data
+ POST
+*/
+async function hndlSaveMedReviewData(req, res) {
+    await hndlSaveMedReviewDataCommon(req, res, 1); //1 is mode, meaning Rx only (no OTC)
+}
+//====================================================================================================
+//====================================================================================================
+/*
+ Handle request for OTC Medication Review data
+ GET
+*/
+async function hndlGetOTCMedReviewData(req, res) {
+    await hndlGetMedReviewDataCommon(req, res, 2); //2 is mode, meaning OTC only (no regular Rxs)
+}
+//----------------------------------------------------------------------------------------------------
+/*
+ Handle saving of OTC Medication Review data
+ POST
+*/
+async function hndlSaveOTCMedReviewData(req, res) {
+    await hndlSaveMedReviewDataCommon(req, res, 2); //2 is mode, meaning OTC only (no regular Rxs)
 }
 //====================================================================================================
 //====================================================================================================
@@ -612,6 +650,8 @@ try {
     app.post('/api/rosupdate', hndlSaveRosUpdateData); // Register handler for saving rosupdate data
     app.get('/api/medication_review', hndlGetMedReviewData); // Register handler for getting medication review data
     app.post('/api/medication_review', hndlSaveMedReviewData); // Register handler for saving medication review data
+    app.get('/api/otc_medication_review', hndlGetOTCMedReviewData); // Register handler for getting OTC medication review data
+    app.post('/api/otc_medication_review', hndlSaveOTCMedReviewData); // Register handler for saving OTC medication review data
     app.get('/api/sig1', hndlGetSig1Data); // Register handler for getting signature
     app.post('/api/sig1', hndlSaveSig1Data); // Register handler for saving signature
     app.get('/api/patient_consent', hndlGetConsentData); // Register handler for getting patient consent form

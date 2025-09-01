@@ -6,6 +6,8 @@ CONTENTS:
 
   export class SignaturePadComponent extends HTMLElement
 
+  NOTE: source of underlying component:  https://github.com/szimek/signature_pad
+
 */
 
 //========================================================

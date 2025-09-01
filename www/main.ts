@@ -21,6 +21,8 @@ import TAwvQuestionnaireAppView
     from './components/awvquestionnaire.js';
 import TMedReviewAppView
     from './components/medication_review.js';
+import TOTCMedReviewAppView
+    from './components/medication_otc_review.js';
 import TSigFormAppView
     from './components/sig_form.js';
 import TPatientConsentFormAppView
@@ -38,15 +40,16 @@ let dB: HTMLBodyElement; // document.body
 let ctrl: TCtrl;
 
 // Instantiate the various app views.
-let dashboardAppView:   TDashboardAppView;
-let loginAppView:       TLoginAppView;
-let hxUpdateAppView:    THxUpdateAppView;
-let rosUpdateAppView:   TRosUpdateAppView;
-let medReviewAppView:   TMedReviewAppView;
-let sigformAppView:     TSigFormAppView;
-let consentformAppView: TPatientConsentFormAppView;
-let phq9UpdateAppView:  TPhq9UpdateAppView;
-let awvQuestAppView:    TAwvQuestionnaireAppView;
+let dashboardAppView:     TDashboardAppView;
+let loginAppView:         TLoginAppView;
+let hxUpdateAppView:      THxUpdateAppView;
+let rosUpdateAppView:     TRosUpdateAppView;
+let medReviewAppView:     TMedReviewAppView;
+let otcMedReviewAppView:  TOTCMedReviewAppView;
+let sigformAppView:       TSigFormAppView;
+let consentformAppView:   TPatientConsentFormAppView;
+let phq9UpdateAppView:    TPhq9UpdateAppView;
+let awvQuestAppView:      TAwvQuestionnaireAppView;
 
 // --------------------------
 // Named functions for core application logic
@@ -89,6 +92,7 @@ async function initializeApp()
     hxUpdateAppView    = new THxUpdateAppView(ctrl);
     rosUpdateAppView   = new TRosUpdateAppView(ctrl);
     medReviewAppView   = new TMedReviewAppView(ctrl);
+    otcMedReviewAppView= new TOTCMedReviewAppView(ctrl);
     sigformAppView     = new TSigFormAppView(ctrl);
     consentformAppView = new TPatientConsentFormAppView(ctrl);
     phq9UpdateAppView  = new TPhq9UpdateAppView(ctrl);

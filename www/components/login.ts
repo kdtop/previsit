@@ -229,7 +229,7 @@ export default class TLoginAppView extends TAppView {   //implements LoginAppVie
 
                        <div class="welcome-container hide-if-not-logged-in">
                             <div id="message">
-                            <h1>Welcome, <span class="welcome-name"></span>!</h1>
+                            <h1>Welcome, <span class="welcome-name"></span></h1>
                             <p>You have successfully logged in.</p>
                             <button id="continue-button">Continue</button>
                             <button id="logout-button">Logout</button>
@@ -254,10 +254,18 @@ export default class TLoginAppView extends TAppView {   //implements LoginAppVie
           return result;
         }
 
+        function capitalizeWords(val: string): string {
+          return val
+            .trim()
+            .toLowerCase()
+            .split(/\s+/) // split on one or more spaces
+            .map(word => word.charAt(0).toUpperCase() + word.slice(1))
+            .join(" ");
+        }
         const formData = new FormData(this.htmlEl.$loginform); //FormData is a built-in DOM function to get data from forms.
         // Use formData.get() to be more explicit and avoid issues with editor tooling.
-        let aLastName =  capitalizeFirstLetter(formData.get('lastName') as string || ''); // Ensure lastName is trimmed and capitalized
-        let aFirstName = capitalizeFirstLetter(formData.get('firstName') as string || ''); // Ensure firstName is trimmed and capitalized
+        let aLastName =  capitalizeWords(formData.get('lastName') as string || ''); // Ensure lastName is trimmed and capitalized
+        let aFirstName = capitalizeWords(formData.get('firstName') as string || ''); // Ensure firstName is trimmed and capitalized
         let aFullName = `${aFirstName} ${aLastName}`;
         let aDOBMonth = formData.get('dobMonth') as string || '';
         let aDOBDay = formData.get('dobDay') as string || '';
@@ -283,12 +291,13 @@ export default class TLoginAppView extends TAppView {   //implements LoginAppVie
         const data: LoginApiResponse = await response.json();
         console.log("Login API Response:", data);
         if (response.ok && data.success) {
-            if (this.htmlEl.$welcomename) this.htmlEl.$welcomename.textContent = reqData.fullName;
-            if (this.htmlEl.$body) this.htmlEl.$body.classList.add('logged-in');
             this.loginData = data;  // Store login data on the component instance
             this.ctrl.loginData = data;
-            this.ctrl.patientFullName = aFullName;
-            this.ctrl.patientDOB = aDOB;
+            this.ctrl.patientFullName = capitalizeWords(data.firstName) + ' ' + capitalizeWords(data.lastName);
+            this.ctrl.patientDOB = data.dob;
+
+            if (this.htmlEl.$welcomename) this.htmlEl.$welcomename.textContent = this.ctrl.patientFullName;
+            if (this.htmlEl.$body) this.htmlEl.$body.classList.add('logged-in');
 
         } else {
             // Handle failed login from server (e.g., bad credentials)

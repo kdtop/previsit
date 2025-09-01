@@ -12,6 +12,10 @@ export interface LoginRequestData {
 export interface LoginApiResponse {
     success: boolean;
     message?: string;
+    lastName: string;
+    firstName: string;  //may also include middle name or middle initial, e.g. 'BEATRICE L'
+    fullName : string;
+    dob : string;
     sessionID?: string;
 }
 
@@ -34,10 +38,13 @@ export interface ChangeViewEventDetail {
 
 export type AreTakingStatus = 'yes' | 'no' | 'sometimes' | 'unknown' | null;
 export type YesNoStatus = 'yes' | 'no' | null;
+export type YesNoUnknownStatus = 'yes' | 'no' | 'unknown' | null;
 export type RefillLocation = 'local' | 'mail' | null;
 
 export interface UserMedicationAnswers {
-    text: string | null; // The original medication name as entered by the user
+    text: string | null; // The original medication name
+    parsed: string | null; // A parsed version of medication, with tags for style.
+    otc : number | null;  //should be 0 for false, or 1 for true
     areTaking: AreTakingStatus; // 'yes', 'no', 'sometimes', 'unknown'
     needsRefill: YesNoStatus; // 'yes', 'no', or null (conditional)
     refillLocation: RefillLocation; // 'local', 'mail' (conditional)
@@ -45,8 +52,20 @@ export interface UserMedicationAnswers {
     isComplete: boolean | null; // Indicates if the medication review is complete
 }
 
-
 export type UserMedAnswersArray = UserMedicationAnswers[];
+
+export interface UserAllergyAnswers {
+    item: string | null; // The Rx or item that causes allergy
+    nkda: boolean | null; // If patient is nkda (no known drug allergies)
+    neverAssessed: boolean | null; // If allergies have never been asked or assessed
+    date: string | null; // The date the allergy was entered or recorded
+    reaction: string | null; // Comments (if any) about the reaction
+    patientResponse: YesNoUnknownStatus; // 'yes', 'no', 'sometimes', 'unknown'
+    comment: string | null; // Any additional comments or notes about the medication
+    isComplete: boolean | null; // Indicates if the allergy review is complete
+}
+
+export type UserAllergyAnswersArray = UserAllergyAnswers[];
 
 export interface ProgressData {
     totalItems?: number;       // Total number of items to be reviewed

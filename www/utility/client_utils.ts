@@ -183,7 +183,7 @@ export function Fragment(opts?: string | AppViewOptions): DocumentFragment {
 }
 
 
-/*
+
 // -- debouncing functionality -----
 
 // 1. Define a type for a generic procedure (a function that returns nothing).
@@ -193,28 +193,30 @@ export type Procedure = (...args: any[]) => void;
 
 // 2. Now, let's redefine the type for the function that will be debounced.
 //    The generic type 'T' must now extend our 'Procedure' type.
-export type DebouncedFunction<T extends Procedure> = T;   //<-- shows that this new type is really the same as T (just with more definition)
+export type DebouncedFunction<T extends Procedure> = T;   //<-- shows that this new type 'T' is really the same as T (just with more definition)
 
 // 3. Define the type for the function that the debounce wrapper will return.
 //    It's a function that takes the exact same arguments as the original
 //    function 'T' and returns nothing.
 export type DebounceWrapper<T extends Procedure> = (...args: Parameters<T>) => void;
 
-
 // 4. Finally, here's the function signature using these more explicit types.
 export function debounce<T extends Procedure>(func: DebouncedFunction<T>, wait: number): DebounceWrapper<T> {
   let timeout: ReturnType<typeof setTimeout> | null = null;
   return function(this: ThisParameterType<T>, ...args: Parameters<T>): void {
     const context : ThisParameterType<T> = this;
+
+    /*
     //-------------------------------------------------------
     //NOTE: If I come back to this, try this code:
     const myCopiedEvent = { ...event }
               // call(...args) --> same as call(args[0], arg[1], args[2])
 
-    function defCall(...args) {   <-- if called like this  defCall(a,b,c,d), then args[0]=a, args[1]=b etc...
+    function defCall(...args) {     //<-- if called like this  defCall(a,b,c,d), then args[0]=a, args[1]=b etc...
        ... ==> args
        args ==> ...
     }
+    */
     //-------------------------------------------------------
 
     // --- ADD THESE DEBUG LOGS ---
@@ -233,7 +235,7 @@ export function debounce<T extends Procedure>(func: DebouncedFunction<T>, wait: 
     }, wait);
   };
 }
-*/
+
 
 // Example debounce usage:
 /*

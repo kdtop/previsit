@@ -9,8 +9,7 @@ import { TCtrl } from '../utility/controller.js';
 import { ChangeViewEventDetail, ProgressData, KeyToStrBoolValueObj,
          EnhancedHTMLDivElement, AppViewOptions
        } from '../utility/types.js';
-import { addShortcuts, properties } from '../utility/client_utils.js';
-
+import { addShortcuts, properties, debounce } from '../utility/client_utils.js';
 
 
 /**
@@ -60,143 +59,218 @@ export default class TAppView<TServerData = any> {
         //this is top level, so no super to call.
         return `
             <style>
+
+                :host {
+                  --medium: 0.8em;
+                  --smaller: 0.6em;
+                  --tiny: 0.4em;
+
+                  --okGreen:             #28a745;
+                  --darkerGreen:         #228b22;
+                  --niceBlue:            #3498db;
+                  --darkerNiceBlue:      #2980b9;
+                  --darkerBlue:          #0505aa;
+                  --grayBlue:            #2c3e50;
+                  --redish:              #e74c3c;
+                  --red:                 #b70505;
+                  --darkerRed:           #790e0e;
+                  --incompleteRed:       #ffe0e0;
+                  --incompleteRedDarker: #f0c0c0;
+                  --darkGray:            #333333;
+                  --lighterDarkGray:     #7c7c7cff;
+                  --shadowColor:         rgba(0,0,0,0.2);
+                  --gray:                #9d9d9d;
+                  --lightGray:           #e2e2e2;
+                  --lightLightGray:      #f0f0f0;
+                  --whiteColor:          #fcfcfcff;
+
+                  --windowRxBackground:  linen;
+                  --genericRxColor:      var(--niceBlue);
+                  --brandRxColor:        var(--darkerNiceBlue);
+                  --strengthRxColor:     var(--darkerRed);
+                  --unitsRxColor:        var(--darkGray);
+                  --formRxColor:         var(--darkerRed);
+                  --sigRxColor:          var(--gray);
+                  --noteRxColor:         var(--darkerBlue);
+                  --otcRxColor:          var(--red);
+                  --prefaceRxColor:      var(--darkerBlue);
+                  --unparsedRxColor:     var(--whiteColor);
+                }
+
                 /* General Body and Font Styles */
                 body {
-                    font-family: Arial, sans-serif;
-                    margin: 20px;
-                    line-height: 1.6;
-                    background-color: #ffffff;
-                    color: #333; /* A more neutral default color */
+                    font-family:        Arial, sans-serif;
+                    margin:             20px;
+                    line-height:        1.6;
+                    background-color:   var(--whiteColor);
+                    color:              var(--grayBlue);
                 }
 
                 /* General Heading Styles */
                 h1 {
-                    color: #2c3e50;
-                    text-align: center;
-                    margin-bottom: 30px;
+                    color:          var(--grayBlue);
+                    text-align:     center;
+                    margin-bottom:  30px;
+                    display:         flex;
+                    flex-direction: column;
                 }
                 h2 {
-                    color: #003366;
-                    text-align: center;
-                  border-bottom: 2px solid #3498db;
-                  padding-bottom: 5px;
-                  margin-top: 30px;
-                  margin-bottom: 15px;
+                    color:          var(--grayBlue);
+                    text-align:     center;
+                    border-bottom:  2px solid var(--niceBlue);
+                    padding-bottom: 5px;
+                    margin-top:     30px;
+                    margin-bottom:  15px;
                 }
                 h3 {
-                    color: #2c3e50;
-                    margin-top: 10px;
-                    border-bottom: 1px solid #eee;
+                    color:          var(--grayBlue);
+                    margin-top:     10px;
+                    border-bottom:  1px solid var(--lightGray);
                     padding-bottom: 5px;
                 }
+
                 h4 {
-                    color: #555;
-                    margin-top: 20px;
+                    color:          var(--lighterDarkGray);
+                    margin-top:     20px;
                 }
 
                 p, .shaded-text {
-                    background: #f7f4f2;
-                    padding: 10px;
-                    border-radius: 5px;
+                    background:     var(--lightGray);
+                    padding:        10px;
+                    border-radius:  5px;
                 }
 
-                .shaded-text {margin-bottom: 10px;}
+                patient-name-area {
+                  font-size:        0.8em;
+                }
+
+                .shaded-text {
+                    margin-bottom:  10px;
+                }
 
                 ul {
-                  list-style: none;
-                  padding: 0;
-                  margin-bottom: 20px;
-                  display: flex;
-                  flex-wrap: wrap;
-                  gap: 10px;
+                  list-style:       none;
+                  padding:          0;
+                  margin-bottom:    20px;
+                  display:          flex;
+                  flex-wrap:        wrap;
+                  gap:              10px;
                 }
+
                 li {
-                  margin-bottom: 0;
+                  margin-bottom:    0;
                 }
 
-
-                /* General Label and Input Styles */
                 label {
-                    display: block;
-                    margin-top: 10px;
-                    font-weight: bold;
+                    display:        block;
+                    margin-top:     10px;
+                    font-weight:    bold;
                 }
 
                 input[type="text"],
                 input[type="date"],
                 textarea {
-                    padding: 8px;
-                    margin-top: 5px;
-                    border: 1px solid #ccc;
-                    border-radius: 4px;
-                    box-sizing: border-box; /* Ensure padding/border don't add to total width */
-                    font-size: 1em; /* Standardize font size */
+                    padding:        8px;
+                    margin-top:     5px;
+                    border:         1px solid var(--gray);
+                    border-radius:  4px;
+                    box-sizing:     border-box; /* Ensure padding/border don't add to total width */
+                    font-size:      1em; /* Standardize font size */
                 }
 
                 textarea {
-                    width: 100%; /* Make textarea full width by default */
-                    min-height: 50px; /* A reasonable default height */
-                    resize: vertical; /* Allow vertical resizing */
+                    width:          100%; /* Make textarea full width by default */
+                    min-height:     50px; /* A reasonable default height */
+                    resize:         vertical; /* Allow vertical resizing */
                 }
 
 
                 /* General Table Styles */
                 table {
-                    width: 100%;
+                    width:          100%;
                     border-collapse: collapse;
-                    margin-top: 10px;
-                    margin-bottom: 10px; /* Added for general table spacing */
+                    margin-top:     10px;
+                    margin-bottom:  10px; /* Added for general table spacing */
                 }
                 table, th, td {
-                    border: 1px solid #ccc;
+                    border:         1px solid var(--gray);
                 }
                 th, td {
-                    padding: 8px;
-                    text-align: left;
+                    padding:        8px;
+                    text-align:     left;
                 }
 
                 /* General Horizontal Rule */
                 hr {
-                    margin: 30px 0;
-                    border: 0;
-                    border-top: 1px solid #eee;
+                    margin:         30px 0;
+                    border:         0;
+                    border-top:     1px solid var(--lightGray);
                 }
 
                 .submission-controls {
-                    text-align: center;
-                    margin-top: 30px;
-                    /* NEW: Add significant padding to the bottom to create scrollable whitespace */
+                    text-align:     center;
+                    margin-top:     10px;
                     padding-bottom: 50vh;
                 }
 
                 .done-button {
-                    /* Make button full width */
-                    width: 100%;
-                    padding: 12px 25px;
-                    font-size: 1.1em;
-                    color: white;
-                    border: none;
-                    border-radius: 5px;
-                    cursor: pointer;
-                    transition: background-color 0.3s ease;
-                    /* Use flexbox to manage internal text lines */
-                    display: flex;
-                    flex-direction: column;
-                    align-items: center;
+                    width:          100%;
+                    padding:        12px 25px;
+                    font-size:      1.1em;
+                    color:          var(--whiteColor);
+                    border:         none;
+                    border-radius:  5px;
+                    cursor:         pointer;
+                    transition:     background-color 0.3s ease;
+                    display:        flex;
+                    flex-direction: row;
+                    align-items:    center;
                     justify-content: center;
-                    line-height: 1.4;
+                    line-height:    1.4;
                 }
 
-                /* Class for the incomplete state (red) */
+                .done-button-text {
+                    display:        flex;
+                    flex-direction: column; /* stack main and sub text vertically */
+                }
+
+                .done-button-sub-text {
+                    font-size: 0.8em;
+                    opacity: 0.9;
+                }
+
                 .done-button-incomplete {
-                    background-color: #e74c3c;
+                    background-color: var(--redish);
+                }
+                .done-button.done-button-incomplete:hover:not(:disabled) {
+                    background-color: var(--red);
                 }
 
-                /* Class for the complete state (green) */
                 .done-button-complete {
-                    background-color: #28a745;
+                    background-color: var(--okGreen);
                 }
-                /* Utility Class for Hiding Elements */
+
+                .done-button.done-button-complete:hover:not(:disabled) {
+                    background-color: var(--darkerGreen);
+                }
+
+                .done-button-icon-area {
+                  margin-right: 10px;
+                }
+
+                .done-button-icon {
+                    display: none;   /*default is to be hidden, overridden below */
+                    width:32px;
+                    height:32px;
+                }
+
+                .done-button.done-button-complete .complete-icon {
+                    display: inline;
+                }
+                .done-button.done-button-incomplete .incomplete-icon {
+                    display: inline;
+                }
+
                 .hidden {
                     display: none !important;
                 }
@@ -210,6 +284,39 @@ export default class TAppView<TServerData = any> {
             </style>
         `;
     }
+
+    public getDoneIncompleteSVGIcon() : string
+    //can be overridded by descendents
+    {
+        //red frowning face
+        return `
+            <?xml version="1.0" encoding="utf-8"?><!-- Uploaded to: SVG Repo, www.svgrepo.com, Generator: SVG Repo Mixer Tools -->
+            <svg class="done-button-icon incomplete-icon" width="800px" height="800px" viewBox="0 0 48 48" fill="none" xmlns="http://www.w3.org/2000/svg">
+            <rect width="48" height="48" fill="white" fill-opacity="0.01"/>
+            <path d="M24 44C35.0457 44 44 35.0457 44 24C44 12.9543 35.0457 4 24 4C12.9543 4 4 12.9543 4 24C4 35.0457 12.9543 44 24 44Z" fill="#b70505" stroke="#000000" stroke-width="4" stroke-linejoin="round"/>
+            <path d="M31 18V19" stroke="white" stroke-width="4" stroke-linecap="round" stroke-linejoin="round"/>
+            <path d="M17 18V19" stroke="white" stroke-width="4" stroke-linecap="round" stroke-linejoin="round"/>
+            <path d="M31 30.9999C31 30.9999 29 26.9999 24 26.9999C19 26.9999 17 30.9999 17 30.9999" stroke="white" stroke-width="4" stroke-linecap="round" stroke-linejoin="round"/>
+            </svg>
+        `
+    }
+
+    public getDoneCompleteSVGIcon() : string
+    //can be overridded by descendents
+    {
+        //green happy face
+        return `
+            <?xml version="1.0" encoding="utf-8"?><!-- Uploaded to: SVG Repo, www.svgrepo.com, Generator: SVG Repo Mixer Tools -->
+            <svg class="done-button-icon complete-icon" width="800px" height="800px" viewBox="0 0 48 48" fill="none" xmlns="http://www.w3.org/2000/svg">
+            <rect width="48" height="48" fill="white" fill-opacity="0.01"/>
+            <path d="M24 44C35.0457 44 44 35.0457 44 24C44 12.9543 35.0457 4 24 4C12.9543 4 4 12.9543 4 24C4 35.0457 12.9543 44 24 44Z" fill="#28a745" stroke="#000000" stroke-width="4" stroke-linejoin="round"/>
+            <path d="M31 18V19" stroke="white" stroke-width="4" stroke-linecap="round" stroke-linejoin="round"/>
+            <path d="M17 18V19" stroke="white" stroke-width="4" stroke-linecap="round" stroke-linejoin="round"/>
+            <path d="M31 31C31 31 29 35 24 35C19 35 17 31 17 31" stroke="white" stroke-width="4" stroke-linecap="round" stroke-linejoin="round"/>
+            </svg>
+        `
+    }
+
 
     public getHTMLTagContent() : string
     //This should be overridden by descendant classes
@@ -420,12 +527,19 @@ export default class TAppView<TServerData = any> {
         }
     }
 
-    public updatePageState(): void
+    private _updatePageState(): void
     {
         this.resetAutosaveTimer();
         this.updateProgressState();  //updates this.progressData
         this.updateDoneButtonState();
     }
+    private debouncedUpdatePageState = debounce(this._updatePageState, 100);
+    public updatePageState(): void
+    {
+        this.debouncedUpdatePageState();
+    }
+
+
 
     public updateDoneButtonState(): void
     {

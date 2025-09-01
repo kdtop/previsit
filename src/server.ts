@@ -19,7 +19,7 @@ console.log("v0.9");
 import express from 'express';
 import { piece, strToNumDef } from './utils.js'; // Import the functions, pointing to the expected .js output
 import { TTMGNetwork } from './TTMGNetwork.js'; // Note: Keep .js in import path for ESM environments
-import type { UserMedAnswersArray, ProgressData,
+import type { UserMedAnswersArray, UserAllergyAnswersArray, ProgressData,
              ConsentFormData,
              GetPatientFormsApiResponseArray,
    } from './types';
@@ -110,9 +110,21 @@ async function hndlLogin(req: express.Request, res: express.Response)
 
         if (rpcErrorCheckOK(rpcResult, res, errIndex, tag, rtn)) {
             const sessionID : string = piece(rpcResult.return,'^',2);
+            //NOTE: If user entered an incomplete last name, or an alias name, it might still be sufficient for finding unique patient
+            //      So the RPC will pass back name and DOB as found on server.
+            const fullName = piece(rpcResult.return,'^',3);
+            const lastName = piece(fullName,',',1);
+            const firstName = piece(fullName,',',2);
+            const aDOB = piece(rpcResult.return,'^',4); //string external form of date.
+
+            //json below should match LoginApiResponse
             res.json({ success: true,
-                        message: 'Authentication successful.',
-                        sessionID: sessionID
+                       lastName: piece(fullName,",",1),
+                       firstName: piece(fullName,",",2),    //may also include middle name or middle initial, e.g. 'BEATRICE L'
+                       message: 'Authentication successful.',
+                       fullName: firstName+' '+lastName,
+                       dob: aDOB,
+                       sessionID: sessionID
                      });
 
         }
@@ -312,12 +324,9 @@ async function hndlSaveRosUpdateData(req: express.Request, res: express.Response
 
 //====================================================================================================
 //====================================================================================================
-/*
- Handle request for Medication Review data
- GET
-*/
-async function hndlGetMedReviewData(req: express.Request, res: express.Response) {
-    //console.log("Received request for Medication Review data.", req.query);
+async function hndlGetMedReviewDataCommon(req: express.Request, res: express.Response, mode: number = 0) {
+    //This is A UNIFIED FUNCTION for OTC and/or regular Rx
+    //console.log("Received request for Medication/OTC-Rx Review data.", req.query);
     if (!rpcPrecheckOK(req, res)) return;  //res output object will have already been set in rpcPrecheckOK
     try {
         const { sessionID } = req.query;
@@ -334,7 +343,7 @@ async function hndlGetMedReviewData(req: express.Request, res: express.Response)
         let err = ""; let errIndex = 3; // Output parameter for errors from Mumps
         let tag="GETMEDS"; let rtn="TMGPRE01";
 
-        const rpcResult : RPCResult | undefined = await tmg.RPC<RPCResult>(tag, rtn, [outData, outProgress, sessionID, err]);
+        const rpcResult : RPCResult | undefined = await tmg.RPC<RPCResult>(tag, rtn, [outData, outProgress, sessionID, err, mode]);
 
         if (rpcErrorCheckOK(rpcResult, res, errIndex, tag, rtn)) {
             res.json({ success: true,
@@ -350,12 +359,8 @@ async function hndlGetMedReviewData(req: express.Request, res: express.Response)
     }
 }
 
-//----------------------------------------------------------------------------------------------------
-/*
- Handle saving of Medication Review data
- POST
-*/
-async function hndlSaveMedReviewData(req: express.Request, res: express.Response) {
+async function hndlSaveMedReviewDataCommon(req: express.Request, res: express.Response, mode: number = 0) {
+    //This is A UNIFIED FUNCTION for OTC and/or regular Rx
     //console.log("Received request to save Medication Review data.", req.body)
     if (!rpcPrecheckOK(req, res)) return;  //res output object will have already been set in rpcPrecheckOK
     try{
@@ -365,7 +370,7 @@ async function hndlSaveMedReviewData(req: express.Request, res: express.Response
         let err = ""; let errIndex = 3; // Output parameter for errors from Mumps
         let tag="SAVEMEDS"; let rtn="TMGPRE01";
 
-        const rpcResult : RPCSaveDataResult = await tmg.RPC<RPCSaveDataResult>(tag, rtn, [sessionID, data, progress, err]);
+        const rpcResult : RPCSaveDataResult = await tmg.RPC<RPCSaveDataResult>(tag, rtn, [sessionID, data, progress, err, mode]);
 
         if (rpcErrorCheckOK(rpcResult, res, errIndex, tag, rtn)) {
             res.status(200).json({ success: true,
@@ -375,6 +380,113 @@ async function hndlSaveMedReviewData(req: express.Request, res: express.Response
 
     } catch (error) {
         console.error('Error during POST /api/medication_review:', error);
+        const errorMessage = error instanceof Error ? error.message : 'Unknown error';
+        res.status(500).json({ success: false, message: `Internal server error: ${errorMessage}` });
+    }
+}
+
+//====================================================================================================
+//====================================================================================================
+/*
+ Handle request for Medication (and/or OTC Rx) Review data
+ GET
+*/
+async function hndlGetMedReviewData(req: express.Request, res: express.Response) {
+    await hndlGetMedReviewDataCommon(req, res, 1);  //1 is mode, meaning Rx only (no OTC)
+}
+
+//----------------------------------------------------------------------------------------------------
+/*
+ Handle saving of Medication Review data
+ POST
+*/
+async function hndlSaveMedReviewData(req: express.Request, res: express.Response) {
+  await hndlSaveMedReviewDataCommon(req, res, 1);   //1 is mode, meaning Rx only (no OTC)
+}
+
+//====================================================================================================
+//====================================================================================================
+/*
+ Handle request for OTC Medication Review data
+ GET
+*/
+async function hndlGetOTCMedReviewData(req: express.Request, res: express.Response) {
+    await hndlGetMedReviewDataCommon(req, res, 2);  //2 is mode, meaning OTC only (no regular Rxs)
+}
+
+//----------------------------------------------------------------------------------------------------
+/*
+ Handle saving of OTC Medication Review data
+ POST
+*/
+async function hndlSaveOTCMedReviewData(req: express.Request, res: express.Response) {
+  await hndlSaveMedReviewDataCommon(req, res, 2);  //2 is mode, meaning OTC only (no regular Rxs)
+}
+
+//====================================================================================================
+//====================================================================================================
+/*
+ Handle request for Rx Allergies Review data
+ GET
+*/
+async function hndlGetRxAllergiesData(req: express.Request, res: express.Response) {
+    //console.log("Received request for Allergy Review data.", req.query);
+    if (!rpcPrecheckOK(req, res)) return;  //res output object will have already been set in rpcPrecheckOK
+    try {
+        const { sessionID } = req.query;
+        let outData: any = {};
+        let outProgress: any = {};
+        interface RPCResult {
+            args: [any,    //out outData
+                   any,    //out outProgress
+                   string, //out outSessionID
+                   string  //out err
+                  ];
+            return: string;
+        }
+        let err = ""; let errIndex = 3; // Output parameter for errors from Mumps
+        let tag="GETALRGY"; let rtn="TMGPRE01";
+
+        const rpcResult : RPCResult | undefined = await tmg.RPC<RPCResult>(tag, rtn, [outData, outProgress, sessionID, err]);
+
+        if (rpcErrorCheckOK(rpcResult, res, errIndex, tag, rtn)) {
+            res.json({ success: true,
+                       data: rpcResult.args[0],         //type: UserAllergyAnswersArray
+                       progress: rpcResult.args[1],     //type progressData
+                     });
+        }
+
+    } catch (error) {
+        console.error('Error during /api/rx_allergies_review GET:', error);
+        const errorMessage = error instanceof Error ? error.message : 'Unknown error';
+        res.status(500).json({ success: false, data: {}, message: `Internal server error: ${errorMessage}` });
+    }
+}
+//----------------------------------------------------------------------------------------------------
+/*
+ Handle saving of Rx Allergies Review data
+ POST
+*/
+async function hndlSaveRxAllergiesData(req: express.Request, res: express.Response) {
+    //console.log("Received request to save Allergies Review data.", req.body)
+    if (!rpcPrecheckOK(req, res)) return;  //res output object will have already been set in rpcPrecheckOK
+    try{
+        const { sessionID } = req.query;
+        const data : UserAllergyAnswersArray = req.body.data as UserAllergyAnswersArray; // Expecting data to be an array of UserAllergyAnswersArray
+        const progress : ProgressData = req.body.progress; // Expecting progress to be of type ProgressData
+        let err = ""; let errIndex = 3; // Output parameter for errors from Mumps
+        let tag="SAVEALRGY"; let rtn="TMGPRE01";
+
+        const rpcResult : RPCSaveDataResult = await tmg.RPC<RPCSaveDataResult>(tag, rtn, [sessionID, data, progress, err]);
+
+        if (rpcErrorCheckOK(rpcResult, res, errIndex, tag, rtn)) {
+            res.status(200).json({ success: true,
+                                   message: 'Allergy Review data saved successfully.'
+                                 });
+        }
+
+    } catch (error) {
+        console.error('Error during POST /api/rx_allergies_review:', error);
         const errorMessage = error instanceof Error ? error.message : 'Unknown error';
         res.status(500).json({ success: false, message: `Internal server error: ${errorMessage}` });
     }
@@ -716,31 +828,37 @@ try {
     app.use(express.static('www'));
 
     // Register route handlers
-    app.post('/api/login',               hndlLogin               as express.RequestHandler);  // register handler (endpoint) for login
+    app.post('/api/login',                   hndlLogin                  as express.RequestHandler);  // register handler (endpoint) for login
 
-    app.get('/api/dashboard',            hndlGetDashboard        as express.RequestHandler);  // Register handler for getting dashboard dashboard
-    app.post('/api/dashboard',           hndlSaveDashboard       as express.RequestHandler);  // Register handler for saving dashboard dashboard
+    app.get('/api/dashboard',                hndlGetDashboard           as express.RequestHandler);  // Register handler for getting dashboard dashboard
+    app.post('/api/dashboard',               hndlSaveDashboard          as express.RequestHandler);  // Register handler for saving dashboard dashboard
 
-    app.get('/api/hxupdate',             hndlGetHxUpdateData     as express.RequestHandler);  // Register handler for getting hxupdate data
-    app.post('/api/hxupdate',            hndlSaveHxUpdate        as express.RequestHandler);  // Register handler for saving history updates
+    app.get('/api/hxupdate',                 hndlGetHxUpdateData        as express.RequestHandler);  // Register handler for getting hxupdate data
+    app.post('/api/hxupdate',                hndlSaveHxUpdate           as express.RequestHandler);  // Register handler for saving history updates
 
-    app.get('/api/rosupdate',            hndlGetRosUpdateData    as express.RequestHandler);  // Register handler for getting rosupdate data
-    app.post('/api/rosupdate',           hndlSaveRosUpdateData   as express.RequestHandler);  // Register handler for saving rosupdate data
+    app.get('/api/rosupdate',                hndlGetRosUpdateData       as express.RequestHandler);  // Register handler for getting rosupdate data
+    app.post('/api/rosupdate',               hndlSaveRosUpdateData      as express.RequestHandler);  // Register handler for saving rosupdate data
 
-    app.get('/api/medication_review',    hndlGetMedReviewData    as express.RequestHandler);  // Register handler for getting medication review data
-    app.post('/api/medication_review',   hndlSaveMedReviewData   as express.RequestHandler);  // Register handler for saving medication review data
+    app.get('/api/medication_review',        hndlGetMedReviewData       as express.RequestHandler);  // Register handler for getting medication review data
+    app.post('/api/medication_review',       hndlSaveMedReviewData      as express.RequestHandler);  // Register handler for saving medication review data
 
-    app.get('/api/sig1',                 hndlGetSig1Data         as express.RequestHandler);  // Register handler for getting signature
-    app.post('/api/sig1',                hndlSaveSig1Data        as express.RequestHandler);  // Register handler for saving signature
+    app.get('/api/otc_medication_review',    hndlGetOTCMedReviewData    as express.RequestHandler);  // Register handler for getting OTC medication review data
+    app.post('/api/otc_medication_review',   hndlSaveOTCMedReviewData   as express.RequestHandler);  // Register handler for saving OTC medication review data
 
-    app.get('/api/patient_consent',      hndlGetConsentData      as express.RequestHandler);  // Register handler for getting patient consent form
-    app.post('/api/patient_consent',     hndlSaveConsentData     as express.RequestHandler);  // Register handler for saving  patient consent form
+    app.get('/api/rx_allergies_review',      hndlGetRxAllergiesData     as express.RequestHandler);  // Register handler for getting Rx Allergies review data
+    app.post('/api/rx_allergies_review',     hndlSaveRxAllergiesData    as express.RequestHandler);  // Register handler for saving Rx Allergies  review data
 
-    app.get('/api/phq9Quest',           hndlGetPhq9QuestData     as express.RequestHandler);  // Register handler for getting phq9Quest data
-    app.post('/api/phq9Quest',          hndlSavePhq9QuestData    as express.RequestHandler);  // Register handler for saving phq9Quest data
+    app.get('/api/sig1',                     hndlGetSig1Data            as express.RequestHandler);  // Register handler for getting signature
+    app.post('/api/sig1',                    hndlSaveSig1Data           as express.RequestHandler);  // Register handler for saving signature
 
-    app.get('/api/awvQuest',           hndlGetAWVQuestData       as express.RequestHandler);  // Register handler for getting awvQuest data
-    app.post('/api/awvQuest',          hndlSaveAWVQuestData      as express.RequestHandler);  // Register handler for saving awvQuest data
+    app.get('/api/patient_consent',          hndlGetConsentData         as express.RequestHandler);  // Register handler for getting patient consent form
+    app.post('/api/patient_consent',         hndlSaveConsentData        as express.RequestHandler);  // Register handler for saving  patient consent form
+
+    app.get('/api/phq9Quest',                hndlGetPhq9QuestData       as express.RequestHandler);  // Register handler for getting phq9Quest data
+    app.post('/api/phq9Quest',               hndlSavePhq9QuestData      as express.RequestHandler);  // Register handler for saving phq9Quest data
+
+    app.get('/api/awvQuest',                 hndlGetAWVQuestData        as express.RequestHandler);  // Register handler for getting awvQuest data
+    app.post('/api/awvQuest',                hndlSaveAWVQuestData       as express.RequestHandler);  // Register handler for saving awvQuest data
 
     // Start the server
     app.listen(PORT, () => {
