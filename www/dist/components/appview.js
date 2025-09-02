@@ -275,10 +275,8 @@ export default class TAppView {
                 display:            flex;
                 justify-content:    space-between;
                 align-items:        center;
-                margin-top:         20px;
-                padding:            10px 10px;
+                padding:            0px 10px;
                 width:              100%;
-                max-width:          800px;
                 z-index:            20;
             }
 

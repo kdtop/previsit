@@ -1,5 +1,6 @@
 // /opt/worldvista/EHR/web/previsit/www/components/medciation_review.ts
 import TAppView from './appview.js';
+import { showPopupDlg } from './dialog_popup.js';
 /**
  * Represents the item_review component as a class, responsible for building and managing the patient history update form.
  */
@@ -91,6 +92,9 @@ export default class TItemCardReviewAppView extends TAppView {
                 justify-content:    center; /* Vertically center content if space allows */
             }
 
+            .add-item-area {
+                margin-top:         10px;
+            }
             /* --- Custom Checkbox (now radio) Styling --- */
             .sr-only {
                 position:       absolute;
@@ -693,8 +697,22 @@ export default class TItemCardReviewAppView extends TAppView {
             this.renderCurrentItem(this.currentItemIndex, 'next');
         }
     };
-    handleAddItem = () => {
-        console.log("Finish here!");
+    handleAddItem = async () => {
+        const schema = {
+            title: "User Info",
+            Fields: {
+                Name: "string",
+                Age: "number",
+                Subscribe: "boolean"
+            }
+        };
+        const result = await showPopupDlg(schema, document.body);
+        if (result) {
+            console.log("User input:", result);
+        }
+        else {
+            console.log("Form was canceled");
+        }
     };
     // --- Data, Submission, and Autosave Logic ---
     /**

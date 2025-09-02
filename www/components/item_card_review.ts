@@ -6,6 +6,8 @@ import { CardAnimationDirection,
          GenericUserAnswersArray,
          EnhancedHTMLDivElement
        } from '../utility/types.js';
+import { showPopupDlg, DlgSchema, FieldType, FieldEntry } from './dialog_popup.js';
+
 
 export interface ItemReviewOptions {
     someOption : any;
@@ -124,6 +126,9 @@ export default class TItemCardReviewAppView<TServerData extends GenericUserAnswe
                 justify-content:    center; /* Vertically center content if space allows */
             }
 
+            .add-item-area {
+                margin-top:         10px;
+            }
             /* --- Custom Checkbox (now radio) Styling --- */
             .sr-only {
                 position:       absolute;
@@ -755,8 +760,22 @@ export default class TItemCardReviewAppView<TServerData extends GenericUserAnswe
         }
     }
 
-    public handleAddItem = () : void => {
-        console.log("Finish here!");
+    public handleAddItem = async () : Promise<void> => {
+        const schema : DlgSchema = {
+            title: "User Info",
+            Fields: {
+              Name: "string",
+              Age: "number",
+              Subscribe: "boolean"
+            }
+        };
+        const result = await showPopupDlg(schema, document.body);
+
+        if (result) {
+          console.log("User input:", result);
+        } else {
+          console.log("Form was canceled");
+        }
     }
 
     // --- Data, Submission, and Autosave Logic ---
