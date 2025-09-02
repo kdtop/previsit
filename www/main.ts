@@ -23,6 +23,8 @@ import TMedReviewAppView
     from './components/medication_review.js';
 import TOTCMedReviewAppView
     from './components/medication_otc_review.js';
+import TMedAllergiesReviewAppView
+    from './components/medication_allergies_review.js';
 import TSigFormAppView
     from './components/sig_form.js';
 import TPatientConsentFormAppView
@@ -40,16 +42,17 @@ let dB: HTMLBodyElement; // document.body
 let ctrl: TCtrl;
 
 // Instantiate the various app views.
-let dashboardAppView:     TDashboardAppView;
-let loginAppView:         TLoginAppView;
-let hxUpdateAppView:      THxUpdateAppView;
-let rosUpdateAppView:     TRosUpdateAppView;
-let medReviewAppView:     TMedReviewAppView;
-let otcMedReviewAppView:  TOTCMedReviewAppView;
-let sigformAppView:       TSigFormAppView;
-let consentformAppView:   TPatientConsentFormAppView;
-let phq9UpdateAppView:    TPhq9UpdateAppView;
-let awvQuestAppView:      TAwvQuestionnaireAppView;
+let dashboardAppView:          TDashboardAppView;
+let loginAppView:              TLoginAppView;
+let hxUpdateAppView:           THxUpdateAppView;
+let rosUpdateAppView:          TRosUpdateAppView;
+let medReviewAppView:          TMedReviewAppView;
+let otcMedReviewAppView:       TOTCMedReviewAppView;
+let medAllergiesReviewAppView: TMedAllergiesReviewAppView;
+let sigformAppView:            TSigFormAppView;
+let consentformAppView:        TPatientConsentFormAppView;
+let phq9UpdateAppView:         TPhq9UpdateAppView;
+let awvQuestAppView:           TAwvQuestionnaireAppView;
 
 // --------------------------
 // Named functions for core application logic
@@ -87,16 +90,17 @@ async function initializeApp()
     ctrl = new TCtrl();
     ctrl.addEventListener("change_view", handleSwitchingEvent); // The main app listens on the controller
 
-    loginAppView       = new TLoginAppView(ctrl);
-    dashboardAppView   = new TDashboardAppView(ctrl);
-    hxUpdateAppView    = new THxUpdateAppView(ctrl);
-    rosUpdateAppView   = new TRosUpdateAppView(ctrl);
-    medReviewAppView   = new TMedReviewAppView(ctrl);
-    otcMedReviewAppView= new TOTCMedReviewAppView(ctrl);
-    sigformAppView     = new TSigFormAppView(ctrl);
-    consentformAppView = new TPatientConsentFormAppView(ctrl);
-    phq9UpdateAppView  = new TPhq9UpdateAppView(ctrl);
-    awvQuestAppView    = new TAwvQuestionnaireAppView(ctrl);
+    loginAppView              = new TLoginAppView(ctrl);
+    dashboardAppView          = new TDashboardAppView(ctrl);
+    hxUpdateAppView           = new THxUpdateAppView(ctrl);
+    rosUpdateAppView          = new TRosUpdateAppView(ctrl);
+    medReviewAppView          = new TMedReviewAppView(ctrl);
+    otcMedReviewAppView       = new TOTCMedReviewAppView(ctrl);
+    medAllergiesReviewAppView = new TMedAllergiesReviewAppView(ctrl);
+    sigformAppView            = new TSigFormAppView(ctrl);
+    consentformAppView        = new TPatientConsentFormAppView(ctrl);
+    phq9UpdateAppView         = new TPhq9UpdateAppView(ctrl);
+    awvQuestAppView           = new TAwvQuestionnaireAppView(ctrl);
 
     await switchTo(loginAppView); // Pass the HTML element to switchTo
     // NOTE: when loginComp is done, it will dispatch a 'continue' event, handled above

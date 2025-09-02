@@ -21,4 +21,9 @@ export default class TOTCMedReviewAppView extends TCommonMedReviewAppView {
         return "Review Your Over-The-Counter (OTC) Meds, Herbal Supplements, Vitamins, etc.";
     }
 
+    public getAddItemText() : string
+    {
+        return "Add NEW OTC Medication (not prescription)";
+    }
+
 }

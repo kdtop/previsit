@@ -40,31 +40,37 @@ export type AreTakingStatus = 'yes' | 'no' | 'sometimes' | 'unknown' | null;
 export type YesNoStatus = 'yes' | 'no' | null;
 export type YesNoUnknownStatus = 'yes' | 'no' | 'unknown' | null;
 export type RefillLocation = 'local' | 'mail' | null;
+export type CardAnimationDirection = 'next' | 'prev' | null;
 
-export interface UserMedicationAnswers {
-    text: string | null; // The original medication name
+export interface GenericUserAnswers {
+    text: string | null; // The primary name
+    comment: string | null; // Any additional comments or notes about the medication
+    isComplete: boolean | null; // Indicates if the allergy review is complete
+}
+export type GenericUserAnswersArray = GenericUserAnswers[];
+
+export interface UserMedicationAnswers extends GenericUserAnswers {
+    //inherited --> text: string | null; // The original medication name
     parsed: string | null; // A parsed version of medication, with tags for style.
     otc : number | null;  //should be 0 for false, or 1 for true
     areTaking: AreTakingStatus; // 'yes', 'no', 'sometimes', 'unknown'
     needsRefill: YesNoStatus; // 'yes', 'no', or null (conditional)
     refillLocation: RefillLocation; // 'local', 'mail' (conditional)
-    comment: string | null; // Any additional comments or notes about the medication
-    isComplete: boolean | null; // Indicates if the medication review is complete
+    //inherited --> comment: string | null; // Any additional comments or notes about the medication
+    //inherited --> isComplete: boolean | null; // Indicates if the allergy review is complete
 }
-
 export type UserMedAnswersArray = UserMedicationAnswers[];
 
-export interface UserAllergyAnswers {
-    item: string | null; // The Rx or item that causes allergy
+export interface UserAllergyAnswers extends GenericUserAnswers {
+    //inherited --> text: string | null; // The Rx or item that causes allergy
     nkda: boolean | null; // If patient is nkda (no known drug allergies)
     neverAssessed: boolean | null; // If allergies have never been asked or assessed
     date: string | null; // The date the allergy was entered or recorded
     reaction: string | null; // Comments (if any) about the reaction
     patientResponse: YesNoUnknownStatus; // 'yes', 'no', 'sometimes', 'unknown'
-    comment: string | null; // Any additional comments or notes about the medication
-    isComplete: boolean | null; // Indicates if the allergy review is complete
+    //inherited --> comment: string | null; // Any additional comments or notes about the medication
+    //inherited --> isComplete: boolean | null; // Indicates if the allergy review is complete
 }
-
 export type UserAllergyAnswersArray = UserAllergyAnswers[];
 
 export interface ProgressData {

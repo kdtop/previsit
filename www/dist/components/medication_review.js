@@ -13,5 +13,8 @@ export default class TMedReviewAppView extends TCommonMedReviewAppView {
     getTitleText() {
         return "Review Your Medication List";
     }
+    getAddItemText() {
+        return "Add NEW Prescription Medication (not OTC)";
+    }
 }
 //# sourceMappingURL=medication_review.js.map

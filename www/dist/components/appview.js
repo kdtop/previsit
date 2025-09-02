@@ -63,6 +63,7 @@ export default class TAppView {
                   --lightGray:           #e2e2e2;
                   --lightLightGray:      #f0f0f0;
                   --whiteColor:          #fcfcfcff;
+                  --lightYellow:         #ffe16e;
 
                   --windowRxBackground:  linen;
                   --genericRxColor:      var(--niceBlue);
@@ -187,6 +188,14 @@ export default class TAppView {
                     border-top:     1px solid var(--lightGray);
                 }
 
+                svg.icon  {
+                    /* Adjust SVG size as needed */
+                    width: 32px;
+                    height: 32px;
+                    margin-right: 10px; /* Space between icon and text */
+                    vertical-align: middle;
+                }
+
                 .submission-controls {
                     text-align:     center;
                     margin-top:     10px;
@@ -261,6 +270,99 @@ export default class TAppView {
                         margin: 15px; /* Smaller margins for smaller screens */
                     }
                 }
+
+            .navigation-area { /* Container for buttons and message */
+                display:            flex;
+                justify-content:    space-between;
+                align-items:        center;
+                margin-top:         20px;
+                padding:            10px 10px;
+                width:              100%;
+                max-width:          800px;
+                z-index:            20;
+            }
+
+            .navigation-area button {
+                padding:            10px 20px;
+                font-size:          1em;
+                background-color:   var(--niceBlue);
+                color:              var(--whiteColor);
+                border:             none;
+                border-radius:      5px;
+                cursor:             pointer;
+                height:             7vw;
+                transition:         background-color 0.5s ease;
+                flex-shrink:        0; /* Prevent buttons from shrinking */
+            }
+
+            .navigation-area button:hover:not(:disabled) {
+                background-color:   var(--darkerNiceBlue);
+            }
+
+            .navigation-area button:disabled {
+                background-color:   var(--gray);
+                cursor:             not-allowed;
+            }
+
+            .nav-button {
+                height: 200px;
+            }
+
+            .prev-item-button {
+                background-color:   var(--niceBlue);
+                color:              var(--whiteColor);
+            }
+
+            .prev-item-button:hover:not(:disabled) {
+                background-color:   var(--darkerNiceBlue);
+            }
+
+            .next-item-button.incomplete {
+                background-color:   var(--incompleteRed);
+                color:              var(--grayBlue);
+            }
+
+            .next-item-button.incomplete:hover:not(:disabled) {
+                background-color:   var(--incompleteRedDarker);
+            }
+
+            .next-item-button.complete {
+                background-color:   var(--okGreen);
+                color:              var(--whiteColor);
+            }
+
+            .next-item-button.complete:hover:not(:disabled) {
+                background-color:   var(--darkerGreen);
+            }
+
+            /* Responsive adjustments */
+            @media(max-width: 850px) {
+                .itemreview-container {
+                    padding:                0 15px;
+                }
+                .item-card {
+                    /* Width is now handled by max-width and parent's centering */
+                }
+                .navigation-area {
+                    padding:                0 0; /* Remove horizontal padding here, parent handles it */
+                    flex-direction:         column; /* Stack buttons and message vertically */
+                    gap:                    15px; /* Space between stacked items */
+                }
+                .navigation-area button {
+                    width:                  100%; /* Full width when stacked */
+                }
+                .item-progress-message {
+                    order:                  -1; /* Move message to the top when stacked */
+                    margin-top:             0px;
+                    margin-bottom:          -15px;
+                }
+                .custom-checkbox-text {
+                    padding:                6px 10px;
+                    font-size:              0.95em;
+                }
+            }
+
+
             </style>
         `;
     }
@@ -290,8 +392,63 @@ export default class TAppView {
             </svg>
         `;
     }
+    getTitleText() {
+        return "Review Items Below";
+    }
+    getHTMLHeader() {
+        let result = `
+        <div class="header-area">
+            <h1>${this.getTitleText()}</h1>
+            <patient-name-area>
+              Patient: <span class="patient-name"></span>
+            </patient-name-area>
+        </div>
+        `;
+        return result;
+    }
+    getHTMLMain() {
+        let result = `
+            <div class="main-content-area">
+                <div class="item-display-area">
+                </div>
+            </div>
+        `;
+        return result;
+    }
+    getHTMLFooter() {
+        let result = `
+                <div class="footer-area">
+                    <div class="submission-controls">
+                        <button type="button" class="done-button">
+                            <!-- Icon on the left -->
+                            <span class="done-button-icon-area">
+                                ${this.getDoneIncompleteSVGIcon()}
+                                ${this.getDoneCompleteSVGIcon()}
+                            </span>
+                            <!-- Text container -->
+                            <span class="done-button-text">
+                              <span class="done-button-main-text">Main Text</span>
+                              <span class="done-button-sub-text">Sub Text</span>
+                            </span>
+                        </button>
+                    </div>
+                </div>
+        `;
+        return result;
+    }
+    getHTMLStructure() {
+        let result = `
+            <form class='itemreview-container'>
+                ${this.getHTMLHeader()}
+                ${this.getHTMLMain()}
+                ${this.getHTMLFooter()}
+            </form>
+        `;
+        return result;
+    }
     getHTMLTagContent() {
-        return '';
+        let result = this.getHTMLStructure();
+        return result;
     }
     newEnhancedHTMDivElement(innerHTML, opts) {
         const el = document.createElement('div');
@@ -483,6 +640,9 @@ export default class TAppView {
     updatePageState() {
         this.debouncedUpdatePageState();
     }
+    handleOnDoneButtonStateChange() {
+        //virtual, can be implemented in descendant classes.
+    }
     updateDoneButtonState() {
         const unansweredCount = this.progressData.unansweredItems || 0;
         const totalQuestions = this.progressData.totalItems || 0;
@@ -516,6 +676,7 @@ export default class TAppView {
             doneButton.classList.add('done-button-incomplete');
             doneButton.classList.remove('done-button-complete');
         }
+        this.handleOnDoneButtonStateChange();
     }
     ;
     /**

@@ -140,17 +140,45 @@ export default class TQuestionnaireAppView extends TAppView {
         `;
         return result;
     }
-    getHTMLTagContent() {
+    getTitleText() {
+        return "Tell Us About Your Symptoms";
+    }
+    getHTMLMain() {
         let result = `
+            <div class="instructions">
+                <p>Please answer the following questions. This will help us prepare for your visit.</p>
+            </div>
+            <div class="forms-container"></div>
+            <div class="closing-instructions"></div>
+            <div class="result-container"></div>
+        `;
+        return result;
+    }
+    getHTMLStructure() {
+        let result = `
+            <form class='container content-container'>
+                ${this.getHTMLHeader()}
+                ${this.getHTMLMain()}
+                ${this.getHTMLFooter()}
+            </form>
+        `;
+        return result;
+    }
+    getHTMLTagContent() {
+        let result = this.getHTMLStructure();
+        /*
+        let old_result : string = `
             <form class='container content-container'>
                 <h1>Tell Us About Your Symptoms</h1>
                 <p><b>Patient:</b> <span class="patient-name"></span></p>
+
                 <div class="instructions">
                     <p>Please answer the following questions. This will help us prepare for your visit.</p>
                 </div>
                 <div class="forms-container"></div>
                 <div class="closing-instructions"></div>
                 <div class="result-container"></div>
+
                 <div class="submission-controls">
                     <button type="button" class="done-button">
                         <!-- Icon on the left -->
@@ -167,6 +195,7 @@ export default class TQuestionnaireAppView extends TAppView {
                 </div>
             </form>
         `;
+        */
         return result;
     }
     setupPatientNameDisplay() {

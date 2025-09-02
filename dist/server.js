@@ -349,6 +349,68 @@ async function hndlSaveOTCMedReviewData(req, res) {
 //====================================================================================================
 //====================================================================================================
 /*
+ Handle request for Rx Allergies Review data
+ GET
+*/
+async function hndlGetRxAllergiesData(req, res) {
+    //console.log("Received request for Allergy Review data.", req.query);
+    if (!rpcPrecheckOK(req, res))
+        return; //res output object will have already been set in rpcPrecheckOK
+    try {
+        const { sessionID } = req.query;
+        let outData = {};
+        let outProgress = {};
+        let err = "";
+        let errIndex = 3; // Output parameter for errors from Mumps
+        let tag = "GETALRGY";
+        let rtn = "TMGPRE01";
+        const rpcResult = await tmg.RPC(tag, rtn, [outData, outProgress, sessionID, err]);
+        if (rpcErrorCheckOK(rpcResult, res, errIndex, tag, rtn)) {
+            res.json({ success: true,
+                data: rpcResult.args[0], //type: UserAllergyAnswersArray
+                progress: rpcResult.args[1], //type progressData
+            });
+        }
+    }
+    catch (error) {
+        console.error('Error during /api/rx_allergies_review GET:', error);
+        const errorMessage = error instanceof Error ? error.message : 'Unknown error';
+        res.status(500).json({ success: false, data: {}, message: `Internal server error: ${errorMessage}` });
+    }
+}
+//----------------------------------------------------------------------------------------------------
+/*
+ Handle saving of Rx Allergies Review data
+ POST
+*/
+async function hndlSaveRxAllergiesData(req, res) {
+    //console.log("Received request to save Allergies Review data.", req.body)
+    if (!rpcPrecheckOK(req, res))
+        return; //res output object will have already been set in rpcPrecheckOK
+    try {
+        const { sessionID } = req.query;
+        const data = req.body.data; // Expecting data to be an array of UserAllergyAnswersArray
+        const progress = req.body.progress; // Expecting progress to be of type ProgressData
+        let err = "";
+        let errIndex = 3; // Output parameter for errors from Mumps
+        let tag = "SAVEALRGY";
+        let rtn = "TMGPRE01";
+        const rpcResult = await tmg.RPC(tag, rtn, [sessionID, data, progress, err]);
+        if (rpcErrorCheckOK(rpcResult, res, errIndex, tag, rtn)) {
+            res.status(200).json({ success: true,
+                message: 'Allergy Review data saved successfully.'
+            });
+        }
+    }
+    catch (error) {
+        console.error('Error during POST /api/rx_allergies_review:', error);
+        const errorMessage = error instanceof Error ? error.message : 'Unknown error';
+        res.status(500).json({ success: false, message: `Internal server error: ${errorMessage}` });
+    }
+}
+//====================================================================================================
+//====================================================================================================
+/*
  Handle request for signature data
  GET
 */
@@ -652,6 +714,8 @@ try {
     app.post('/api/medication_review', hndlSaveMedReviewData); // Register handler for saving medication review data
     app.get('/api/otc_medication_review', hndlGetOTCMedReviewData); // Register handler for getting OTC medication review data
     app.post('/api/otc_medication_review', hndlSaveOTCMedReviewData); // Register handler for saving OTC medication review data
+    app.get('/api/rx_allergies_review', hndlGetRxAllergiesData); // Register handler for getting Rx Allergies review data
+    app.post('/api/rx_allergies_review', hndlSaveRxAllergiesData); // Register handler for saving Rx Allergies  review data
     app.get('/api/sig1', hndlGetSig1Data); // Register handler for getting signature
     app.post('/api/sig1', hndlSaveSig1Data); // Register handler for saving signature
     app.get('/api/patient_consent', hndlGetConsentData); // Register handler for getting patient consent form

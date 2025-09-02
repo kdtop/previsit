@@ -12,8 +12,22 @@ export default class THxUpdateAppView extends TQuestionnaireAppView {
             //process opts -- if any added later
         }
     } //constructor
-    getHTMLTagContent() {
+    getTitleText() {
+        return "Update Your Medical History";
+    }
+    getHTMLMain() {
         let result = `
+            <div class="instructions">
+                <p>Please review and answer the questions below. This will help us prepare for your visit.</p>
+            </div>
+            <div class="forms-container"></div>
+        `;
+        return result;
+    }
+    getHTMLTagContent() {
+        let result = this.getHTMLStructure();
+        /*
+        let result : string = `
           <form class='container content-container'>
               <h1>Update Your Medical History</h1>
               <p><b>Patient:</b> <span class="patient-name"></span></p>
@@ -28,7 +42,8 @@ export default class THxUpdateAppView extends TQuestionnaireAppView {
                   </button>
               </div>
           </form>
-      `;
+        `;
+        */
         return result;
     }
     getQuestionnaireData() {
