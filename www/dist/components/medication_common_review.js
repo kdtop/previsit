@@ -1,5 +1,6 @@
 // /opt/worldvista/EHR/web/previsit/www/components/medciation_review.ts
 import TItemCardReviewAppView from './item_card_review.js';
+import { showPopupDlg, messageDlg, FieldType, ModalBtn } from './dialog_popup.js';
 /**
  * Represents the medication_review component as a class, responsible for building and managing the patient history update form.
  */
@@ -67,7 +68,7 @@ export default class TCommonMedReviewAppView extends TItemCardReviewAppView {
 
             rx_unparsed {
               background-color: var(--unparsedRxColor);
-              color:            var(--grayBlue);
+              color:            var(--textColor);
               font-size:        var(--medium);
             }
 
@@ -138,7 +139,7 @@ export default class TCommonMedReviewAppView extends TItemCardReviewAppView {
                 margin-bottom:      10px;
                 font-weight:        bold;
                 font-size:          1.1em;
-                color:              var(--grayBlue);
+                color:              var(--textColor);
                 text-align:         center;
             }
 
@@ -148,11 +149,11 @@ export default class TCommonMedReviewAppView extends TItemCardReviewAppView {
                 margin-top:         15px;
                 font-weight:        bold;
                 font-size:          1.1em;
-                color:              var(--grayBlue);
+                color:              var(--textColor);
                 text-align:         center;
             }
 
-            @media (0 <= width <= 720px) {
+            @media (0 <= width <= 500px) {
                 .refill-question-label {
                     margin-bottom:          5px;
                     font-size:              5.5vw;
@@ -329,8 +330,6 @@ export default class TCommonMedReviewAppView extends TItemCardReviewAppView {
                 }
             });
         }
-        // Force a reflow to ensure the initial state is rendered
-        //newCard.offsetWidth;
         // Apply animations
         this.animateCard(oldCard, newCard, direction);
     }
@@ -419,5 +418,47 @@ export default class TCommonMedReviewAppView extends TItemCardReviewAppView {
         }
         return result;
     }
+    handleAddItem = async () => {
+        const schema = {
+            buttons: [ModalBtn.OK, ModalBtn.Cancel],
+            title: "Add New Medication",
+            instructions: "Enter New Medicine",
+            Fields: {
+                rxName: { type: FieldType.Str, required: true, label: "Medicine Name", placeholder: "Med Name (e.g. 'Lisinopril')" },
+                rxDose: { type: FieldType.Str, required: false, label: "Dose", placeholder: "Dose (e.g. '10 mg')" },
+                rxFreq: { type: FieldType.Str, required: false, label: "Frequency", placeholder: "How Often (e.g. 'Twice a day')" },
+                rxOTC: { type: FieldType.Bool, required: false, label: "Is this over the counter (OTC), no prescription needed)?" },
+                rxComment: { type: FieldType.Text, required: false, label: "Comments", placeholder: "Enter any additional comments here..." },
+            }
+        };
+        const result = await showPopupDlg(schema, document.body);
+        const modalResult = result.modalResult;
+        if (modalResult == ModalBtn.OK) {
+            let rxName = (typeof result.rxName === 'string') ? result.rxName : '';
+            let rxDose = (typeof result.rxDose === 'string') ? result.rxDose : '';
+            let rxFreq = (typeof result.rxFreq === 'string') ? result.rxFreq : '';
+            let boolOTC = (typeof result.rxOTC === 'boolean') ? result.rxOTC : false;
+            let rxOTC = (boolOTC) ? 1 : 0;
+            let rxComment = (typeof result.rxComment === 'string') ? result.rxComment : '';
+            let compositeRxName = rxName + ' ' + rxDose + ' ' + rxFreq;
+            let newRx = {
+                text: compositeRxName,
+                otc: rxOTC,
+                areTaking: 'yes',
+                needsRefill: null,
+                refillLocation: null,
+                comment: rxComment,
+                parsed: compositeRxName,
+                isComplete: true,
+            };
+            this.itemData.push(newRx);
+            this.currentItemIndex = this.itemData.length - 1;
+            this.renderCurrentItem(this.currentItemIndex);
+            await messageDlg("Medication Added", "Now Finish Questions for New Medication", document.body);
+        }
+        else {
+            console.log("Form was canceled");
+        }
+    };
 }
 //# sourceMappingURL=medication_common_review.js.map

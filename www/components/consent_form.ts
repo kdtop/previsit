@@ -5,6 +5,7 @@ import { TCtrl } from '../utility/controller.js';
 import { ToggleButton } from './comp_btns.js'; // Import both components
 import { SignaturePadComponent } from './comp_sigpad.js'; // Import both components
 import { ConsentFormData, TAuthorizedPersonsArray, EnhancedHTMLDivElement } from '../utility/types.js';
+//import html2canvas  from "./html2canvas.js"
 
 // Define the specific HTMLElement type for this form's custom elements
 export type PatientConsentFormHTMLElement = EnhancedHTMLDivElement & {
@@ -293,6 +294,7 @@ export default class TPatientConsentFormAppView extends TAppView<ConsentFormData
     }
 
     public cacheDOMElements() {
+        super.cacheDOMElements();
         this.htmlEl.toggleButtons = [];
         this.htmlEl.toggleButtons?.push(this.htmlEl.dom.querySelector<ToggleButton>('#sectionA-toggle'));
         this.htmlEl.toggleButtons?.push(this.htmlEl.dom.querySelector<ToggleButton>('#sectionB-toggle'));
@@ -303,11 +305,12 @@ export default class TPatientConsentFormAppView extends TAppView<ConsentFormData
         this.htmlEl.repNameInputEl = this.htmlEl.dom.querySelector<HTMLInputElement>('#repName');
         this.htmlEl.relationshipInputEl = this.htmlEl.dom.querySelector<HTMLInputElement>('#relationship');
         this.htmlEl.dontSignBtn = this.htmlEl.dom.querySelector<HTMLButtonElement>('.dont-sign-btn');
-        this.htmlEl.patientNameEls = this.htmlEl.dom.querySelectorAll<HTMLSpanElement>('.patient-full-name');
-        this.htmlEl.patientDOBEls = this.htmlEl.dom.querySelectorAll<HTMLSpanElement>('.patient-dob');
+        //this.htmlEl.patientNameEls = this.htmlEl.dom.querySelectorAll<HTMLSpanElement>('.patient-full-name');
+        //this.htmlEl.patientDOBEls = this.htmlEl.dom.querySelectorAll<HTMLSpanElement>('.patient-dob');
         this.htmlEl.signatureSection = this.htmlEl.dom.querySelector<HTMLDivElement>('#signature-section');
     }
 
+    /*
     public clearCachedDOMElements() {
         this.htmlEl.toggleButtons = [];
         this.htmlEl.signaturePadComponent = null;
@@ -318,10 +321,11 @@ export default class TPatientConsentFormAppView extends TAppView<ConsentFormData
         this.htmlEl.patientDOBEls = null;
         this.htmlEl.signatureSection = null;
     }
+        */
 
     public setupPatientNameDisplay() {
-        if (this.htmlEl.patientNameEls) this.htmlEl.patientNameEls.forEach(el => el.textContent = this.ctrl.patientFullName || "zz");
-        if (this.htmlEl.patientDOBEls) this.htmlEl.patientDOBEls.forEach(el => el.textContent = this.ctrl.patientDOB || "zz");
+        if (this.htmlEl.patientNameEls) this.htmlEl.patientNameEls.forEach(el => el.textContent = this.ctrl.patientFullName || "");
+        if (this.htmlEl.patientDOBEls) this.htmlEl.patientDOBEls.forEach(el => el.textContent = this.ctrl.patientDOB || "");
     }
 
 
@@ -552,4 +556,31 @@ export default class TPatientConsentFormAppView extends TAppView<ConsentFormData
         console.log("Patient Consent Form Component instance initialized.");
     }
 
+
+    /*
+    public async getFormImage(): Promise<string | null> {
+
+        //This gives a data:image/png;base64,... string. One can:
+        //    preview it in an <img src="...">,
+        //    upload it to your server,
+        //    or feed it into a PDF generator later.
+
+        if (!this.htmlEl?.dom) return null;
+
+        // Get the root <form> inside the shadow DOM
+        const formEl = this.htmlEl.dom.querySelector("form") as HTMLElement | null;
+        if (!formEl) {
+            console.error("Consent form <form> not found inside shadow DOM.");
+            return null;
+        }
+
+        try {
+           const canvas = await html2canvas(formEl, { scale: 2 }); // scale=2 for better print resolution
+           return canvas.toDataURL("image/png"); // base64 string
+        } catch (err) {
+            console.error("Error capturing consent form image:", err);
+            return null;
+        }
+    }
+    */
 }

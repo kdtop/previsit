@@ -8,6 +8,7 @@
     "rootDir": "./",
     "target": "ES2022", // Ensure a modern target for browser compatibility
     "esModuleInterop": true, // Often needed for modern module imports, good practice
+    "allowSyntheticDefaultImports": true,   // <--- added this 9/5/25
 
     "lib": ["ES2022", "DOM", "DOM.Iterable"],
     "forceConsistentCasingInFileNames": true,

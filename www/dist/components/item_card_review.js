@@ -1,6 +1,13 @@
 // /opt/worldvista/EHR/web/previsit/www/components/medciation_review.ts
 import TAppView from './appview.js';
-import { showPopupDlg } from './dialog_popup.js';
+import { showPopupDlg, FieldType, ModalBtn } from './dialog_popup.js';
+export var UserDoubleTapDirection;
+(function (UserDoubleTapDirection) {
+    UserDoubleTapDirection[UserDoubleTapDirection["None"] = 0] = "None";
+    UserDoubleTapDirection[UserDoubleTapDirection["Prev"] = 1] = "Prev";
+    UserDoubleTapDirection[UserDoubleTapDirection["Next"] = 2] = "Next";
+})(UserDoubleTapDirection || (UserDoubleTapDirection = {}));
+;
 /**
  * Represents the item_review component as a class, responsible for building and managing the patient history update form.
  */
@@ -11,12 +18,19 @@ export default class TItemCardReviewAppView extends TAppView {
     currentItemIndex = 0;
     itemData = [];
     inCardChangeAnimation = false;
+    userNavDoubleTappedDir = UserDoubleTapDirection.None;
+    onCardChangeAnimationDone = null; //if defined, will be called at end of CardChange Animation.
     constructor(viewName, apiURL, aCtrl, opts) {
         super(viewName, apiURL, aCtrl);
         if (opts) {
             //process opts -- if any added later
         }
     } //constructor
+    async refresh() {
+        await super.refresh();
+        this.inCardChangeAnimation = false;
+        this.userNavDoubleTappedDir = UserDoubleTapDirection.None;
+    }
     getCSSContent() {
         let result = super.getCSSContent() +
             `
@@ -53,7 +67,7 @@ export default class TItemCardReviewAppView extends TAppView {
                 line-height:        1.6;
                 padding:            0 10px; /* Kept for overall container padding */
                 background-color:   var(--whiteColor);
-                color:              var(--grayBlue);
+                color:              var(--textColor);
                 display:            flex;
                 flex-direction:     column;
                 min-height:         100vh;
@@ -66,7 +80,7 @@ export default class TItemCardReviewAppView extends TAppView {
             }
 
             .footer-area {
-                padding:            2x;
+                padding:            2px;
                 text-align:         center;
                 margin-top:         auto;
             }
@@ -114,7 +128,7 @@ export default class TItemCardReviewAppView extends TAppView {
                 border-radius:      12px;
                 background-color:   var(--lightLightGray);
                 border: 1px solid var(--lightGray);
-                color:              var(--grayBlue);
+                color:              var(--textColor);
                 transition:         background-color 0.2s ease, color 0.2s ease, transform 0.1s ease, box-shadow 0.2s ease;
                 cursor:             pointer;
                 user-select:        none;
@@ -141,7 +155,7 @@ export default class TItemCardReviewAppView extends TAppView {
                 display:            block;
                 margin-bottom:      5px;
                 font-weight:        bold;
-                color:              var(--grayBlue);
+                color:              var(--textColor);
             }
 
             .details-input-group textarea {
@@ -206,7 +220,7 @@ export default class TItemCardReviewAppView extends TAppView {
             .item-name {
                 font-size:          1.8em;
                 font-weight:        bold;
-                color:              var(--grayBlue);
+                color:              var(--textColor);
                 margin-bottom:      5px;
                 text-align:         center;
                 border:             solid 1px var(--lightGray);
@@ -228,7 +242,7 @@ export default class TItemCardReviewAppView extends TAppView {
                 margin-bottom:      10px;
                 font-weight:        bold;
                 font-size:          1.1em;
-                color:              var(--grayBlue);
+                color:              var(--textColor);
                 text-align:         center;
             }
 
@@ -255,7 +269,7 @@ export default class TItemCardReviewAppView extends TAppView {
             /* Navigation Buttons & Progress Message */
             .item-progress-message {
                 font-size:          1.1em;
-                color:              var(--grayBlue);
+                color:              var(--textColor);
                 text-align:         center;
                 flex-grow:          1; /* Allows message to take available space */
                 margin:             0px; /* Space around the message */
@@ -328,7 +342,7 @@ export default class TItemCardReviewAppView extends TAppView {
 
 
 
-            @media (0 <= width <= 720px) {
+            @media (0 <= width <= 500px) {
                 .item-name {
                     font-size:              5vw;
                     margin-bottom:          5px;
@@ -432,63 +446,10 @@ export default class TItemCardReviewAppView extends TAppView {
     }
     getHTMLTagContent() {
         let result = this.getHTMLStructure();
-        /*
-        let old_result : string = `
-            <form class='itemreview-container'>
-                <div class="header-area">
-                    <h1>${this.getTitleText()}</h1>
-                    <patient-name-area>
-                      Patient: <span class="patient-name"></span>
-                    </patient-name-area>
-                </div>
-
-                <div class="main-content-area">
-                    <div class="item-display-area">
-                        </div>
-                    <div class="navigation-area">
-                        <button type="button" class="nav-button prev-item-button">&larr; Previous</button>
-                        <span class="item-progress-message"></span>
-                        <button type="button" class="nav-button next-item-button">Next &rarr;</button>
-                    </div>
-                </div>
-
-                <div class="add-item-area">
-                    <button type="button" class="add-item-button hidden">
-                        <!-- Icon on the left -->
-                        <span class="done-button-icon-area">
-                            ${this.getAddItemSVGIcon()}
-                        </span>
-                        <!-- Text container -->
-                        <span class="done-button-text">
-                            <span class="add-button-main-text">${this.getAddItemText()}</span>
-                            <span class="add-button-sub-text"></span>
-                        </span>
-                    </button>
-                </div>
-
-                <div class="footer-area">
-                    <div class="submission-controls">
-                        <button type="button" class="done-button">
-                            <!-- Icon on the left -->
-                            <span class="done-button-icon-area">
-                                ${this.getDoneIncompleteSVGIcon()}
-                                ${this.getDoneCompleteSVGIcon()}
-                            </span>
-                            <!-- Text container -->
-                            <span class="done-button-text">
-                              <span class="done-button-main-text">Main Text</span>
-                              <span class="done-button-sub-text">Sub Text</span>
-                            </span>
-                        </button>
-                    </div>
-                </div>
-
-            </form>
-        `;
-        */
         return result;
     }
     cacheDOMElements() {
+        super.cacheDOMElements();
         this.doneButton = this.htmlEl.dom.querySelector('.done-button');
         this.doneButtonMainText = this.htmlEl.dom.querySelector('.done-button-main-text');
         this.doneButtonSubText = this.htmlEl.dom.querySelector('.done-button-sub-text');
@@ -498,7 +459,8 @@ export default class TItemCardReviewAppView extends TAppView {
         this.htmlEl.itemProgMessageEl = this.htmlEl.dom.querySelector('.item-progress-message');
         this.htmlEl.addItemButtonEL = this.htmlEl.dom.querySelector('.add-item-button');
     }
-    clearCachedDOMElements() {
+    /*
+    public clearCachedDOMElements() {
         this.doneButton = null;
         this.doneButtonMainText = null;
         this.doneButtonSubText = null;
@@ -507,6 +469,7 @@ export default class TItemCardReviewAppView extends TAppView {
         this.htmlEl.nextItemButtonEl = null;
         this.htmlEl.itemProgMessageEl = null;
     }
+    */
     setupPatientNameDisplay() {
         // Populate patient name
         const patientNameEl = this.htmlEl.dom.querySelector('.patient-name');
@@ -544,6 +507,8 @@ export default class TItemCardReviewAppView extends TAppView {
                         newCard.classList.remove(initialPositionClass); // Remove the initial position class to start the animation
                         newCard.addEventListener('transitionend', () => {
                             this.inCardChangeAnimation = false;
+                            if (this.onCardChangeAnimationDone)
+                                this.onCardChangeAnimationDone();
                         }, { once: true });
                     }, 0);
                 }
@@ -675,12 +640,33 @@ export default class TItemCardReviewAppView extends TAppView {
             this.htmlEl.nextItemButtonEl.disabled = true;
         }
     }
+    handleOnCardChangeAnimationDone() {
+        if (this.userNavDoubleTappedDir === UserDoubleTapDirection.Prev) {
+            this.userNavDoubleTappedDir = UserDoubleTapDirection.None;
+            if (this.currentItemIndex > 0) {
+                this.currentItemIndex = 0;
+                this.renderCurrentItem(this.currentItemIndex, 'prev');
+            }
+        }
+        else if (this.userNavDoubleTappedDir === UserDoubleTapDirection.Next) {
+            this.userNavDoubleTappedDir = UserDoubleTapDirection.None;
+            if (this.currentItemIndex < this.itemData.length - 1) {
+                this.currentItemIndex = this.itemData.length - 1;
+                this.renderCurrentItem(this.currentItemIndex, 'next');
+            }
+        }
+        this.inCardChangeAnimation = false; //just in case not cleared before
+    }
     /**
      * Handles navigation to the previous item.
      */
     handlePrevItem = () => {
-        if (this.inCardChangeAnimation)
+        if (this.inCardChangeAnimation) {
+            this.userNavDoubleTappedDir = UserDoubleTapDirection.Prev;
+            if (!this.onCardChangeAnimationDone)
+                this.onCardChangeAnimationDone = this.handleOnCardChangeAnimationDone;
             return; //don't allow until prior animations done.
+        }
         if (this.currentItemIndex > 0) {
             this.currentItemIndex--;
             this.renderCurrentItem(this.currentItemIndex, 'prev');
@@ -690,8 +676,12 @@ export default class TItemCardReviewAppView extends TAppView {
      * Handles navigation to the next item.
      */
     handleNextItem = () => {
-        if (this.inCardChangeAnimation)
+        if (this.inCardChangeAnimation) {
+            this.userNavDoubleTappedDir = UserDoubleTapDirection.Next;
+            if (!this.onCardChangeAnimationDone)
+                this.onCardChangeAnimationDone = this.handleOnCardChangeAnimationDone;
             return; //don't allow until prior animations done.
+        }
         if (this.currentItemIndex < this.itemData.length - 1) {
             this.currentItemIndex++;
             this.renderCurrentItem(this.currentItemIndex, 'next');
@@ -699,11 +689,13 @@ export default class TItemCardReviewAppView extends TAppView {
     };
     handleAddItem = async () => {
         const schema = {
+            buttons: [ModalBtn.OK, ModalBtn.Cancel],
             title: "User Info",
+            instructions: "Enter Information below...", //Enter New Allergy for Medicine or Related Substance (but NOT Ragweed etc)
             Fields: {
-                Name: "string",
-                Age: "number",
-                Subscribe: "boolean"
+                Name: FieldType.Str,
+                Age: FieldType.Num,
+                Subscribe: FieldType.Bool
             }
         };
         const result = await showPopupDlg(schema, document.body);

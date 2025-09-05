@@ -1,5 +1,6 @@
 // /opt/worldvista/EHR/web/previsit/www/components/medciation_allergies_review.ts
 import TItemCardReviewAppView from './item_card_review.js';
+import { showPopupDlg, messageDlg, FieldType, ModalBtn } from './dialog_popup.js';
 /**
  * Represents the medication_allergy_review component as a class, responsible for building and managing the update form.
  */
@@ -61,7 +62,7 @@ export default class TMedAllergiesReviewAppView extends TItemCardReviewAppView {
         return "Review Medication/Substance Allergies";
     }
     getAddItemText() {
-        return "Add NEW Allergy";
+        return "(OPTIONAL) Add NEW Allergy";
     }
     /**
      * Renders the current allergy item with its questions.
@@ -160,5 +161,41 @@ export default class TMedAllergiesReviewAppView extends TItemCardReviewAppView {
         currentAllergy.isComplete = stillAllergicAnswered; // Cache the result in the current Allergy object
         return stillAllergicAnswered;
     }
+    handleAddItem = async () => {
+        const schema = {
+            buttons: [ModalBtn.OK, ModalBtn.Cancel],
+            title: "Add New Allergy",
+            instructions: "Enter New Allergy for Medicine or Related Substance (but NOT Ragweed etc)",
+            Fields: {
+                name: { type: FieldType.Str, required: true, placeholder: "Full Name" },
+                reaction: { type: FieldType.Text, placeholder: "Describe reaction here..." },
+            }
+        };
+        const result = await showPopupDlg(schema, document.body);
+        const modalResult = result.modalResult;
+        if (modalResult == ModalBtn.OK) {
+            let rxName = '';
+            if (typeof result.name === 'string')
+                rxName = result.name;
+            let rxReaction = '';
+            if (typeof result.reaction === 'string')
+                rxReaction = result.reaction;
+            let newAllergy = {
+                text: rxName,
+                reaction: rxReaction,
+                comment: null,
+                isComplete: true,
+                date: new Date().toLocaleDateString("en-US"),
+                patientResponse: 'yes',
+            };
+            this.itemData.push(newAllergy);
+            this.currentItemIndex = this.itemData.length - 1;
+            this.renderCurrentItem(this.currentItemIndex);
+            await messageDlg("Allergy Added", "", document.body);
+        }
+        else {
+            console.log("Form was canceled");
+        }
+    };
 }
 //# sourceMappingURL=medication_allergies_review.js.map

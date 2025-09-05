@@ -24,9 +24,8 @@ export default class TMedReviewAppView extends TCommonMedReviewAppView {
 
     public getAddItemText() : string
     {
-        return "Add NEW Prescription Medication (not OTC)";
+        return "(OPTIONAL) Add NEW Prescription Medication (Not OTC)";
     }
-
 
 
 }

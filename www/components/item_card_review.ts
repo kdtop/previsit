@@ -6,7 +6,7 @@ import { CardAnimationDirection,
          GenericUserAnswersArray,
          EnhancedHTMLDivElement
        } from '../utility/types.js';
-import { showPopupDlg, DlgSchema, FieldType, FieldEntry } from './dialog_popup.js';
+import { showPopupDlg, DlgSchema, FieldType, FieldEntry, ModalBtn } from './dialog_popup.js';
 
 
 export interface ItemReviewOptions {
@@ -22,6 +22,9 @@ export type ItemReviewHTMLElement = EnhancedHTMLDivElement & {
     itemProgMessageEl?: HTMLSpanElement | null; // New: For "Item X of Y" message
     addItemButtonEL?: HTMLButtonElement | null;
 };
+
+export enum UserDoubleTapDirection { None, Prev, Next };
+
 
 /**
  * Represents the item_review component as a class, responsible for building and managing the patient history update form.
@@ -42,6 +45,9 @@ export default class TItemCardReviewAppView<TServerData extends GenericUserAnswe
     public itemData: TServerData = [] as unknown as TServerData;
 
     public inCardChangeAnimation : boolean = false;
+    public userNavDoubleTappedDir : UserDoubleTapDirection = UserDoubleTapDirection.None;
+
+    public onCardChangeAnimationDone : Function | null = null;  //if defined, will be called at end of CardChange Animation.
 
     constructor(viewName : string, apiURL : string, aCtrl: TCtrl, opts?: ItemReviewOptions) {
         super(viewName, apiURL, aCtrl);
@@ -49,6 +55,12 @@ export default class TItemCardReviewAppView<TServerData extends GenericUserAnswe
             //process opts -- if any added later
         }
     } //constructor
+
+    public async refresh() : Promise<void> {
+        await super.refresh();
+        this.inCardChangeAnimation = false;
+        this.userNavDoubleTappedDir = UserDoubleTapDirection.None;
+    }
 
     public getCSSContent() : string
     {
@@ -87,7 +99,7 @@ export default class TItemCardReviewAppView<TServerData extends GenericUserAnswe
                 line-height:        1.6;
                 padding:            0 10px; /* Kept for overall container padding */
                 background-color:   var(--whiteColor);
-                color:              var(--grayBlue);
+                color:              var(--textColor);
                 display:            flex;
                 flex-direction:     column;
                 min-height:         100vh;
@@ -100,7 +112,7 @@ export default class TItemCardReviewAppView<TServerData extends GenericUserAnswe
             }
 
             .footer-area {
-                padding:            2x;
+                padding:            2px;
                 text-align:         center;
                 margin-top:         auto;
             }
@@ -148,7 +160,7 @@ export default class TItemCardReviewAppView<TServerData extends GenericUserAnswe
                 border-radius:      12px;
                 background-color:   var(--lightLightGray);
                 border: 1px solid var(--lightGray);
-                color:              var(--grayBlue);
+                color:              var(--textColor);
                 transition:         background-color 0.2s ease, color 0.2s ease, transform 0.1s ease, box-shadow 0.2s ease;
                 cursor:             pointer;
                 user-select:        none;
@@ -175,7 +187,7 @@ export default class TItemCardReviewAppView<TServerData extends GenericUserAnswe
                 display:            block;
                 margin-bottom:      5px;
                 font-weight:        bold;
-                color:              var(--grayBlue);
+                color:              var(--textColor);
             }
 
             .details-input-group textarea {
@@ -240,7 +252,7 @@ export default class TItemCardReviewAppView<TServerData extends GenericUserAnswe
             .item-name {
                 font-size:          1.8em;
                 font-weight:        bold;
-                color:              var(--grayBlue);
+                color:              var(--textColor);
                 margin-bottom:      5px;
                 text-align:         center;
                 border:             solid 1px var(--lightGray);
@@ -262,7 +274,7 @@ export default class TItemCardReviewAppView<TServerData extends GenericUserAnswe
                 margin-bottom:      10px;
                 font-weight:        bold;
                 font-size:          1.1em;
-                color:              var(--grayBlue);
+                color:              var(--textColor);
                 text-align:         center;
             }
 
@@ -289,7 +301,7 @@ export default class TItemCardReviewAppView<TServerData extends GenericUserAnswe
             /* Navigation Buttons & Progress Message */
             .item-progress-message {
                 font-size:          1.1em;
-                color:              var(--grayBlue);
+                color:              var(--textColor);
                 text-align:         center;
                 flex-grow:          1; /* Allows message to take available space */
                 margin:             0px; /* Space around the message */
@@ -362,7 +374,7 @@ export default class TItemCardReviewAppView<TServerData extends GenericUserAnswe
 
 
 
-            @media (0 <= width <= 720px) {
+            @media (0 <= width <= 500px) {
                 .item-name {
                     font-size:              5vw;
                     margin-bottom:          5px;
@@ -473,70 +485,16 @@ export default class TItemCardReviewAppView<TServerData extends GenericUserAnswe
             </form>
         `;
         return result;
-
     }
 
     public getHTMLTagContent() : string
     {
         let result = this.getHTMLStructure();
-        /*
-        let old_result : string = `
-            <form class='itemreview-container'>
-                <div class="header-area">
-                    <h1>${this.getTitleText()}</h1>
-                    <patient-name-area>
-                      Patient: <span class="patient-name"></span>
-                    </patient-name-area>
-                </div>
-
-                <div class="main-content-area">
-                    <div class="item-display-area">
-                        </div>
-                    <div class="navigation-area">
-                        <button type="button" class="nav-button prev-item-button">&larr; Previous</button>
-                        <span class="item-progress-message"></span>
-                        <button type="button" class="nav-button next-item-button">Next &rarr;</button>
-                    </div>
-                </div>
-
-                <div class="add-item-area">
-                    <button type="button" class="add-item-button hidden">
-                        <!-- Icon on the left -->
-                        <span class="done-button-icon-area">
-                            ${this.getAddItemSVGIcon()}
-                        </span>
-                        <!-- Text container -->
-                        <span class="done-button-text">
-                            <span class="add-button-main-text">${this.getAddItemText()}</span>
-                            <span class="add-button-sub-text"></span>
-                        </span>
-                    </button>
-                </div>
-
-                <div class="footer-area">
-                    <div class="submission-controls">
-                        <button type="button" class="done-button">
-                            <!-- Icon on the left -->
-                            <span class="done-button-icon-area">
-                                ${this.getDoneIncompleteSVGIcon()}
-                                ${this.getDoneCompleteSVGIcon()}
-                            </span>
-                            <!-- Text container -->
-                            <span class="done-button-text">
-                              <span class="done-button-main-text">Main Text</span>
-                              <span class="done-button-sub-text">Sub Text</span>
-                            </span>
-                        </button>
-                    </div>
-                </div>
-
-            </form>
-        `;
-        */
         return result;
     }
 
     public cacheDOMElements() {
+        super.cacheDOMElements();
         this.doneButton               = this.htmlEl.dom.querySelector<HTMLButtonElement>( '.done-button');
         this.doneButtonMainText       = this.htmlEl.dom.querySelector<HTMLSpanElement>(   '.done-button-main-text');
         this.doneButtonSubText        = this.htmlEl.dom.querySelector<HTMLSpanElement>(   '.done-button-sub-text');
@@ -547,6 +505,7 @@ export default class TItemCardReviewAppView<TServerData extends GenericUserAnswe
         this.htmlEl.addItemButtonEL   = this.htmlEl.dom.querySelector<HTMLButtonElement>( '.add-item-button');
     }
 
+    /*
     public clearCachedDOMElements() {
         this.doneButton = null;
         this.doneButtonMainText = null;
@@ -556,6 +515,7 @@ export default class TItemCardReviewAppView<TServerData extends GenericUserAnswe
         this.htmlEl.nextItemButtonEl = null;
         this.htmlEl.itemProgMessageEl = null;
     }
+    */
 
     public setupPatientNameDisplay() {
         // Populate patient name
@@ -593,6 +553,7 @@ export default class TItemCardReviewAppView<TServerData extends GenericUserAnswe
                         newCard.classList.remove(initialPositionClass);  // Remove the initial position class to start the animation
                         newCard.addEventListener('transitionend', () => {
                           this.inCardChangeAnimation = false;
+                          if (this.onCardChangeAnimationDone) this.onCardChangeAnimationDone();
                         }, { once: true });
                     }, 0);
                 }
@@ -738,11 +699,32 @@ export default class TItemCardReviewAppView<TServerData extends GenericUserAnswe
         }
     }
 
+    public handleOnCardChangeAnimationDone() : void {
+        if (this.userNavDoubleTappedDir === UserDoubleTapDirection.Prev) {
+            this.userNavDoubleTappedDir = UserDoubleTapDirection.None;
+            if (this.currentItemIndex > 0) {
+                this.currentItemIndex = 0;
+                this.renderCurrentItem(this.currentItemIndex, 'prev');
+            }
+        } else if (this.userNavDoubleTappedDir === UserDoubleTapDirection.Next) {
+            this.userNavDoubleTappedDir = UserDoubleTapDirection.None;
+            if (this.currentItemIndex < this.itemData.length - 1) {
+                this.currentItemIndex = this.itemData.length - 1
+                this.renderCurrentItem(this.currentItemIndex, 'next');
+            }
+        }
+        this.inCardChangeAnimation = false; //just in case not cleared before
+    }
+
     /**
      * Handles navigation to the previous item.
      */
     public handlePrevItem = (): void => {
-        if (this.inCardChangeAnimation) return;  //don't allow until prior animations done.
+        if (this.inCardChangeAnimation) {
+            this.userNavDoubleTappedDir = UserDoubleTapDirection.Prev;
+            if (!this.onCardChangeAnimationDone) this.onCardChangeAnimationDone = this.handleOnCardChangeAnimationDone;
+            return;  //don't allow until prior animations done.
+        }
         if (this.currentItemIndex > 0) {
             this.currentItemIndex--;
             this.renderCurrentItem(this.currentItemIndex, 'prev');
@@ -753,7 +735,11 @@ export default class TItemCardReviewAppView<TServerData extends GenericUserAnswe
      * Handles navigation to the next item.
      */
     public handleNextItem = (): void => {
-        if (this.inCardChangeAnimation) return;  //don't allow until prior animations done.
+        if (this.inCardChangeAnimation) {
+            this.userNavDoubleTappedDir = UserDoubleTapDirection.Next;
+            if (!this.onCardChangeAnimationDone) this.onCardChangeAnimationDone = this.handleOnCardChangeAnimationDone;
+            return;  //don't allow until prior animations done.
+        }
         if (this.currentItemIndex < this.itemData.length - 1) {
             this.currentItemIndex++;
             this.renderCurrentItem(this.currentItemIndex, 'next');
@@ -762,11 +748,13 @@ export default class TItemCardReviewAppView<TServerData extends GenericUserAnswe
 
     public handleAddItem = async () : Promise<void> => {
         const schema : DlgSchema = {
+            buttons: [ModalBtn.OK, ModalBtn.Cancel],
             title: "User Info",
+            instructions: "Enter Information below...", //Enter New Allergy for Medicine or Related Substance (but NOT Ragweed etc)
             Fields: {
-              Name: "string",
-              Age: "number",
-              Subscribe: "boolean"
+              Name: FieldType.Str,
+              Age:  FieldType.Num,
+              Subscribe: FieldType.Bool
             }
         };
         const result = await showPopupDlg(schema, document.body);

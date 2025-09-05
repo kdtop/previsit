@@ -131,15 +131,18 @@ export default class TSigFormAppView extends TAppView {
         return result;
     }
     cacheDOMElements() {
+        super.cacheDOMElements();
         this.htmlEl.signaturePadComponent = this.htmlEl.dom.querySelector('#sigPad1');
         this.htmlEl.dontSignBtn = this.htmlEl.dom.querySelector('.dont-sign-btn');
         this.htmlEl.contentSection = this.htmlEl.dom.querySelector('.content-section');
     }
-    clearCachedDOMElements() {
+    /*
+    public clearCachedDOMElements() {
         this.htmlEl.signaturePadComponent = null;
         this.htmlEl.dontSignBtn = null;
         this.htmlEl.contentSection = null;
     }
+    */
     /**
      * Sets up general event listeners for the form (e.g., form submission).
      */

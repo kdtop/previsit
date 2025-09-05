@@ -1,5 +1,48 @@
 // /opt/worldvista/EHR/web/previsit/www/utility/el.ts
 import { addShortcuts, properties, debounce } from '../utility/client_utils.js';
+export function getAppColors() {
+    return `
+      --medium: 0.8em;
+      --smaller: 0.6em;
+      --tiny: 0.4em;
+      --okGreen:             #28a745;
+      --darkerGreen:         #228b22;
+      --niceBlue:            #3498db;
+      --darkerNiceBlue:      #2980b9;
+      --darkerBlue:          #0505aa;
+      --grayBlue:            #2c3e50;
+      --redish:              #e74c3c;
+      --red:                 #b70505;
+      --darkerRed:           #790e0e;
+      --incompleteRed:       #ffe0e0;
+      --incompleteRedDarker: #f0c0c0;
+      --darkGray:            #333333;
+      --lighterDarkGray:     #7c7c7cff;
+      --darkShadowColor:     rgba(0,0,0,0.6);
+      --medShadowColor:      rgba(0,0,0,0.4);
+      --shadowColor:         rgba(0,0,0,0.2);
+      --gray:                #9d9d9d;
+      --medGray:             #ccc;
+      --lightGray:           #e2e2e2;
+      --lightLightGray:      #f0f0f0;
+      --whiteColor:          #fcfcfcff;
+      --lightYellow:         #ffe16e;
+
+      --textColor:           var(--grayBlue);
+
+      --windowRxBackground:  linen;
+      --genericRxColor:      var(--niceBlue);
+      --brandRxColor:        var(--darkerNiceBlue);
+      --strengthRxColor:     var(--darkerRed);
+      --unitsRxColor:        var(--darkGray);
+      --formRxColor:         var(--darkerRed);
+      --sigRxColor:          var(--gray);
+      --noteRxColor:         var(--darkerBlue);
+      --otcRxColor:          var(--red);
+      --prefaceRxColor:      var(--darkerBlue);
+      --unparsedRxColor:     var(--whiteColor);
+    `;
+}
 /**
  * The main factory class that creates an enhanced `div` element.
  * It's designed to be called with `new EL(...)` to maintain compatibility
@@ -41,41 +84,7 @@ export default class TAppView {
             <style>
 
                 :host {
-                  --medium: 0.8em;
-                  --smaller: 0.6em;
-                  --tiny: 0.4em;
-
-                  --okGreen:             #28a745;
-                  --darkerGreen:         #228b22;
-                  --niceBlue:            #3498db;
-                  --darkerNiceBlue:      #2980b9;
-                  --darkerBlue:          #0505aa;
-                  --grayBlue:            #2c3e50;
-                  --redish:              #e74c3c;
-                  --red:                 #b70505;
-                  --darkerRed:           #790e0e;
-                  --incompleteRed:       #ffe0e0;
-                  --incompleteRedDarker: #f0c0c0;
-                  --darkGray:            #333333;
-                  --lighterDarkGray:     #7c7c7cff;
-                  --shadowColor:         rgba(0,0,0,0.2);
-                  --gray:                #9d9d9d;
-                  --lightGray:           #e2e2e2;
-                  --lightLightGray:      #f0f0f0;
-                  --whiteColor:          #fcfcfcff;
-                  --lightYellow:         #ffe16e;
-
-                  --windowRxBackground:  linen;
-                  --genericRxColor:      var(--niceBlue);
-                  --brandRxColor:        var(--darkerNiceBlue);
-                  --strengthRxColor:     var(--darkerRed);
-                  --unitsRxColor:        var(--darkGray);
-                  --formRxColor:         var(--darkerRed);
-                  --sigRxColor:          var(--gray);
-                  --noteRxColor:         var(--darkerBlue);
-                  --otcRxColor:          var(--red);
-                  --prefaceRxColor:      var(--darkerBlue);
-                  --unparsedRxColor:     var(--whiteColor);
+                  ${getAppColors()}
                 }
 
                 /* General Body and Font Styles */
@@ -84,19 +93,19 @@ export default class TAppView {
                     margin:             20px;
                     line-height:        1.6;
                     background-color:   var(--whiteColor);
-                    color:              var(--grayBlue);
+                    color:              var(--textColor);
                 }
 
                 /* General Heading Styles */
                 h1 {
-                    color:          var(--grayBlue);
+                    color:          var(--textColor);
                     text-align:     center;
                     margin-bottom:  30px;
                     display:         flex;
                     flex-direction: column;
                 }
                 h2 {
-                    color:          var(--grayBlue);
+                    color:          var(--textColor);
                     text-align:     center;
                     border-bottom:  2px solid var(--niceBlue);
                     padding-bottom: 5px;
@@ -104,7 +113,7 @@ export default class TAppView {
                     margin-bottom:  15px;
                 }
                 h3 {
-                    color:          var(--grayBlue);
+                    color:          var(--textColor);
                     margin-top:     10px;
                     border-bottom:  1px solid var(--lightGray);
                     padding-bottom: 5px;
@@ -265,102 +274,100 @@ export default class TAppView {
                 }
 
                 /* Responsive adjustments for all app views */
-                @media (max-width: 768px) {
+                @media (max-width: 500px) {
                     body {
                         margin: 15px; /* Smaller margins for smaller screens */
                     }
                 }
 
-            .navigation-area { /* Container for buttons and message */
-                display:            flex;
-                justify-content:    space-between;
-                align-items:        center;
-                padding:            0px 10px;
-                width:              100%;
-                z-index:            20;
-            }
-
-            .navigation-area button {
-                padding:            10px 20px;
-                font-size:          1em;
-                background-color:   var(--niceBlue);
-                color:              var(--whiteColor);
-                border:             none;
-                border-radius:      5px;
-                cursor:             pointer;
-                height:             7vw;
-                transition:         background-color 0.5s ease;
-                flex-shrink:        0; /* Prevent buttons from shrinking */
-            }
-
-            .navigation-area button:hover:not(:disabled) {
-                background-color:   var(--darkerNiceBlue);
-            }
-
-            .navigation-area button:disabled {
-                background-color:   var(--gray);
-                cursor:             not-allowed;
-            }
-
-            .nav-button {
-                height: 200px;
-            }
-
-            .prev-item-button {
-                background-color:   var(--niceBlue);
-                color:              var(--whiteColor);
-            }
-
-            .prev-item-button:hover:not(:disabled) {
-                background-color:   var(--darkerNiceBlue);
-            }
-
-            .next-item-button.incomplete {
-                background-color:   var(--incompleteRed);
-                color:              var(--grayBlue);
-            }
-
-            .next-item-button.incomplete:hover:not(:disabled) {
-                background-color:   var(--incompleteRedDarker);
-            }
-
-            .next-item-button.complete {
-                background-color:   var(--okGreen);
-                color:              var(--whiteColor);
-            }
-
-            .next-item-button.complete:hover:not(:disabled) {
-                background-color:   var(--darkerGreen);
-            }
-
-            /* Responsive adjustments */
-            @media(max-width: 850px) {
-                .itemreview-container {
-                    padding:                0 15px;
+                .navigation-area { /* Container for buttons and message */
+                    display:            flex;
+                    justify-content:    space-between;
+                    align-items:        center;
+                    padding:            0px;
+                    width:              100%;
+                    z-index:            20;
                 }
-                .item-card {
-                    /* Width is now handled by max-width and parent's centering */
-                }
-                .navigation-area {
-                    padding:                0 0; /* Remove horizontal padding here, parent handles it */
-                    flex-direction:         column; /* Stack buttons and message vertically */
-                    gap:                    15px; /* Space between stacked items */
-                }
+
                 .navigation-area button {
-                    width:                  100%; /* Full width when stacked */
+                    padding:            10px 20px;
+                    font-size:          1em;
+                    background-color:   var(--niceBlue);
+                    color:              var(--whiteColor);
+                    border:             none;
+                    border-radius:      5px;
+                    cursor:             pointer;
+                    height:             7vw;
+                    transition:         background-color 0.5s ease;
+                    flex-shrink:        0; /* Prevent buttons from shrinking */
                 }
-                .item-progress-message {
-                    order:                  -1; /* Move message to the top when stacked */
-                    margin-top:             0px;
-                    margin-bottom:          -15px;
-                }
-                .custom-checkbox-text {
-                    padding:                6px 10px;
-                    font-size:              0.95em;
-                }
-            }
 
+                .navigation-area button:hover:not(:disabled) {
+                    background-color:   var(--darkerNiceBlue);
+                }
 
+                .navigation-area button:disabled {
+                    background-color:   var(--gray);
+                    cursor:             not-allowed;
+                }
+
+                .nav-button {
+                    height: 200px;
+                }
+
+                .prev-item-button {
+                    background-color:   var(--niceBlue);
+                    color:              var(--whiteColor);
+                }
+
+                .prev-item-button:hover:not(:disabled) {
+                    background-color:   var(--darkerNiceBlue);
+                }
+
+                .next-item-button.incomplete {
+                    background-color:   var(--incompleteRed);
+                    color:              var(--textColor);
+                }
+
+                .next-item-button.incomplete:hover:not(:disabled) {
+                    background-color:   var(--incompleteRedDarker);
+                }
+
+                .next-item-button.complete {
+                    background-color:   var(--okGreen);
+                    color:              var(--whiteColor);
+                }
+
+                .next-item-button.complete:hover:not(:disabled) {
+                    background-color:   var(--darkerGreen);
+                }
+
+                /* Responsive adjustments */
+                @media(max-width: 500px) {
+                    .itemreview-container {
+                        padding:                0 15px;
+                    }
+                    .item-card {
+                        /* Width is now handled by max-width and parent's centering */
+                    }
+                    .navigation-area {
+                        padding:                0 0; /* Remove horizontal padding here, parent handles it */
+                        flex-direction:         column; /* Stack buttons and message vertically */
+                        gap:                    15px; /* Space between stacked items */
+                    }
+                    .navigation-area button {
+                        width:                  100%; /* Full width when stacked */
+                    }
+                    .item-progress-message {
+                        order:                  -1; /* Move message to the top when stacked */
+                        margin-top:             0px;
+                        margin-bottom:          -15px;
+                    }
+                    .custom-checkbox-text {
+                        padding:                6px 10px;
+                        font-size:              0.95em;
+                    }
+                }
             </style>
         `;
     }
@@ -480,10 +487,6 @@ export default class TAppView {
         }
         this.updatePageState(); //Set the initial state of the form (and done button) after the form is rendered
     }
-    clearForm() {
-        this.clearCachedDOMElements();
-        this.htmlEl = null;
-    }
     /**
      * Builds the entire Questionainnaire form dynamically within the component.
      * This method is called on refresh and can be adapted later to pre-fill data.
@@ -495,12 +498,13 @@ export default class TAppView {
         this.setupFormEventListeners();
     }
     setupPatientNameDisplay() {
-        //NOTE: This is a virtual method, to be overridden by descendant classes
+        //NOTE: This is a virtual method, to be extended by descendant classes
+        if (!this.htmlEl)
+            return;
+        this.htmlEl.patientNameEls = this.htmlEl.dom.querySelectorAll('.patient-full-name');
+        this.htmlEl.patientDOBEls = this.htmlEl.dom.querySelectorAll('.patient-dob');
     }
     cacheDOMElements() {
-        //NOTE: This is a virtual method, to be overridden by descendant classes
-    }
-    clearCachedDOMElements() {
         //NOTE: This is a virtual method, to be overridden by descendant classes
     }
     setupFormEventListeners() {

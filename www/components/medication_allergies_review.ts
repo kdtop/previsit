@@ -5,6 +5,7 @@ import TItemCardReviewAppView from './item_card_review.js';
 import { UserAllergyAnswersArray,
          UserAllergyAnswers, YesNoUnknownStatus
        } from '../utility/types.js';
+import { showPopupDlg, messageDlg, DlgSchema, FieldType, DlgResult, ModalBtn} from './dialog_popup.js';
 
 export interface AllergyReviewOptions {
     someOption : any;
@@ -80,7 +81,7 @@ export default class TMedAllergiesReviewAppView extends TItemCardReviewAppView<U
 
     public getAddItemText() : string
     {
-        return "Add NEW Allergy";
+        return "(OPTIONAL) Add NEW Allergy";
     }
 
     /**
@@ -185,6 +186,41 @@ export default class TMedAllergiesReviewAppView extends TItemCardReviewAppView<U
         const stillAllergicAnswered : boolean = ((currentAllergy.patientResponse !== null) && (currentAllergy.patientResponse !== undefined));
         currentAllergy.isComplete = stillAllergicAnswered; // Cache the result in the current Allergy object
         return stillAllergicAnswered;
+    }
+
+    public handleAddItem = async () : Promise<void> => {
+        const schema : DlgSchema = {
+            buttons: [ModalBtn.OK, ModalBtn.Cancel],
+            title: "Add New Allergy",
+            instructions: "Enter New Allergy for Medicine or Related Substance (but NOT Ragweed etc)",
+            Fields: {
+                name: { type: FieldType.Str, required: true, placeholder: "Full Name" },
+                reaction: { type: FieldType.Text, placeholder: "Describe reaction here..." },
+            }
+        };
+        const result : DlgResult = await showPopupDlg(schema, document.body);
+        const modalResult = result.modalResult;
+        if (modalResult == ModalBtn.OK) {
+            let rxName : string = '';
+            if (typeof result.name === 'string') rxName = result.name;
+            let rxReaction : string = '';
+            if (typeof result.reaction === 'string') rxReaction = result.reaction;
+
+            let newAllergy : UserAllergyAnswers = {
+                text: rxName,
+                reaction: rxReaction,
+                comment: null,
+                isComplete: true,
+                date: new Date().toLocaleDateString("en-US"),
+                patientResponse: 'yes',
+            };
+            this.itemData.push(newAllergy);
+            this.currentItemIndex = this.itemData.length - 1;
+            this.renderCurrentItem(this.currentItemIndex);
+            await messageDlg("Allergy Added","", document.body);
+        } else {
+          console.log("Form was canceled");
+        }
     }
 
 

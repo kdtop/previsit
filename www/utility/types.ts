@@ -63,10 +63,10 @@ export type UserMedAnswersArray = UserMedicationAnswers[];
 
 export interface UserAllergyAnswers extends GenericUserAnswers {
     //inherited --> text: string | null; // The Rx or item that causes allergy
-    nkda: boolean | null; // If patient is nkda (no known drug allergies)
-    neverAssessed: boolean | null; // If allergies have never been asked or assessed
-    date: string | null; // The date the allergy was entered or recorded
-    reaction: string | null; // Comments (if any) about the reaction
+    nkda?: boolean; // If patient is nkda (no known drug allergies)
+    neverAssessed?: boolean; // If allergies have never been asked or assessed
+    date?: string; // The date the allergy was entered or recorded
+    reaction?: string; // Comments (if any) about the reaction
     patientResponse: YesNoUnknownStatus; // 'yes', 'no', 'sometimes', 'unknown'
     //inherited --> comment: string | null; // Any additional comments or notes about the medication
     //inherited --> isComplete: boolean | null; // Indicates if the allergy review is complete

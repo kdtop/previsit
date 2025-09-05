@@ -266,6 +266,7 @@ export default class TPatientConsentFormAppView extends TAppView {
         return result;
     }
     cacheDOMElements() {
+        super.cacheDOMElements();
         this.htmlEl.toggleButtons = [];
         this.htmlEl.toggleButtons?.push(this.htmlEl.dom.querySelector('#sectionA-toggle'));
         this.htmlEl.toggleButtons?.push(this.htmlEl.dom.querySelector('#sectionB-toggle'));
@@ -275,11 +276,12 @@ export default class TPatientConsentFormAppView extends TAppView {
         this.htmlEl.repNameInputEl = this.htmlEl.dom.querySelector('#repName');
         this.htmlEl.relationshipInputEl = this.htmlEl.dom.querySelector('#relationship');
         this.htmlEl.dontSignBtn = this.htmlEl.dom.querySelector('.dont-sign-btn');
-        this.htmlEl.patientNameEls = this.htmlEl.dom.querySelectorAll('.patient-full-name');
-        this.htmlEl.patientDOBEls = this.htmlEl.dom.querySelectorAll('.patient-dob');
+        //this.htmlEl.patientNameEls = this.htmlEl.dom.querySelectorAll<HTMLSpanElement>('.patient-full-name');
+        //this.htmlEl.patientDOBEls = this.htmlEl.dom.querySelectorAll<HTMLSpanElement>('.patient-dob');
         this.htmlEl.signatureSection = this.htmlEl.dom.querySelector('#signature-section');
     }
-    clearCachedDOMElements() {
+    /*
+    public clearCachedDOMElements() {
         this.htmlEl.toggleButtons = [];
         this.htmlEl.signaturePadComponent = null;
         this.htmlEl.repNameInputEl = null;
@@ -289,11 +291,12 @@ export default class TPatientConsentFormAppView extends TAppView {
         this.htmlEl.patientDOBEls = null;
         this.htmlEl.signatureSection = null;
     }
+        */
     setupPatientNameDisplay() {
         if (this.htmlEl.patientNameEls)
-            this.htmlEl.patientNameEls.forEach(el => el.textContent = this.ctrl.patientFullName || "zz");
+            this.htmlEl.patientNameEls.forEach(el => el.textContent = this.ctrl.patientFullName || "");
         if (this.htmlEl.patientDOBEls)
-            this.htmlEl.patientDOBEls.forEach(el => el.textContent = this.ctrl.patientDOB || "zz");
+            this.htmlEl.patientDOBEls.forEach(el => el.textContent = this.ctrl.patientDOB || "");
     }
     setupFormEventListeners() {
         if (this.htmlEl.toggleButtons)

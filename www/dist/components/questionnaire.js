@@ -26,7 +26,7 @@ export default class TQuestionnaireAppView extends TAppView {
                   line-height:      1.6;
                   padding:          0 100px;
                   background-color: var(--whiteColor);
-                  color:            var(--grayBlue);
+                  color:            var(--textColor);
                 }
 
                 /* --- Details Textarea Styling (General) --- */
@@ -40,7 +40,7 @@ export default class TQuestionnaireAppView extends TAppView {
                   display:          block;
                   margin-bottom:    5px;
                   font-weight:      bold;
-                  color:            var(--grayBlue);
+                  color:            var(--textColor);
                 }
 
                 .details-input-group textarea {
@@ -65,7 +65,7 @@ export default class TQuestionnaireAppView extends TAppView {
                   margin-bottom:    10px; /* Space below the main question */
                   font-weight:      bold; /* Make the main question prominent */
                   font-size:        large;
-                  color:            var(--grayBlue);
+                  color:            var(--textColor);
                 }
 
                 .details-options-row { /* This might be less relevant if comp_quest handles it */
@@ -77,7 +77,7 @@ export default class TQuestionnaireAppView extends TAppView {
 
                 .details-label { /* Style for the 'Details:' label in this specific context */
                   font-weight:      bold;
-                  color:            var(--grayBlue);
+                  color:            var(--textColor);
                   white-space:      nowrap; /* Prevent 'Details:' from wrapping */
                 }
 
@@ -126,7 +126,7 @@ export default class TQuestionnaireAppView extends TAppView {
                 }
 
                 /* Responsive adjustments */
-                @media (max-width: 768px) {
+                @media (max-width: 500px) {
                   ul {
                     gap:            8px;
                   }

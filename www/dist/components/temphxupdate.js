@@ -18,7 +18,7 @@ export default class THxUpdateAppView extends TQuestionnaireAppView {
         <style>
           .content-container {
             line-height: 1.6;
-            padding: 0 100px;
+            padding: 0px 100px;
             background-color: #ffffff;
             color:rgb(43, 42, 42);
           }

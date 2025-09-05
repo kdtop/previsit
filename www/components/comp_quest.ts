@@ -716,14 +716,14 @@ export class QuestionAnswerComponent extends HTMLElement {
             }
             ul {
               list-style: none;
-              padding: 0;
+              padding: 0px;
               margin-bottom: 20px;
               display: flex;
               flex-wrap: wrap;
               gap: 10px;
             }
             li {
-              margin-bottom: 0;
+              margin-bottom: 0px;
             }
             .numeric-input {
                 height: 30px;
@@ -841,7 +841,7 @@ export class QuestionAnswerComponent extends HTMLElement {
 
 
             /* Responsive adjustments */
-            @media (max-width: 768px) {
+            @media (max-width: 500px) {
               ul {
                 gap: 8px;
               }

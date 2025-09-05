@@ -48,7 +48,7 @@ export default class TCommonMedReviewAppView extends TAppView {
                 line-height:        1.6;
                 padding:            0 100px; /* Kept for overall container padding */
                 background-color:   var(--whiteColor);
-                color:              var(--grayBlue);
+                color:              var(--textColor);
                 display:            flex;
                 flex-direction:     column;
                 min-height:         100vh;
@@ -57,14 +57,11 @@ export default class TCommonMedReviewAppView extends TAppView {
             .header-area {
                 padding:            1px;
                 background-color:   var(--lightLightGray);
-                zzborder-bottom:    1px solid #eee;
                 text-align:         center;
             }
 
             .footer-area {
                 padding:            2x;
-                zzbackground-color:   var(--lightLightGray);
-                zzborder-top:       1px solid #eee;
                 text-align:         center;
                 margin-top:         auto;
             }
@@ -132,7 +129,7 @@ export default class TCommonMedReviewAppView extends TAppView {
 
             rx_unparsed {
               background-color: var(--unparsedRxColor);
-              color:            var(--grayBlue);
+              color:            var(--textColor);
               font-size:        var(--medium);
             }
 
@@ -155,7 +152,7 @@ export default class TCommonMedReviewAppView extends TAppView {
                 border-radius:      12px;
                 background-color:   var(--lightLightGray);
                 border: 1px solid var(--lightGray);
-                color:              var(--grayBlue);
+                color:              var(--textColor);
                 transition:         background-color 0.2s ease, color 0.2s ease, transform 0.1s ease, box-shadow 0.2s ease;
                 cursor:             pointer;
                 user-select:        none;
@@ -238,7 +235,7 @@ export default class TCommonMedReviewAppView extends TAppView {
                 display:            block;
                 margin-bottom:      5px;
                 font-weight:        bold;
-                color:              var(--grayBlue);
+                color:              var(--textColor);
             }
 
             .details-input-group textarea {
@@ -303,7 +300,7 @@ export default class TCommonMedReviewAppView extends TAppView {
             .medication-name {
                 font-size:          1.8em;
                 font-weight:        bold;
-                color:              var(--grayBlue);
+                color:              var(--textColor);
                 margin-bottom:      5px;
                 text-align:         center;
                 border:             solid 1px var(--lightGray);
@@ -326,7 +323,7 @@ export default class TCommonMedReviewAppView extends TAppView {
                 margin-bottom:      10px;
                 font-weight:        bold;
                 font-size:          1.1em;
-                color:              var(--grayBlue);
+                color:              var(--textColor);
                 text-align:         center;
             }
 
@@ -335,7 +332,7 @@ export default class TCommonMedReviewAppView extends TAppView {
                 margin-bottom:      10px;
                 font-weight:        bold;
                 font-size:          1.1em;
-                color:              var(--grayBlue);
+                color:              var(--textColor);
                 text-align:         center;
             }
 
@@ -345,7 +342,7 @@ export default class TCommonMedReviewAppView extends TAppView {
                 margin-top:         15px;
                 font-weight:        bold;
                 font-size:          1.1em;
-                color:              var(--grayBlue);
+                color:              var(--textColor);
                 text-align:         center;
             }
             .options-list {
@@ -417,7 +414,7 @@ export default class TCommonMedReviewAppView extends TAppView {
 
             .next-med-button.incomplete {
                 background-color:   var(--incompleteRed);
-                color:              var(--grayBlue);
+                color:              var(--textColor);
             }
 
             .next-med-button.incomplete:hover:not(:disabled) {
@@ -435,7 +432,7 @@ export default class TCommonMedReviewAppView extends TAppView {
 
             .medication-progress-message {
                 font-size:          1.1em;
-                color:              var(--grayBlue);
+                color:              var(--textColor);
                 text-align:         center;
                 flex-grow:          1; /* Allows message to take available space */
                 margin:             0px; /* Space around the message */
@@ -597,6 +594,7 @@ export default class TCommonMedReviewAppView extends TAppView {
         return result;
     }
     cacheDOMElements() {
+        super.cacheDOMElements();
         this.doneButton = this.htmlEl.dom.querySelector('.done-button');
         this.doneButtonMainText = this.htmlEl.dom.querySelector('.done-button-main-text');
         this.doneButtonSubText = this.htmlEl.dom.querySelector('.done-button-sub-text');
@@ -605,7 +603,8 @@ export default class TCommonMedReviewAppView extends TAppView {
         this.htmlEl.nextMedButtonEl = this.htmlEl.dom.querySelector('.next-med-button');
         this.htmlEl.medProgMessageEl = this.htmlEl.dom.querySelector('.medication-progress-message');
     }
-    clearCachedDOMElements() {
+    /*
+    public clearCachedDOMElements() {
         this.doneButton = null;
         this.doneButtonMainText = null;
         this.doneButtonSubText = null;
@@ -614,6 +613,7 @@ export default class TCommonMedReviewAppView extends TAppView {
         this.htmlEl.nextMedButtonEl = null;
         this.htmlEl.medProgMessageEl = null;
     }
+    */
     setupPatientNameDisplay() {
         // Populate patient name
         const patientNameEl = this.htmlEl.dom.querySelector('.patient-name');
