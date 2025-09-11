@@ -57,25 +57,7 @@ export default class THxUpdateAppView extends TQuestionnaireAppView  {
     public getHTMLTagContent() : string
     {
         let result = this.getHTMLStructure();
-        /*
-        let result : string = `
-          <form class='container content-container'>
-              <h1>Update Your Medical History</h1>
-              <p><b>Patient:</b> <span class="patient-name"></span></p>
-              <div class="instructions">
-                  <p>Please review and answer the questions below. This will help us prepare for your visit.</p>
-              </div>
-              <div class="forms-container"></div>
-              <div class="submission-controls">
-                  <button type="button" class="done-button">
-                      <span class="done-button-main-text"></span>
-                      <span class="done-button-sub-text" style="font-size: 0.8em; opacity: 0.9;"></span>
-                  </button>
-              </div>
-          </form>
-        `;
-        */
-      return result;
+        return result;
     }
 
     public getQuestionnaireData() : TQuestionnaireData {

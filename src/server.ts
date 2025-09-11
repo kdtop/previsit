@@ -20,7 +20,7 @@ import express from 'express';
 import { piece, strToNumDef } from './utils.js'; // Import the functions, pointing to the expected .js output
 import { TTMGNetwork } from './TTMGNetwork.js'; // Note: Keep .js in import path for ESM environments
 import type { UserMedAnswersArray, UserAllergyAnswersArray, ProgressData,
-             ConsentFormData,
+             ConsentFormData, TrimmedConsentFormData,
              GetPatientFormsApiResponseArray,
    } from './types';
 
@@ -39,6 +39,12 @@ type RPCSaveDataResult = RPCSaveDataResultObj | undefined;
 // By returning `rpcResult is { return: string; args: any[] }`, we create a type guard.
 // This tells TypeScript that if this function returns `true`, `rpcResult` is not null/undefined
 // and has at least a `return` property (string) and an `args` property (array).
+// This type information is then used at the CALLING LOCATION.  So a retrograde typing -- strange but true
+/* Per ChatGPT:
+    In TypeScript, rpcResult is { return: string; args: any[] } is called a type predicate or type guard function.
+    In programming language terms, it’s a refinement type: the function refines the type of a variable based on a runtime check.
+    Another way to describe it: it’s flow-sensitive type narrowing — the compiler uses control flow to treat a variable as a more specific type in a certain branch.
+*/
 function rpcErrorCheckOK(rpcResult: any, res: express.Response, errIndex: number, tag : string, rtn : string): rpcResult is { return: string; args: any[] }
 //Return TRUE if all OK, or FALSE if there was error.
 {
@@ -50,7 +56,13 @@ function rpcErrorCheckOK(rpcResult: any, res: express.Response, errIndex: number
     //console.log('RPC result:', JSON.stringify(rpcResult));
     const mumpsResult: number = strToNumDef(piece(rpcResult.return,'^',1), 0);
     if (mumpsResult < 0) {
-        const errorMessage = rpcResult.args[errIndex] || 'API failure';
+        let errorMessage = 'API failure';  //default
+        let argLength = rpcResult?.args?.length || 0;
+        if (errIndex >= argLength) {
+            errorMessage = `API failure.  Expected at least ${errIndex+1} return parameters, but got ${argLength}.`
+        } else {
+            errorMessage = rpcResult?.args[errIndex] || 'API failure';
+        }
         res.status(401).json({ success: false, message: `API call to (${tag}^${rtn}) failed. Mumps code message: ${errorMessage}` });
         return false;
     }
@@ -210,7 +222,7 @@ async function hndlGetHxUpdateData(req: express.Request, res: express.Response)
                   ]; // [data, progress_object original_sessionID]
         }
 
-        let err = ""; let errIndex = 3; // Output parameter for errors from Mumps
+        let err = ""; let errIndex = 3; // Output parameter for errors from Mumps (1st param is #0)
         let tag="GETHXDATA"; let rtn="TMGPRE01";
 
         const rpcResult : RPCResult | undefined= await tmg.RPC<RPCResult>(tag, rtn, [outData, outProgress, sessionID, err]);
@@ -240,7 +252,7 @@ async function hndlSaveHxUpdate(req: express.Request, res: express.Response) {
         const { sessionID } = req.query;
         const data : any = req.body.data; // Expecting data to be an object
         const progress : ProgressData = req.body.progress;
-        let err = ""; let errIndex = 3; // Output parameter for errors from Mumps
+        let err = ""; let errIndex = 3; // Output parameter for errors from Mumps (1st param is #0)
         let tag="SAVEHXDATA"; let rtn="TMGPRE01";
 
         const rpcResult : RPCSaveDataResult = await tmg.RPC<RPCSaveDataResult>(tag, rtn, [sessionID, data, progress, err]);
@@ -276,7 +288,7 @@ async function hndlGetRosUpdateData(req: express.Request, res: express.Response)
                    string    // out err
                   ];
         }
-        let err = ""; let errIndex = 3; // Output parameter for errors from Mumps
+        let err = ""; let errIndex = 3; // Output parameter for errors from Mumps (1st param is #0)
         let tag="GETROSDATA"; let rtn="TMGPRE01";
 
         const rpcResult : RPCResult | undefined = await tmg.RPC<RPCResult>(tag, rtn, [outData, outProgress, sessionID, err]);
@@ -306,7 +318,7 @@ async function hndlSaveRosUpdateData(req: express.Request, res: express.Response
         const { sessionID } = req.query;
         const data : any = req.body.data; // Expecting data to be an object
         const progress : ProgressData = req.body.progress;
-        let err = ""; let errIndex = 3; // Output parameter for errors from Mumps
+        let err = ""; let errIndex = 3; // Output parameter for errors from Mumps (1st param is #0)
         let tag="SAVEROSDATA"; let rtn="TMGPRE01";
 
         const rpcResult : RPCSaveDataResult = await tmg.RPC<RPCSaveDataResult>(tag, rtn, [sessionID, data, progress,err]);
@@ -340,7 +352,7 @@ async function hndlGetMedReviewDataCommon(req: express.Request, res: express.Res
                   ];
             return: string;
         }
-        let err = ""; let errIndex = 3; // Output parameter for errors from Mumps
+        let err = ""; let errIndex = 3; // Output parameter for errors from Mumps (1st param is #0)
         let tag="GETMEDS"; let rtn="TMGPRE01";
 
         const rpcResult : RPCResult | undefined = await tmg.RPC<RPCResult>(tag, rtn, [outData, outProgress, sessionID, err, mode]);
@@ -367,7 +379,7 @@ async function hndlSaveMedReviewDataCommon(req: express.Request, res: express.Re
         const { sessionID } = req.query;
         const data : UserMedAnswersArray = req.body.data as UserMedAnswersArray; // Expecting data to be an array of UserMedicationAnswers
         const progress : ProgressData = req.body.progress; // Expecting progress to be of type ProgressData
-        let err = ""; let errIndex = 3; // Output parameter for errors from Mumps
+        let err = ""; let errIndex = 3; // Output parameter for errors from Mumps (1st param is #0)
         let tag="SAVEMEDS"; let rtn="TMGPRE01";
 
         const rpcResult : RPCSaveDataResult = await tmg.RPC<RPCSaveDataResult>(tag, rtn, [sessionID, data, progress, err, mode]);
@@ -444,7 +456,7 @@ async function hndlGetRxAllergiesData(req: express.Request, res: express.Respons
                   ];
             return: string;
         }
-        let err = ""; let errIndex = 3; // Output parameter for errors from Mumps
+        let err = ""; let errIndex = 3; // Output parameter for errors from Mumps (1st param is #0)
         let tag="GETALRGY"; let rtn="TMGPRE01";
 
         const rpcResult : RPCResult | undefined = await tmg.RPC<RPCResult>(tag, rtn, [outData, outProgress, sessionID, err]);
@@ -474,7 +486,7 @@ async function hndlSaveRxAllergiesData(req: express.Request, res: express.Respon
         const { sessionID } = req.query;
         const data : UserAllergyAnswersArray = req.body.data as UserAllergyAnswersArray; // Expecting data to be an array of UserAllergyAnswersArray
         const progress : ProgressData = req.body.progress; // Expecting progress to be of type ProgressData
-        let err = ""; let errIndex = 3; // Output parameter for errors from Mumps
+        let err = ""; let errIndex = 3; // Output parameter for errors from Mumps (1st param is #0)
         let tag="SAVEALRGY"; let rtn="TMGPRE01";
 
         const rpcResult : RPCSaveDataResult = await tmg.RPC<RPCSaveDataResult>(tag, rtn, [sessionID, data, progress, err]);
@@ -516,7 +528,7 @@ async function hndlGetSig1Data(req: express.Request, res: express.Response) {
                   ];
             return: string;         // Scalar return value (e.g., "1" for success, "0" for failure)
         }
-        let err = ""; let errIndex = 4; // Output parameter for errors from Mumps
+        let err = ""; let errIndex = 4; // Output parameter for errors from Mumps (1st param is #0)
         let tag="GETSIG1"; let rtn="TMGPRE01";
 
         const rpcResult: RPCResult | undefined = await tmg.RPC<RPCResult>(tag, rtn, [outSignature, outProgress, outText, sessionID, err]);
@@ -552,7 +564,7 @@ async function hndlSaveSig1Data(req: express.Request, res: express.Response) {
         const { sessionID } = req.query;
         const progress : ProgressData = req.body.progress; // Expecting progress to be of type ProgressData
         const data : string = req.body.data.encodedSignature; // The base64 string for signature data representing the image of the signature
-        let err = ""; let errIndex = 3; // Output parameter for errors from Mumps
+        let err = ""; let errIndex = 3; // Output parameter for errors from Mumps (1st param is #0)
         let tag="SAVESIG1"; let rtn="TMGPRE01";
 
         const rpcResult: RPCSaveDataResult = await tmg.RPC<RPCSaveDataResult>(tag, rtn, [sessionID, data, progress, err]);
@@ -580,26 +592,33 @@ async function hndlGetConsentData(req: express.Request, res: express.Response) {
     if (!rpcPrecheckOK(req, res)) return;  //res output object will have already been set in rpcPrecheckOK
     try {
         const { sessionID } = req.query;
-        let outData: ConsentFormData = {}; // Output parameter
+        let outData: TrimmedConsentFormData = {}; // Output parameter
         let outProgress: any = {};         // output parameter for progress object
+        let outSig : string = "";          // output parmeter for encoded signature.  I am splitting this to try to avoid JSON parsing problems on server.
 
         interface RPCResult {
-            args: [ConsentFormData,    //out data
-                   ProgressData,       //out outProgress
-                   string,             //out sessionID
-                   string,             //out err
+            args: [TrimmedConsentFormData,  //out data
+                   string,                  //out Signature string (encoded)
+                   ProgressData,            //out outProgress
+                   string,                  //out sessionID
+                   string,                  //out err
                   ];
             return: string;         // Scalar return value (e.g., "1" for success, "0" for failure)
         }
-        let err = ""; let errIndex = 4; // Output parameter for errors from Mumps
+        let err = ""; let errIndex = 4; // Output parameter for errors from Mumps (1st param is #0)
         let tag="GETCSNT"; let rtn="TMGPRE01";
 
-        const rpcResult: RPCResult | undefined = await tmg.RPC<RPCResult>(tag, rtn, [outData, outProgress, sessionID, err]);
+        const rpcResult: RPCResult | undefined = await tmg.RPC<RPCResult>(tag, rtn, [outData, outSig, outProgress, sessionID, err]);
 
         if (rpcErrorCheckOK(rpcResult, res, errIndex, tag, rtn)) {
+            let subData : TrimmedConsentFormData = rpcResult.args[0];       //type ConsentFormData
+            outSig = rpcResult.args[1];
+            let fullData : ConsentFormData = {...subData,
+                                              encodedSignature : outSig
+                                             };
             res.json({
                 success: true,
-                data: rpcResult.args[0],       //type ConsentFormData
+                data: fullData,
                 progress: rpcResult.args[1],   //type progressData
                 message: 'Consent data retrieved successfully.'
             });
@@ -612,7 +631,6 @@ async function hndlGetConsentData(req: express.Request, res: express.Response) {
     }
 }
 
-
 //----------------------------------------------------------------------------------------------------
 /*
  Handle saving of consent data -- receives data from the client and saves it via RPC.
@@ -620,15 +638,20 @@ async function hndlGetConsentData(req: express.Request, res: express.Response) {
  */
 async function hndlSaveConsentData(req: express.Request, res: express.Response) {
     //console.log("Received request to save consent.", req.body);
+
     if (!rpcPrecheckOK(req, res)) return;  //res output object will have already been set in rpcPrecheckOK
     try {
         const { sessionID } = req.query;
         const progress : ProgressData = req.body.progress;
-        const data : ConsentFormData = req.body.data;
-        let err = ""; let errIndex = 3; // Output parameter for errors from Mumps
+        let { encodedSignature="", frozenFormHTML="", ...subData }: ConsentFormData = req.body.data  //I am splitting this to try to avoid JSON parsing problems on server.
+        const trimmedData = subData as TrimmedConsentFormData;
+        //const data : ConsentFormData = req.body.data;
+        let err = ""; let errIndex = 5; // Output parameter for errors from Mumps (1st param is #0)
         let tag="SAVECSNT"; let rtn="TMGPRE01";
 
-        const rpcResult: RPCSaveDataResult = await tmg.RPC<RPCSaveDataResult>(tag, rtn, [sessionID, data, progress, err]);
+        //frozenFormHTML = '';  //temp!!  <--- if not set to '', the RPC fails ... May have to make separate call.
+        //  When run from here, it appears sessionID gets lost.  But if I step through from console, it is fine.  Weird.
+        const rpcResult: RPCSaveDataResult = await tmg.RPC<RPCSaveDataResult>(tag, rtn, [sessionID, trimmedData, encodedSignature, frozenFormHTML, progress, err]);
 
         if (rpcErrorCheckOK(rpcResult, res, errIndex, tag, rtn)) {
             res.status(200).json({ success: true, message: 'Consent data saved successfully.' });
@@ -661,7 +684,7 @@ async function hndlGetPhq9QuestData(req: express.Request, res: express.Response)
                    string    // out err
                   ];
         }
-        let err = ""; let errIndex = 3; // Output parameter for errors from Mumps
+        let err = ""; let errIndex = 3; // Output parameter for errors from Mumps (1st param is #0)
         let tag="GETPHQ9DATA"; let rtn="TMGPRE01";
 
         const rpcResult : RPCResult | undefined = await tmg.RPC<RPCResult>(tag, rtn, [outData, outProgress, sessionID, err]);
@@ -691,7 +714,7 @@ async function hndlSavePhq9QuestData(req: express.Request, res: express.Response
         const { sessionID } = req.query;
         const data : any = req.body.data; // Expecting data to be an object
         const progress : ProgressData = req.body.progress;
-        let err = ""; let errIndex = 3; // Output parameter for errors from Mumps
+        let err = ""; let errIndex = 3; // Output parameter for errors from Mumps (1st param is #0)
         let tag="SAVEPHQ9DATA"; let rtn="TMGPRE01";
 
         const rpcResult : RPCSaveDataResult = await tmg.RPC<RPCSaveDataResult>(tag, rtn, [sessionID, data, progress,err]);
@@ -731,7 +754,7 @@ async function hndlGetAWVQuestData(req: express.Request, res: express.Response) 
                    string    // out err
                   ];
         }
-        let err = ""; let errIndex = 3; // Output parameter for errors from Mumps
+        let err = ""; let errIndex = 3; // Output parameter for errors from Mumps (1st param is #0)
         let tag="GETAWVDATA"; let rtn="TMGPRE01";
 
         const rpcResult : RPCResult | undefined = await tmg.RPC<RPCResult>(tag, rtn, [outData, outProgress, sessionID, err]);
@@ -761,7 +784,7 @@ async function hndlSaveAWVQuestData(req: express.Request, res: express.Response)
         const { sessionID } = req.query;
         const data : any = req.body.data; // Expecting data to be an object
         const progress : ProgressData = req.body.progress;
-        let err = ""; let errIndex = 3; // Output parameter for errors from Mumps
+        let err = ""; let errIndex = 3; // Output parameter for errors from Mumps (1st param is #0)
         let tag="SAVEAWVDATA"; let rtn="TMGPRE01";
 
         const rpcResult : RPCSaveDataResult = await tmg.RPC<RPCSaveDataResult>(tag, rtn, [sessionID, data, progress,err]);

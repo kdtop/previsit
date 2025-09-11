@@ -517,12 +517,13 @@ export default class TItemCardReviewAppView<TServerData extends GenericUserAnswe
     }
     */
 
+    /*
     public setupPatientNameDisplay() {
         // Populate patient name
         const patientNameEl = this.htmlEl.dom.querySelector<HTMLSpanElement>('.patient-name');
         if (patientNameEl) patientNameEl.textContent = this.ctrl.patientFullName || "Valued Patient";
     }
-
+    */
 
     /**
      * Renders the current item with its questions.

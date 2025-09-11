@@ -235,12 +235,14 @@ export default class TQuestionnaireAppView extends TAppView<KeyToStrBoolValueObj
         return result;
     }
 
+    /*
     public setupPatientNameDisplay() {
         //NOTE: This is a virtual method, to be overridden by descendant classes
         // Populate patient name
         const patientNameEl = this.htmlEl.dom.querySelector<HTMLSpanElement>('.patient-name');
         if (patientNameEl) patientNameEl.textContent = this.ctrl.patientFullName || "Valued Patient";
     }
+    */
 
     /**
      * Builds the entire Questionainnaire form dynamically within the component.

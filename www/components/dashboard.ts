@@ -284,6 +284,7 @@ export default class TDashboardAppView extends TAppView<GetPatientFormsApiRespon
         return result;
     }
 
+    /*
     public setupPatientNameDisplay() {
         //NOTE: This is a virtual method, to be overridden by descendant classes
         // Populate the patient's name from the shared controller
@@ -291,6 +292,7 @@ export default class TDashboardAppView extends TAppView<GetPatientFormsApiRespon
             this.htmlEl.$patientname.textContent = this.ctrl.patientFullName || "Valued Patient";
         }
     }
+    */
 
     public gatherDataForServer = (): GetPatientFormsApiResponseArray => {
         //NOTE: There is no data to send back, but to be consistent with other forms,

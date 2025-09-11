@@ -88,7 +88,7 @@ export class TTMGNetwork extends EventTarget {
             arguments: mumpsFnArgs
         };
 
-        const processResultFn = function(nodemResult: any): TServerResultData { // nodemResult type is complex, using any for simplicity
+        const processResultFn = function(nodemResult: any): TServerResultData { // nodemResult type is complex, using 'any' for simplicity
             if (!nodemResult || !nodemResult.ok) {
                     const errorMessage = (nodemResult && nodemResult.errorMessage) || 'Unknown RPC error from nodem';
                     const errorCode = (nodemResult && nodemResult.isError) ? nodemResult.errorCode : 'N/A'; // Assuming nodem.isError is available for specific errors
@@ -96,8 +96,8 @@ export class TTMGNetwork extends EventTarget {
             }
 
             try {
-                const finalResults : TServerResultData = JSON.parse(nodemResult.result) as TServerResultData; // Parse the result as JSON, assuming it is a valid JSON string
-                return finalResults; // Return the parsed result
+                const finalResults = JSON.parse(nodemResult.result); // Parse the result as JSON, assuming it is a valid JSON string
+                return finalResults as TServerResultData; // Return the parsed result
 
             } catch (parseError: any) {
                 throw new Error(`Failed to parse Mumps result as JSON. Result: '${nodemResult.result}'. Error: ${parseError.message}`);

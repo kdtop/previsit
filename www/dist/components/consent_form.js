@@ -1,6 +1,6 @@
 // /opt/worldvista/EHR/web/previsit/www/components/consent_form.ts
 import TAppView from './appview.js';
-/**
+/*
  * Represents the Patient Consent Form component, a descendant of TAppView.
  */
 export default class TPatientConsentFormAppView extends TAppView {
@@ -8,7 +8,7 @@ export default class TPatientConsentFormAppView extends TAppView {
         super('patient_consent_form', '/api/patient_consent', aCtrl); // Unique ID, API URL, controller
         this.needPrepopulateWithEachShow = true;
     }
-    getCSSContent() {
+    getCSSContentCommon() {
         let result = super.getCSSContent() +
             `
             <style>
@@ -18,10 +18,6 @@ export default class TPatientConsentFormAppView extends TAppView {
                     background-color: #ffffff;
                     color: #003366;
                 }
-
-                .authperson { width: 85%; }
-
-                .authphone { width: 85%; }
 
                 .fullwidth { width: 95%; padding: 8px; margin-top: 5px; border: 1px solid #ccc; border-radius: 4px;}
 
@@ -43,6 +39,66 @@ export default class TPatientConsentFormAppView extends TAppView {
                     transition: opacity 1s ease, background-color 1s ease, max-height 1s ease;
                 }
 
+                .form-section-header {
+                    display: flex;
+                    justify-content: space-between;
+                    align-items: center;
+                    margin-bottom: 15px;
+                }
+
+                .signature-area {
+                    margin-top: 3px;
+                    padding-top: 10px;
+                    text-align: center;
+                }
+
+                .signature-area label {
+                    display: block;
+                    margin-bottom: 18px;
+                    font-size: 1.2em;
+                    font-weight: bold;
+                    color: #2c3e50;
+                }
+            </style>
+        `;
+        return result;
+    }
+    getCSSContentForInactiveDisplayOnly() {
+        let result = this.getCSSContentCommon() +
+            `
+        <style>
+            .patient-consent-form-container {
+                padding: 50px;
+                background-color: #fafafa;
+                max-width: 8.5in;   /* constrain to paper width */
+                box-shadow: 0 0 10px rgba(0,0,0,0.3); /* paper shadow */
+            }
+
+            @media print {
+              .patient-consent-form-container {
+                max-width: 100%; /* let it expand to full printable width */
+                background-color: white;
+                margin: 0;
+                box-shadow: none;
+                padding: 0.5in;  /* nice print margins */
+              }
+            }
+        </style>
+        `;
+        return result;
+    }
+    getCSSContent() {
+        let result = this.getCSSContentCommon() +
+            `
+            <style>
+                .authperson {
+                    width: 85%;
+                }
+
+                .authphone {
+                    width: 85%;
+                }
+
                 #signature-section.unavailable {
                     opacity: 0; /* Fade out to completely transparent  */
                     background-color:rgb(223, 223, 223);
@@ -52,12 +108,6 @@ export default class TPatientConsentFormAppView extends TAppView {
                     cursor: not-allowed;
                 }
 
-                .form-section-header {
-                    display: flex;
-                    justify-content: space-between;
-                    align-items: center;
-                    margin-bottom: 15px;
-                }
                 .form-actions {
                     text-align: center;
                     margin-top: 40px;
@@ -94,175 +144,206 @@ export default class TPatientConsentFormAppView extends TAppView {
                 .form-actions .dont-sign-btn:hover {
                     background-color: #c0392b;
                 }
-                .signature-area {
-                    margin-top: 3px;
-                    padding-top: 10px;
-                    text-align: center;
+
+                .form-actions .dont-sign-btn:disabled {
+                    background-color: #95a5a6; /* A grey color to indicate it's inactive */
+                    color: #ecf0f1;
+                    cursor: not-allowed;
                 }
-                .signature-area label {
-                    display: block;
-                    margin-bottom: 18px;
-                    font-size: 1.2em;
-                    font-weight: bold;
-                    color: #2c3e50;
-                }
+
             </style>
         `;
         return result;
     }
-    getHTMLTagContent() {
+    getHTMLAgreeToggle(name) {
+        let result = `
+            <toggle-button id="${name}-toggle"
+                            label="I agree"
+                            checked-text="I agree"
+                            unchecked-text="Click to Agree"
+                            checked-background-color="#2ecc71"
+                            checked-color="white"
+                            unchecked-background-color="#709bb8"
+                            show-checked="true"
+                            unchecked-color="white"             ></toggle-button>
+        `;
+        return result;
+    }
+    getHTMLSectionA() {
+        let result = `
+        <div class="form-section">
+            <div class="form-section-header">
+                <h3>Section A: Consent for Treatment, Payment, and Healthcare Operations</h3>
+            </div>
+            <p>
+                Family Physicians of Greeneville's <strong></strong>Notice of Privacy Practices</strong> may be found <a href="https://www.familyphysiciansofgreeneville.com/_files/ugd/bd7ca0_69a0b3bae5c14551b7ffba431d2bac3b.pdf" target="_blank">by clicking here.</a>
+                It provides information about how FPG may use and disclose protected health information (PHI) about you. You have the right to, and should, review our
+                Notice before signing this consent. The terms of our Notice may change, and if so, you may obtain a
+                revised copy by contacting the HIPAA Privacy Officer.
+            </p>
+            <p>
+                You have the right to request in writing that we restrict how PHI about you is used or disclosed for
+                treatment, payment, or healthcare operations, though we are not necessarily required to agree to such restrictions.
+            </p>
+            <div class="shaded-text">
+                By signing this form:
+                <ul>
+                    <li>You acknowledge that you have received and reviewed our <a href="https://www.familyphysiciansofgreeneville.com/_files/ugd/bd7ca0_69a0b3bae5c14551b7ffba431d2bac3b.pdf" target="_blank" style="margin-right: 2px;"><strong>Notice of Privacy Practices</strong></a>.</li>
+                    <li>You consent to our use and disclosure of your PHI for the purposes of treatment, payment, and healthcare operations.</li>
+                </ul>
+            </div>
+            <div class="shaded-text">
+                NOTES:
+                <ul>
+                    <li>You have the right to revoke this consent in writing at any time, except to the extent we have already relied on it.</li>
+                    <li>You are entitled to receive a copy of this signed consent form upon request.</li>
+                    <li>Our HIPAA Privacy Officer is Eddie Hagood (423) 787-7000 x4</li>
+                </ul>
+            </div>
+            ${this.getHTMLAgreeToggle("sectionA")}
+        </div>
+        `;
+        return result;
+    }
+    getHTMLSectionB() {
+        let result = `
+            <div class="form-section">
+                <div class="form-section-header">
+                    <h3>Section B: Special Consent Regarding Sensitive Information</h3>
+                </div>
+                <div class="shaded-text">I understand that my protected health information (PHI) used or disclosed may include sensitive information, such as:
+                    <ul>
+                        <li>Psychotherapy notes</li>
+                        <li>Venereal disease(s)</li>
+                        <li>Substance abuse treatment</li>
+                        <li>HIV/AIDS-related information</li>
+                    </ul>
+                </div>
+                <div class="shaded-text">I consent to Family Physicians of Greeneville (FPG) using or disclosing such
+                    sensitive information to carry out treatment, payment, or healthcare operations, including:
+                    <ul>
+                        <li>Use by the mental health provider who created the notes</li>
+                        <li>Use in supervised training programs</li>
+                        <li>Disclosure to defend a legal proceeding</li>
+                    </ul>
+                </div>
+            </div>
+            ${this.getHTMLAgreeToggle("sectionB")}
+        `;
+        return result;
+    }
+    getHTMLSectionC() {
+        let result = `
+            <div class="form-section">
+                <div class="form-section-header">
+                    <h3>Section C: How we (FPG) will contact you for appointments, test results, etc.</h3>
+                </div>
+                <div class="shaded-text">I understand that by signing this, I am giving Family Physicians of Greeneville permission to contact me:
+                    <ul>
+                        <li>By phone (either directly or by leaving a message)</li>
+                        <li>By mail (this gives us permission to mail records to you via the address we have on file)</li>
+                    </ul>
+                </div>
+            </div>
+            ${this.getHTMLAgreeToggle("sectionC")}
+        `;
+        return result;
+    }
+    getHTMLSectionD() {
+        let result = `
+            <div class="form-section">
+                <div class="form-section-header">
+                    <h3>Section D: Authorized Individuals</h3>
+                </div>
+                <p>Please let us (FPG) know with whom we may share your protected health information (PHI).
+                    For example, if you would like us to be able to discuss your medical case with a relative or caregiver, we need
+                    permission to do so. By listing persons below, you will give us such authorization. </p>
+                <table>
+                    <thead>
+                        <tr><th>Person Authorized to Access PHI</th><th>Relationship to Patient</th><th>Phone Number</th></tr>
+                    </thead>
+                    <tbody>
+                        <tr><td><input class="authperson" type="text" name="authName1" /></td><td><input class="authperson" type="text" name="authRel1" /></td><td><input class="authphone" type="text" name="authPhone1" /></td></tr>
+                        <tr><td><input class="authperson" type="text" name="authRel2" /></td><td><input class="authperson" type="text" name="authRel2" /></td><td><input class="authphone" type="text" name="authPhone2" /></td></tr>
+                        <tr><td><input class="authperson" type="text" name="authName3" /></td><td><input class="authperson" type="text" name="authRel3" /></td><td><input class="authphone" type="text" name="authPhone3" /></td></tr>
+                    </tbody>
+                </table>
+            </div>
+            ${this.getHTMLAgreeToggle("sectionD")}
+        `;
+        return result;
+    }
+    getHTMLSigArea() {
+        let result = `
+            <div class="form-section signature-section" id="signature-section">
+                <h3>Signature</h3>
+                <h4>Patient: <div class="fullname"><span class="patient-name"></span><span class="patient-dob"></span></div> </h4>
+                <p>By signing below I am authorizing and signing each of the sections (A to D) above. </p>
+                <label for="signature">Signature of patient (or patient's representative):</label>
+                <div class="signature-area">
+                    <signature-pad-component id="patient-consent-signature-pad"></signature-pad-component>
+                    </div>
+                <label for="repName">If signature is of representative, enter representative's printed name:</label>
+                <input class="fullwidth" type="text" id="repName" name="repName" />
+                <label for="relationship">Representative's relationship to patient:</label>
+                <input class="fullwidth" type="text" id="relationship" name="relationship" />
+            </div>
+        `;
+        return result;
+    }
+    getHTMLFooter() {
+        let result = `
+            <div class="form-actions">
+                <button type="button" class="dont-sign-btn">Don't sign</button>
+                <button type="button" class="done-button">Submit Consent</button>
+            </div>
+        `;
+        return result;
+    }
+    getHTMLMain() {
+        let result = `
+            ${this.getHTMLSectionA()}
+            <hr>
+            ${this.getHTMLSectionB()}
+            <hr>
+            ${this.getHTMLSectionC()}
+            <hr>
+            ${this.getHTMLSectionD()}
+            <hr>
+            ${this.getHTMLSigArea()}
+            <hr>
+        `;
+        return result;
+    }
+    getTitleText() {
+        return "Patient Consent to Use and Disclose Protected Health Information";
+    }
+    getHTMLHeader() {
+        //May be overridden in descendant classes
+        let result = `
+        <div class="header-area">
+            <h1>${this.getTitleText()}</h1>
+            <h2><patient-name-area>
+              Patient: <span class="patient-name"></span><span class="patient-dob"></span>
+            </patient-name-area></h2>
+        </div>
+        `;
+        return result;
+    }
+    getHTMLStructure() {
         let result = `
             <form class="patient-consent-form-container">
-                <h2>Patient Consent to Use and Disclose Protected Health Information</h2>
-
-                <h4>Patient: <div class="fullname"><span class="patient-full-name"></span><span class="patient-dob"></span></div> </h4>
-
-                <div class="form-section">
-                    <div class="form-section-header">
-                        <h3>Section A: Consent for Treatment, Payment, and Healthcare Operations</h3>
-                    </div>
-                    <p>
-                        Family Physicians of Greeneville's <strong></strong>Notice of Privacy Practices</strong> may be found <a href="https://www.familyphysiciansofgreeneville.com/_files/ugd/bd7ca0_69a0b3bae5c14551b7ffba431d2bac3b.pdf" target="_blank">by clicking here.</a>
-                        It provides information about how FPG may use and disclose protected health information (PHI) about you. You have the right to, and should, review our
-                        Notice before signing this consent. The terms of our Notice may change, and if so, you may obtain a
-                        revised copy by contacting the HIPAA Privacy Officer.
-                    </p>
-                    <p>
-                        You have the right to request in writing that we restrict how PHI about you is used or disclosed for
-                        treatment, payment, or healthcare operations, though we are not necessarily required to agree to such restrictions.
-                    </p>
-                    <div class="shaded-text">
-                        By signing this form:
-                        <ul>
-                            <li>You acknowledge that you have received and reviewed our <a href="https://www.familyphysiciansofgreeneville.com/_files/ugd/bd7ca0_69a0b3bae5c14551b7ffba431d2bac3b.pdf" target="_blank" style="margin-right: 2px;"><strong>Notice of Privacy Practices</strong></a>.</li>
-                            <li>You consent to our use and disclosure of your PHI for the purposes of treatment, payment, and healthcare operations.</li>
-                        </ul>
-                    </div>
-                    <div class="shaded-text">
-                        NOTES:
-                        <ul>
-                            <li>You have the right to revoke this consent in writing at any time, except to the extent we have already relied on it.</li>
-                            <li>You are entitled to receive a copy of this signed consent form upon request.</li>
-                            <li>Our HIPAA Privacy Officer is Eddie Hagood (423) 787-7000 x4</li>
-                        </ul>
-                    </div>
-                    <toggle-button id="sectionA-toggle"
-                                    label="I agree"
-                                    checked-text="I agree"
-                                    unchecked-text="Click to Agree"
-                                    checked-background-color="#2ecc71"
-                                    checked-color="white"
-                                    unchecked-background-color="#709bb8"
-                                    show-checked="true"
-                                    unchecked-color="white"             ></toggle-button>
-                </div>
-                <hr>
-
-                <div class="form-section">
-                    <div class="form-section-header">
-                        <h3>Section B: Special Consent Regarding Sensitive Information</h3>
-                    </div>
-                    <div class="shaded-text">I understand that my protected health information (PHI) used or disclosed may include sensitive information, such as:
-                        <ul>
-                            <li>Psychotherapy notes</li>
-                            <li>Venereal disease(s)</li>
-                            <li>Substance abuse treatment</li>
-                            <li>HIV/AIDS-related information</li>
-                        </ul>
-                    </div>
-                    <div class="shaded-text">I consent to Family Physicians of Greeneville (FPG) using or disclosing such
-                        sensitive information to carry out treatment, payment, or healthcare operations, including:
-                        <ul>
-                            <li>Use by the mental health provider who created the notes</li>
-                            <li>Use in supervised training programs</li>
-                            <li>Disclosure to defend a legal proceeding</li>
-                        </ul>
-                    </div>
-                </div>
-                <toggle-button id="sectionB-toggle"
-                                label="I agree"
-                                checked-text="I agree"
-                                unchecked-text="Click to Agree"
-                                checked-background-color="#2ecc71"
-                                checked-color="white"
-                                unchecked-background-color="#709bb8"
-                                show-checked="true"
-                                unchecked-color="white"             ></toggle-button>
-                <hr>
-
-                <div class="form-section">
-                    <div class="form-section-header">
-                        <h3>Section C: How we (FPG) will contact you for appointments, test results, etc.</h3>
-                    </div>
-                    <div class="shaded-text">I understand that by signing this, I am giving Family Physicians of Greeneville permission to contact me:
-                        <ul>
-                            <li>By phone (either directly or by leaving a message)</li>
-                            <li>By mail (this gives us permission to mail records to you via the address we have on file)</li>
-                        </ul>
-                    </div>
-                    <toggle-button id="sectionC-toggle"
-                                    label="I agree"
-                                    checked-text="I agree"
-                                    unchecked-text="Click to Agree"
-                                    checked-background-color="#2ecc71"
-                                    checked-color="white"
-                                    unchecked-background-color="#709bb8"
-                                    show-checked="true"
-                                    unchecked-color="white"             ></toggle-button>
-                </div>
-                <hr>
-
-                <div class="form-section">
-                    <div class="form-section-header">
-                        <h3>Section D: Authorized Individuals</h3>
-                    </div>
-                    <p>Please let us (FPG) know with whom we may share your protected health information (PHI).
-                        For example, if you would like us to be able to discuss your medical case with a relative or caregiver, we need
-                        permission to do so. By listing persons below, you will give us such authorization. </p>
-                    <table>
-                        <thead>
-                            <tr><th>Person Authorized to Access PHI</th><th>Relationship to Patient</th><th>Phone Number</th></tr>
-                        </thead>
-                        <tbody>
-                            <tr><td><input class="authperson" type="text" name="authName1" /></td><td><input class="authperson" type="text" name="authRel1" /></td><td><input class="authphone" type="text" name="authPhone1" /></td></tr>
-                            <tr><td><input class="authperson" type="text" name="authRel2" /></td><td><input class="authperson" type="text" name="authRel2" /></td><td><input class="authphone" type="text" name="authPhone2" /></td></tr>
-                            <tr><td><input class="authperson" type="text" name="authName3" /></td><td><input class="authperson" type="text" name="authRel3" /></td><td><input class="authphone" type="text" name="authPhone3" /></td></tr>
-                        </tbody>
-                    </table>
-                </div>
-                <toggle-button id="sectionD-toggle"
-                                label="OK (even if none listed)"
-                                checked-text="Above is OK"
-                                unchecked-text="Click if OK (even if none listed)"
-                                checked-background-color="#2ecc71"
-                                unchecked-background-color="#709bb8"
-                                show-checked="true"
-                                unchecked-color="white"             ></toggle-button>
-                <hr>
-
-                <div class="form-section signature-section" id="signature-section">
-                    <h3>Signature</h3>
-                    <h4>Patient: <div class="fullname"><span class="patient-full-name"></span><span class="patient-dob"></span></div> </h4>
-
-                    <p>By signing below I am authorizing and signing each of the sections (A to D) above. </p>
-                    <label for="signature">Signature of patient (or patient's representative):</label>
-                    <div class="signature-area">
-                        <signature-pad-component id="patient-consent-signature-pad"></signature-pad-component>
-                        </div>
-
-                    <label for="repName">If signature is of representative, enter representative's printed name:</label>
-                    <input class="fullwidth" type="text" id="repName" name="repName" />
-
-                    <label for="relationship">Representative's relationship to patient:</label>
-                    <input class="fullwidth" type="text" id="relationship" name="relationship" />
-
-                </div>
-                <div class="form-actions">
-                    <button type="button" class="dont-sign-btn">Don't sign</button>
-                    <button type="button" class="done-button">Submit Consent</button>
-                </div>
+                ${this.getHTMLHeader()}
+                ${this.getHTMLMain()}
+                ${this.getHTMLFooter()}
             </form>
+
+            <button id="previewBtn" type="button">Preview Frozen Form</button>
         `;
+        return result;
+    }
+    getHTMLTagContent() {
+        let result = this.getHTMLStructure();
         return result;
     }
     cacheDOMElements() {
@@ -276,8 +357,6 @@ export default class TPatientConsentFormAppView extends TAppView {
         this.htmlEl.repNameInputEl = this.htmlEl.dom.querySelector('#repName');
         this.htmlEl.relationshipInputEl = this.htmlEl.dom.querySelector('#relationship');
         this.htmlEl.dontSignBtn = this.htmlEl.dom.querySelector('.dont-sign-btn');
-        //this.htmlEl.patientNameEls = this.htmlEl.dom.querySelectorAll<HTMLSpanElement>('.patient-full-name');
-        //this.htmlEl.patientDOBEls = this.htmlEl.dom.querySelectorAll<HTMLSpanElement>('.patient-dob');
         this.htmlEl.signatureSection = this.htmlEl.dom.querySelector('#signature-section');
     }
     /*
@@ -292,12 +371,6 @@ export default class TPatientConsentFormAppView extends TAppView {
         this.htmlEl.signatureSection = null;
     }
         */
-    setupPatientNameDisplay() {
-        if (this.htmlEl.patientNameEls)
-            this.htmlEl.patientNameEls.forEach(el => el.textContent = this.ctrl.patientFullName || "");
-        if (this.htmlEl.patientDOBEls)
-            this.htmlEl.patientDOBEls.forEach(el => el.textContent = this.ctrl.patientDOB || "");
-    }
     setupFormEventListeners() {
         if (this.htmlEl.toggleButtons)
             this.htmlEl.toggleButtons.forEach(button => {
@@ -336,6 +409,9 @@ export default class TPatientConsentFormAppView extends TAppView {
                 this.resetAutosaveTimer();
             });
         });
+        const previewBtn = this.htmlEl.dom.getElementById("previewBtn");
+        if (previewBtn)
+            previewBtn.addEventListener("click", () => this.handlePreviewClick());
     }
     /**
      * Updates the state of progress based on the consent form sections and signature.
@@ -376,10 +452,16 @@ export default class TPatientConsentFormAppView extends TAppView {
         }
         this.updatePageState();
     };
+    getSigAreaVisibility() {
+        if (!this.htmlEl.signatureSection)
+            return false;
+        let currentlyAvailable = !this.htmlEl.signatureSection.classList.contains('unavailable');
+        return currentlyAvailable;
+    }
     setSigAreaVisibility(visible) {
         if (!this.htmlEl.signatureSection)
             return;
-        let currentlyAvailable = !this.htmlEl.signatureSection.classList.contains('unavailable');
+        let currentlyAvailable = this.getSigAreaVisibility();
         if (visible === currentlyAvailable)
             return;
         if (visible) { //THIS IS CODE FOR FADING IN BLOCK
@@ -396,9 +478,16 @@ export default class TPatientConsentFormAppView extends TAppView {
             });
         }
         else { //THIS IS CODE TO FADE OUT BLOCK
-            const self = this;
+            //const self=this;
             this.htmlEl.signatureSection.classList.add('unavailable'); //this will trigger a transition and handler above.
         }
+    }
+    getIsSigned() {
+        let signed = false;
+        if (this.getSigAreaVisibility() && this.htmlEl.signaturePadComponent) {
+            signed = !this.htmlEl.signaturePadComponent.isEmpty();
+        }
+        return signed;
     }
     updateDoneButtonState() {
         //NOTE: This function overrides ancestor method
@@ -408,9 +497,13 @@ export default class TPatientConsentFormAppView extends TAppView {
         let doneButton = this.htmlEl.dom.querySelector('.done-button');
         if (!doneButton)
             return;
-        let signed = false;
-        if (this.htmlEl.signaturePadComponent)
-            signed = !this.htmlEl.signaturePadComponent.isEmpty();
+        //let signed : boolean = false;
+        //if (this.htmlEl.signaturePadComponent) signed = !this.htmlEl.signaturePadComponent.isEmpty();
+        let signed = this.getIsSigned();
+        let dontSignBtn = this.htmlEl.dom.querySelector('.dont-sign-btn');
+        if (dontSignBtn) {
+            dontSignBtn.disabled = signed;
+        }
         // If no items, change text
         if (unansweredCount === 0) {
             doneButton.textContent = 'Done';
@@ -499,18 +592,119 @@ export default class TPatientConsentFormAppView extends TAppView {
             this.htmlEl.toggleButtons.forEach(button => {
                 sectionsClicked.push(button?.checked || false);
             });
+        let signed = this.getIsSigned();
+        let inactiveFormHTML = signed ? this.getFrozenHTML() : '';
         let result = {
             encodedSignature: encodedSignature,
             sectionsAgreed: sectionsClicked,
             repName: this.htmlEl.repNameInputEl?.value ?? '',
             relationship: this.htmlEl.relationshipInputEl?.value ?? '',
-            authPersons: authPersonsArr
+            authPersons: authPersonsArr,
+            formIsSigned: signed,
+            frozenFormHTML: inactiveFormHTML, // if form has been signed, then this will have HTML for a frozen version of form, else ''
         };
         console.log("Gathered patient consent data for server.");
         return result;
     };
     about() {
         console.log("Patient Consent Form Component instance initialized.");
+    }
+    handlePreviewClick() {
+        const frozenHtml = this.getFrozenHTML();
+        // Create a blob from the HTML string
+        const blob = new Blob([frozenHtml], { type: "text/html" });
+        const url = URL.createObjectURL(blob);
+        // Open in new tab
+        window.open(url, "_blank");
+    }
+    /**
+     * Freeze HTML form into a static HTML snapshot.
+     * - Converts inputs into text or symbols
+     * - Converts signature pad canvas into base64 image
+     */
+    getFrozenHTML() {
+        // 1. Grab the <form> inside the shadow root
+        let formEl = this.htmlEl.dom.querySelector("form");
+        if (!formEl)
+            throw new Error("No form element found in shadow root");
+        // 2. Clone the form so we don't mutate the live DOM (so the user can still edit the live version later)
+        const frozen = formEl.cloneNode(true);
+        let toggleBtnCSS = "";
+        let toggleInputs = frozen.querySelectorAll("toggle-button");
+        toggleInputs.forEach((el) => {
+            toggleBtnCSS = "<style>" + el.getCSSContentForInactiveDisplayOnly() + "</style>"; //Each toggle button should have same css.  This will save css from LAST element, but will be same as others.
+            let textEl = el.shadowRoot?.querySelector(".label-text-wrapper");
+            let text = textEl?.textContent || ""; //get text of label-text-wrapper element.
+            let wrapper = document.createElement("div");
+            let html = el.getHTMLTagContentForInactiveDisplayOnly().trim();
+            wrapper.innerHTML = html;
+            let replacement = wrapper.firstElementChild;
+            if (!replacement)
+                return;
+            el.replaceWith(replacement);
+            let newTextEl = replacement.querySelector(".label-text-wrapper"); //look for label-text-wrapper element from new segment.
+            if (newTextEl)
+                newTextEl.textContent = text; //put text from prior ToggleButton into new frozen html.
+        });
+        let htmlElements = frozen.querySelectorAll(".form-actions");
+        htmlElements.forEach((el) => {
+            el.remove();
+        });
+        let inputs = frozen.querySelectorAll("input, textarea, select");
+        inputs.forEach(el => {
+            let replacement;
+            if (el instanceof HTMLInputElement && (el.type === "checkbox" || el.type === "radio")) {
+                replacement = document.createElement("span");
+                replacement.textContent = el.checked ? "☑" : "☐";
+            }
+            else if (el instanceof HTMLSelectElement) {
+                replacement = document.createElement("span");
+                replacement.textContent = el.options[el.selectedIndex]?.text || "";
+                replacement.classList.add("inactive-input");
+            }
+            else {
+                replacement = document.createElement("span");
+                replacement.textContent = el.value;
+                replacement.classList.add("inactive-input");
+            }
+            el.replaceWith(replacement);
+        });
+        const signaturePad = this.htmlEl.signaturePadComponent;
+        const sigAreaDiv = frozen.querySelector(".signature-area");
+        // Replace signature pad canvas with base64 image
+        if (signaturePad && sigAreaDiv && typeof signaturePad.toDataURL === "function") {
+            const imgElement = document.createElement("img");
+            imgElement.src = signaturePad.toDataURL("image/png");
+            sigAreaDiv.replaceWith(imgElement);
+        }
+        // 5. Collect <style> tags from shadow root
+        const styleEls = this.htmlEl.dom.querySelectorAll("style");
+        // 6. Build final HTML doc with styles in <head> and frozen form in <body>
+        let styles = "";
+        /*
+        styleEls.forEach(style => {
+            let css = style.textContent ?? "";
+            // Replace :host selectors with :root
+            css = css.replace(/:host/g, ":root");
+            styles += `<style>\n${css}\n</style>\n`;
+            //styles += style.outerHTML + "\n";
+        });
+        */
+        styles = this.getCSSContentForInactiveDisplayOnly();
+        let result = `
+            <!DOCTYPE html>
+            <html>
+                <head>
+                    <meta charset="utf-8">
+                    ${styles}
+                    ${toggleBtnCSS}
+                </head>
+                <body>
+                    ${frozen.outerHTML}
+                </body>
+            </html>
+        `;
+        return result;
     }
 }
 //# sourceMappingURL=consent_form.js.map

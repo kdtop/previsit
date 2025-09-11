@@ -431,6 +431,7 @@ export default class TAppView<TServerData = any> {
     }
 
     public getHTMLHeader() : string {
+    //May be overridden in descendant classes
         let result : string = `
         <div class="header-area">
             <h1>${this.getTitleText()}</h1>
@@ -540,21 +541,31 @@ export default class TAppView<TServerData = any> {
     //NOTE: each form may have its own loadForm that will be called first, and they will call here via super.loadForm
     {
         this.htmlEl = this.newEnhancedHTMDivElement(this.getInnerHTML());
-        this.setupPatientNameDisplay()
         this.cacheDOMElements();
         this.setupFormEventListeners();
+        this.setupPatientNameDisplay()
     }
 
     public setupPatientNameDisplay() {
-        //NOTE: This is a virtual method, to be extended by descendant classes
+        //NOTE: May extended by descendant classes
         if (!this.htmlEl) return;
-        this.htmlEl.patientNameEls = this.htmlEl.dom.querySelectorAll<HTMLSpanElement>('.patient-full-name');
-        this.htmlEl.patientDOBEls = this.htmlEl.dom.querySelectorAll<HTMLSpanElement>('.patient-dob');
+        if (this.htmlEl.patientNameEls) {
+            this.htmlEl.patientNameEls.forEach((el : HTMLSpanElement) =>
+                el.textContent = this.ctrl.patientFullName || ""
+            );
+        };
+        if (this.htmlEl.patientDOBEls) {
+            this.htmlEl.patientDOBEls.forEach((el : HTMLSpanElement)=>
+                el.textContent = this.ctrl.patientDOB || ""
+            );
+        }
     }
 
     public cacheDOMElements() {
         //NOTE: This is a virtual method, to be overridden by descendant classes
-
+        if (!this.htmlEl) return;
+        this.htmlEl.patientNameEls = this.htmlEl.dom.querySelectorAll<HTMLSpanElement>('.patient-name');
+        this.htmlEl.patientDOBEls = this.htmlEl.dom.querySelectorAll<HTMLSpanElement>('.patient-dob');
     }
 
     public setupFormEventListeners(): void {

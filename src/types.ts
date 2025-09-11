@@ -93,11 +93,14 @@ export type TAuthorizedPersonsArray = Array<{ name: string; rel: string; phone: 
 
 export interface ConsentFormData {
     encodedSignature?: string;    // Base64 encoded string of the signature image
-    sectionsAgreed?: boolean[];  // 0=sectionA status, 1=sectionB status etc
-    repName?: string;            // patient representative name
+    sectionsAgreed?: boolean[];   // 0=sectionA status, 1=sectionB status etc
+    repName?: string;             // patient representative name
     relationship?: string;        // patient representative relationship
     authPersons?: TAuthorizedPersonsArray;
+    formIsSigned?: boolean;
+    frozenFormHTML?: string;      // if form has been signed, then this will have HTML for a frozen version of form.
 }
+export type TrimmedConsentFormData = Omit<ConsentFormData, "encodedSignature" | "frozenFormHTML">;
 
 export type TPhq9Answers = {
     questions?: KeyToStrBoolValueObj;

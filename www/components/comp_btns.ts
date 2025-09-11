@@ -37,6 +37,24 @@ export interface ReplyToggleButton extends ToggleButton {
     unitScore?: number;
 }
 
+//var _checkedBackgroundColor: string = '#3498db';
+//var _checkedColor: string = 'white';
+//var _uncheckedBackgroundColor: string = '#f0f0f0';
+//var _uncheckedColor: string = '#555555';
+//var _showChecked: boolean = false;
+//var _checkedText: string = 'Checked'; // Default internal checked text
+//var _uncheckedText: string = 'Unchecked'; // Default internal unchecked text
+
+
+export function checkboxSVG() : string {
+  return `
+    <svg class="checkmark" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+      <polyline points="20 6 9 17 4 12"></polyline>
+    </svg>
+  `;
+}
+
+
 export class ToggleButton extends HTMLElement {
   static get observedAttributes() {
     return [
@@ -71,6 +89,7 @@ export class ToggleButton extends HTMLElement {
   // Flags to know if text attributes were explicitly set by the user
   private _hasCheckedTextAttribute: boolean = false;
   private _hasUncheckedTextAttribute: boolean = false;
+
 
   constructor(options: ToggleButtonOptions = {}) {
     super();
@@ -132,20 +151,139 @@ export class ToggleButton extends HTMLElement {
     this.render(); // Call render to apply initial styles and create elements
   }  //constructor
 
-  private render(): void {
-      this.dom.innerHTML = `
-        <style>
-          ${this.styleContent()}
-        </style>
+
+  private getCSSContentCommon() : string {
+    let result : string = `
+      .custom-checkbox-text {
+        display: flex;            /* Use flexbox for alignment of text and checkmark */
+        align-items: center;      /* Vertically center content */
+        justify-content: center;  /* Center horizontally (adjust as needed) */
+        gap: 8px;                 /* Space between text and checkmark */
+        padding: 7px 12px;
+        border-radius: 12px;
+        background-color: ${this._uncheckedBackgroundColor};
+        color: ${this._uncheckedColor};
+        transition: background-color 0.2s ease, color 0.2s ease, transform 0.1s ease;
+        cursor: pointer;
+        user-select: none;
+      }
+     .label-text-wrapper {
+        word-break: normal;
+        overflow-wrap: normal;    /* Modern equivalent of word-wrap */
+        white-space: nowrap;      /* Ensure text doesn't wrap unless explicitly told to */
+      }
+
+      /* Styles for the checkmark SVG */
+      .checkmark {
+        width: 1.5em;             /* Adjust size as needed, e.g., based on font-size */
+        height: 1.5em;
+        stroke: currentColor;     /* Inherit color from parent (.custom-checkbox-text) */
+        transition: opacity 0.2s ease, transform 0.2s ease;
+        flex-shrink: 0;           /* Prevent it from shrinking */
+        opacity: 0;               /* Initially hidden */
+        transform: scale(0.5);    /* Start smaller */
+      }
+    `;
+    return result;
+  }
+
+  public getCSSContentForInactiveDisplayOnly() : string {
+    let result : string = this.getCSSContentCommon() + `
+
+      .custom-checkbox-text {
+        background-color: ${this._checkedBackgroundColor};
+        color: ${this._checkedColor};
+      }
+
+      .inactive-input {
+        display: block;
+        background-color: lightgray;
+        border-radius: 5px;
+        padding: 5px;
+      }
+
+      .checkmark {
+        opacity: 1; transform: scale(1);
+      }
+    `;
+    return result;
+  }
+
+  public getCSSContent() : string {
+    let result : string = this.getCSSContentCommon() + `
+      .sr-only {
+        position: absolute;
+        width: 1px;
+        height: 1px;
+        padding: 0;
+        margin: -1px;
+        overflow: hidden;
+        clip: rect(0, 0, 0, 0);
+        white-space: nowrap;
+        border-width: 0;
+      }
+      input[type='checkbox']:checked + .custom-checkbox-text {
+        background-color: ${this._checkedBackgroundColor};
+        color: ${this._checkedColor};
+        transform: translateY(-1px);
+        box-shadow: 0 2px 5px rgba(0,0,0,0.2);
+      }
+      .custom-checkbox-text.disabled {
+        opacity: 0.5;
+        pointer-events: none;
+        cursor: not-allowed;
+      }
+
+      /* Show checkmark only when input is checked AND this._showChecked is true */
+      input[type='checkbox']:checked + .custom-checkbox-text .checkmark {
+          ${this._showChecked ? 'opacity: 1; transform: scale(1);' : 'opacity: 0; transform: scale(0.5);'}
+      }
+    `;
+    return result;
+  }
+
+
+  private getHTMLTagContent() : string
+  {
+      return  `
         <label>
             <input type="checkbox" class="sr-only">
             <span class="custom-checkbox-text">
-                <span class="label-text-wrapper"></span> <svg class="checkmark" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                    <polyline points="20 6 9 17 4 12"></polyline>
-                </svg>
+                <span class="label-text-wrapper"></span>
+                ${checkboxSVG()}
             </span>
         </label>
       `;
+  }
+
+
+  private getInnerHTML() : string
+  {
+    let result : string = "<style>" + this.getCSSContent() + "</style>" + this.getHTMLTagContent();
+    return result;
+  }
+
+  public getHTMLTagContentForInactiveDisplayOnly() : string
+  {
+    return  `
+      <label>
+          <span class="custom-checkbox-text">
+              <span class="label-text-wrapper"></span>
+              ${checkboxSVG()}
+          </span>
+      </label>
+    `;
+  }
+
+
+  public getInnerHTMLForInactiveDisplayOnly() : string
+  {
+    let result : string = "<style>" + this.getCSSContent() + "</style>" + this.getHTMLTagContentForInactiveDisplayOnly();
+    return result;
+  }
+
+  private render(): void {
+      this.dom.innerHTML = this.getInnerHTML();
 
       // Assign references to the elements AFTER they are in the Shadow DOM
       this.input = this.dom.querySelector('input[type="checkbox"]');
@@ -256,12 +394,12 @@ export class ToggleButton extends HTMLElement {
     let displayText = this.labelText; // Start with the base label
 
     if (this.checked) {
-        // If checked, prioritize _checkedText if explicitly provided or different from its default
+        // If checked, prioritize this._checkedText if explicitly provided or different from its default
         if (this._hasCheckedTextAttribute || this._checkedText !== 'Checked') {
             displayText = this._checkedText;
         }
     } else {
-        // If unchecked, prioritize _uncheckedText if explicitly provided or different from its default
+        // If unchecked, prioritize this._uncheckedText if explicitly provided or different from its default
         if (this._hasUncheckedTextAttribute || this._uncheckedText !== 'Unchecked') {
             displayText = this._uncheckedText;
         }
@@ -269,76 +407,11 @@ export class ToggleButton extends HTMLElement {
     labelTextWrapper.textContent = displayText;
   }
 
-  private styleContent() : string {
-    let result : string = `
-      .sr-only {
-        position: absolute;
-        width: 1px;
-        height: 1px;
-        padding: 0;
-        margin: -1px;
-        overflow: hidden;
-        clip: rect(0, 0, 0, 0);
-        white-space: nowrap;
-        border-width: 0;
-      }
-      .custom-checkbox-text {
-        display: flex; /* Use flexbox for alignment of text and checkmark */
-        align-items: center; /* Vertically center content */
-        justify-content: center; /* Center horizontally (adjust as needed) */
-        gap: 8px; /* Space between text and checkmark */
-        padding: 7px 12px;
-        border-radius: 12px;
-        background-color: ${this._uncheckedBackgroundColor};
-        color: ${this._uncheckedColor};
-        transition: background-color 0.2s ease, color 0.2s ease, transform 0.1s ease;
-        cursor: pointer;
-        user-select: none;
-      }
-      input[type='checkbox']:checked + .custom-checkbox-text {
-        background-color: ${this._checkedBackgroundColor};
-        color: ${this._checkedColor};
-        transform: translateY(-1px);
-        box-shadow: 0 2px 5px rgba(0,0,0,0.2);
-      }
-      .custom-checkbox-text.disabled {
-        opacity: 0.5;
-        pointer-events: none;
-        cursor: not-allowed;
-      }
-
-      .label-text-wrapper {
-        word-break: normal;
-        overflow-wrap: normal; /* Modern equivalent of word-wrap */
-        white-space: nowrap; /* Ensure text doesn't wrap unless explicitly told to */
-      }
-
-      /* Styles for the checkmark SVG */
-      .checkmark {
-        width: 1.5em; /* Adjust size as needed, e.g., based on font-size */
-        height: 1.5em;
-        stroke: currentColor; /* Inherit color from parent (.custom-checkbox-text) */
-        transition: opacity 0.2s ease, transform 0.2s ease;
-        flex-shrink: 0; /* Prevent it from shrinking */
-
-        /* Initially hidden */
-        opacity: 0;
-        transform: scale(0.5); /* Start smaller */
-      }
-
-      /* Show checkmark only when input is checked AND _showChecked is true */
-      input[type='checkbox']:checked + .custom-checkbox-text .checkmark {
-          ${this._showChecked ? 'opacity: 1; transform: scale(1);' : 'opacity: 0; transform: scale(0.5);'}
-      }
-    `;
-    return result;
-  }
-
   private updateStyles(): void {
       if (this.dom) {
           const styleTag = this.dom.querySelector('style');
           if (styleTag) {
-              styleTag.textContent = this.styleContent();
+              styleTag.textContent = this.getCSSContent();
           }
       }
   }

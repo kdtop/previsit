@@ -401,6 +401,7 @@ export default class TAppView {
         return "Review Items Below";
     }
     getHTMLHeader() {
+        //May be overridden in descendant classes
         let result = `
         <div class="header-area">
             <h1>${this.getTitleText()}</h1>
@@ -493,19 +494,28 @@ export default class TAppView {
      */
     async loadForm() {
         this.htmlEl = this.newEnhancedHTMDivElement(this.getInnerHTML());
-        this.setupPatientNameDisplay();
         this.cacheDOMElements();
         this.setupFormEventListeners();
+        this.setupPatientNameDisplay();
     }
     setupPatientNameDisplay() {
-        //NOTE: This is a virtual method, to be extended by descendant classes
+        //NOTE: May extended by descendant classes
         if (!this.htmlEl)
             return;
-        this.htmlEl.patientNameEls = this.htmlEl.dom.querySelectorAll('.patient-full-name');
-        this.htmlEl.patientDOBEls = this.htmlEl.dom.querySelectorAll('.patient-dob');
+        if (this.htmlEl.patientNameEls) {
+            this.htmlEl.patientNameEls.forEach((el) => el.textContent = this.ctrl.patientFullName || "");
+        }
+        ;
+        if (this.htmlEl.patientDOBEls) {
+            this.htmlEl.patientDOBEls.forEach((el) => el.textContent = this.ctrl.patientDOB || "");
+        }
     }
     cacheDOMElements() {
         //NOTE: This is a virtual method, to be overridden by descendant classes
+        if (!this.htmlEl)
+            return;
+        this.htmlEl.patientNameEls = this.htmlEl.dom.querySelectorAll('.patient-name');
+        this.htmlEl.patientDOBEls = this.htmlEl.dom.querySelectorAll('.patient-dob');
     }
     setupFormEventListeners() {
         //NOTE: This is a virtual method, to be overridden by descendant classes

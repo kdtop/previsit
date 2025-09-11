@@ -234,13 +234,15 @@ export default class TDashboardAppView extends TAppView {
         `;
         return result;
     }
-    setupPatientNameDisplay() {
+    /*
+    public setupPatientNameDisplay() {
         //NOTE: This is a virtual method, to be overridden by descendant classes
         // Populate the patient's name from the shared controller
         if (this.htmlEl && this.htmlEl.$patientname) {
             this.htmlEl.$patientname.textContent = this.ctrl.patientFullName || "Valued Patient";
         }
     }
+    */
     gatherDataForServer = () => {
         //NOTE: There is no data to send back, but to be consistent with other forms,
         //      we'll still implement the method.  This will result in call to "save" an empty array

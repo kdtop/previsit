@@ -12,11 +12,9 @@ import * as SignaturePadModule from 'signature_pad';
 // Hard-coded SVG icons
 const svgIcons = {
     "SignatureIcon": `
-        <?xml version="1.0" encoding="utf-8"?>
-            <!-- Uploaded to: SVG Repo, www.svgrepo.com, Generator: SVG Repo Mixer Tools -->
             <svg
-                width="800px"
-                height="800px"
+                width="24px"
+                height="24px"
                 viewBox="0 0 24 24"
                 fill="none"
                 xmlns="http://www.w3.org/2000/svg">
@@ -29,10 +27,9 @@ const svgIcons = {
         </svg>
     `,
     "SignatureCancelIcon": `
-        <?xml version="1.0" encoding="UTF-8" standalone="no"?>
         <svg
-           width="800px"
-           height="800px"
+           width="24px"
+           height="24px"
            viewBox="0 0 24 24"
            version="1.1"
            xmlns="http://www.w3.org/2000/svg">
@@ -140,11 +137,20 @@ export class SignaturePadComponent extends HTMLElement {
                     transform: translateY(-1px);
                 }
                 .signature-buttons .clear-btn {
-                    background-color: #3498db;
+                    background-color: #d7c2c2;
                     color: white;
+                    padding: 5px 5px;
+                    opacity: 1;
+                    visibility: visible;
+                    transition: opacity 0.3s ease, visibility 0.3s ease;
+                }
+                .signature-buttons .clear-btn.hidden {
+                    opacity: 0;
+                    visibility: hidden;
+                    pointer-events: none;
                 }
                 .signature-buttons .clear-btn:hover {
-                    background-color: #2980b9;
+                    background-color: #fd5e5eff;
                 }
                 .hidden {
                     display: none;
@@ -155,7 +161,7 @@ export class SignaturePadComponent extends HTMLElement {
                 <canvas id="signature-canvas"></canvas>
                 <div class="signature-buttons">
                     <button type="button" class="clear-btn hidden">
-                        ${svgIcons["SignatureCancelIcon"]} Clear Signature
+                        ${svgIcons["SignatureCancelIcon"]} Remove Signature
                     </button>
                 </div>
             </div>
@@ -163,67 +169,6 @@ export class SignaturePadComponent extends HTMLElement {
         this.signatureCanvas = this.dom.querySelector('#signature-canvas');
         this.clearSignatureBtn = this.dom.querySelector('.clear-btn');
     }
-    /*
-    private render(options: SignaturePadOptions): void {
-        const canvasWidth = options.width || this.getAttribute('width') || '100%';
-        const canvasHeight = options.height || this.getAttribute('height') || '200px';
-
-        this.dom.innerHTML = `
-            <style>
-                .signature-area-wrapper {
-                    text-align: center;
-                }
-                canvas {
-                    border: 2px solid #ddd;
-                    border-radius: 6px;
-                    background-color: #fff;
-                    touch-action: none;
-                    width: 500px;
-                    height: 100px;
-                    display: block;
-                    margin: 0 auto;
-                }
-                .signature-buttons {
-                    margin-top: 15px;
-                    display: flex;
-                    justify-content: center;
-                    gap: 15px;
-                }
-                .signature-buttons button {
-                    padding: 10px 25px;
-                    font-size: 1em;
-                    border: none;
-                    border-radius: 5px;
-                    cursor: pointer;
-                    transition: background-color 0.2s ease, transform 0.1s ease;
-                }
-                .signature-buttons button:hover {
-                    transform: translateY(-1px);
-                }
-                .signature-buttons .clear-btn {
-                    background-color: #3498db;
-                    color: white;
-                }
-                .signature-buttons .clear-btn:hover {
-                    background-color: #2980b9;
-                }
-                .hidden {
-                    display: none;
-                }
-
-            </style>
-            <div class="signature-area-wrapper">
-                <canvas id="signature-canvas"></canvas>
-                <div class="signature-buttons">
-                    <button type="button" class="clear-btn hidden">Clear Signature</button>
-                </div>
-            </div>
-        `;
-
-        this.signatureCanvas = this.dom.querySelector<HTMLCanvasElement>('#signature-canvas');
-        this.clearSignatureBtn = this.dom.querySelector<HTMLButtonElement>('.clear-btn');
-    }
-    */
     initializeSignaturePad(options) {
         if (this.signatureCanvas) {
             this.signaturePad = new SignaturePadModule.default(this.signatureCanvas, {
@@ -302,7 +247,13 @@ export class SignaturePadComponent extends HTMLElement {
      * @param dataURL The data URL of the image.
      * @param options Options for loading the image.
      */
+    OLD_fromDataURL(dataURL, options) {
+        this._savedSigData = dataURL;
+        this._savedSigOptions = options;
+        this.setSavedSigData();
+    }
     fromDataURL(dataURL, options) {
+        // Check if the dataURL is a non-empty string.
         this._savedSigData = dataURL;
         this._savedSigOptions = options;
         this.setSavedSigData();
@@ -311,8 +262,14 @@ export class SignaturePadComponent extends HTMLElement {
      * Reloads an image onto the signature pad from saved data URL and options.
      */
     setSavedSigData() {
-        this.signaturePad?.fromDataURL(this._savedSigData, this._savedSigOptions);
-        this.setClearButtonVisibilityForStatus();
+        if (this._savedSigData.length > 0) {
+            this.signaturePad?.fromDataURL(this._savedSigData, this._savedSigOptions);
+            this.setClearButtonVisibilityForStatus();
+        }
+        else {
+            // If the dataURL is empty, clear the signature pad instead.
+            this.clear(); //calls this.setClearButtonVisibilityForStatus();
+        }
     }
 }
 customElements.define('signature-pad-component', SignaturePadComponent);
