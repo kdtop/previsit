@@ -1,6 +1,6 @@
 // /opt/worldvista/EHR/web/previsit/www/components/awvquestionnaire.ts
 
-import { TQuestion, TQuestionGroup, TQuestionnaireData, TReplyType } from '../utility/types.js';
+import { TQuestionSchema, TQuestionGroupSchema, TQuestionnaireSchema, TReplyType } from '../utility/types.js';
 import TQuestionnaireAppView from './questionnaire.js';
 import { TCtrl } from '../utility/controller.js';
 
@@ -21,10 +21,10 @@ export default class TAwvQuestionnaireAppView extends TQuestionnaireAppView {
         }
     }  //constructor
 
-    public getQuestionnaireData() : TQuestionnaireData {
+    public getQuestionnaireSchema() : TQuestionnaireSchema {
         const commonAnswers : string[] = ['Several days','More than half the days','Nearly every day'];
 
-        let num1QuestGroup : TQuestionGroup = {
+        let num1QuestGroup : TQuestionGroupSchema = {
             groupHeadingText : 'Physical Activity',
             questionDefinition : [
                 {
@@ -37,7 +37,7 @@ export default class TAwvQuestionnaireAppView extends TQuestionnaireAppView {
             ]
         }
 
-        let num2QuestGroup : TQuestionGroup = {
+        let num2QuestGroup : TQuestionGroupSchema = {
             groupHeadingText : 'Tobacco Use',
             questionDefinition : [
                 {
@@ -73,7 +73,7 @@ export default class TAwvQuestionnaireAppView extends TQuestionnaireAppView {
                 }
             ]
         }
-        let num3QuestGroup : TQuestionGroup = {
+        let num3QuestGroup : TQuestionGroupSchema = {
             groupHeadingText : 'Alcohol Use',
             questionDefinition : [
                 {
@@ -102,7 +102,7 @@ export default class TAwvQuestionnaireAppView extends TQuestionnaireAppView {
                 },
             ]
         }
-        let num4QuestGroup : TQuestionGroup = {
+        let num4QuestGroup : TQuestionGroupSchema = {
             groupHeadingText : 'Seat Belt Use',
             questionDefinition : [
                 {
@@ -113,7 +113,7 @@ export default class TAwvQuestionnaireAppView extends TQuestionnaireAppView {
                 },
             ]
         }
-        let num5QuestGroup : TQuestionGroup = {
+        let num5QuestGroup : TQuestionGroupSchema = {
             groupHeadingText : 'Activities of Daily Living',
             questionDefinition : [
                 {
@@ -126,7 +126,7 @@ export default class TAwvQuestionnaireAppView extends TQuestionnaireAppView {
                 },
             ]
         }
-        let num6QuestGroup : TQuestionGroup = {
+        let num6QuestGroup : TQuestionGroupSchema = {
             groupHeadingText : 'Instrumental Activities of Daily Living',
             questionDefinition : [
                 {
@@ -139,7 +139,7 @@ export default class TAwvQuestionnaireAppView extends TQuestionnaireAppView {
                 },
             ]
         }
-        let num7QuestGroup : TQuestionGroup = {
+        let num7QuestGroup : TQuestionGroupSchema = {
             groupHeadingText : 'Sleep',
             questionDefinition : [
                 {
@@ -167,7 +167,7 @@ export default class TAwvQuestionnaireAppView extends TQuestionnaireAppView {
                 },
             ],
         }
-        let num8QuestGroup : TQuestionGroup = {
+        let num8QuestGroup : TQuestionGroupSchema = {
             groupHeadingText : 'Fall Risk',
             questionDefinition : [
                 {
@@ -217,7 +217,7 @@ export default class TAwvQuestionnaireAppView extends TQuestionnaireAppView {
                 },
             ]
         }
-        let num9QuestGroup : TQuestionGroup = {
+        let num9QuestGroup : TQuestionGroupSchema = {
             groupHeadingText : 'Hearing',
             questionDefinition : [
                 {
@@ -231,7 +231,7 @@ export default class TAwvQuestionnaireAppView extends TQuestionnaireAppView {
             ]
         }
 
-        let num10QuestGroup : TQuestionGroup = {
+        let num10QuestGroup : TQuestionGroupSchema = {
             groupHeadingText : 'Pain',
             questionDefinition : [
                 {
@@ -244,7 +244,7 @@ export default class TAwvQuestionnaireAppView extends TQuestionnaireAppView {
             ]
         }
 
-        let formData :  TQuestionnaireData = {
+        let formData :  TQuestionnaireSchema = {
             instructionsText : 'Please answer the following questions. This will help us prepare for your visit.',
             questGroups : [num1QuestGroup, num2QuestGroup, num3QuestGroup, num4QuestGroup, num5QuestGroup,
                            num6QuestGroup, num7QuestGroup, num8QuestGroup, num9QuestGroup, num10QuestGroup]

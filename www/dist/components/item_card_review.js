@@ -59,10 +59,6 @@ export default class TItemCardReviewAppView extends TAppView {
                 /* other inherited properties defined in super */
             }
 
-            patient-name-area {
-              font-size:        1em;
-            }
-
             .itemreview-container {
                 line-height:        1.6;
                 padding:            0 10px; /* Kept for overall container padding */
@@ -71,12 +67,6 @@ export default class TItemCardReviewAppView extends TAppView {
                 display:            flex;
                 flex-direction:     column;
                 min-height:         100vh;
-            }
-
-            .header-area {
-                padding:            1px;
-                background-color:   var(--lightLightGray);
-                text-align:         center;
             }
 
             .footer-area {

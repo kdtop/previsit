@@ -247,7 +247,7 @@ export default class THxUpdateAppView extends TQuestionnaireAppView {
       `;
         return result;
     }
-    getQuestionnaireData() {
+    getQuestionnaireSchema() {
         let mainQuestGroup = {
             groupHeadingText: 'Welcome!',
             question: [

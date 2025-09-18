@@ -21,8 +21,8 @@ import { piece, strToNumDef } from './utils.js'; // Import the functions, pointi
 import { TTMGNetwork } from './TTMGNetwork.js'; // Note: Keep .js in import path for ESM environments
 import type { UserMedAnswersArray, UserAllergyAnswersArray, ProgressData,
              ConsentFormData, TrimmedConsentFormData,
-             GetPatientFormsApiResponseArray,
-   } from './types';
+             GetPatientFormsApiResponseArray, GetPatientFormsApiResponse,
+   } from '@/utility/types.js';
 
 let tmg: TTMGNetwork; // Declare tmg, will be initialized in the try block
 const app: express.Application = express(); // Initialize app
@@ -188,13 +188,35 @@ async function hndlGetDashboard(req: express.Request, res: express.Response) {
 
 //----------------------------------------------------------------------------------------------------
 /*
- Handle saving of Dashboard form data -- saves received form data from the client via RPC.
+ Handle saving of Dashboard form data -- saves data from the client via RPC.
  POST
  */
 async function hndlSaveDashboard(req: express.Request, res: express.Response) {
-    //NOTE: We don't currently need to save anything for dashboard.  But due to OOP and form consistency, will implement
-    //      something that can be called with empty data.
-    res.status(200).json({ success: true, message: 'OK' });
+    //NOTE: Normally, we don'tneed to save anything for dashboard. But when user chooses
+    //      to SUBMIT forms, will use this channel to signal server to save off forms
+    //      into the medical record.
+
+    if (!rpcPrecheckOK(req, res)) return;  //res output object will have already been set in rpcPrecheckOK
+    try {
+        const { sessionID } = req.query;
+        const data : GetPatientFormsApiResponseArray = req.body.data;
+        let oneResponse : GetPatientFormsApiResponse | undefined = data[0];  //In dashboard, in gatherDataForServer(), one record to hold signal is created.
+        if (oneResponse && oneResponse?.formsHaveBeenSubmitted === true) {
+            let err = ""; let errIndex = 1; // Output parameter for errors from Mumps (1st param is #0)
+            let tag="FINALIZEFORMS"; let rtn="TMGPRE01";
+
+            const rpcResult : RPCSaveDataResult = await tmg.RPC<RPCSaveDataResult>(tag, rtn, [sessionID, err]);  //<-- no data sent.  Just calling function to finalize forms.
+
+            if (!rpcErrorCheckOK(rpcResult, res, errIndex, tag, rtn)) return;  //if rpcErrorCheckOK returns false, res.status will have been set with error...
+            return res.status(200).json({ success: true, message: 'Forms finalization successfully saved.' });
+        } else {
+            return res.status(500).json({ success: false, message: "Signal for patient finalization not set, so skipping call to server." });
+        }
+    } catch (error) {
+        console.error('Error during POST /api/dashboard request:', error);
+        const errorMessage = error instanceof Error ? error.message : 'Unknown error';
+        res.status(500).json({ success: false, message: `Internal server error: ${errorMessage}` });
+    }
 }
 
 //====================================================================================================
@@ -645,12 +667,9 @@ async function hndlSaveConsentData(req: express.Request, res: express.Response) 
         const progress : ProgressData = req.body.progress;
         let { encodedSignature="", frozenFormHTML="", ...subData }: ConsentFormData = req.body.data  //I am splitting this to try to avoid JSON parsing problems on server.
         const trimmedData = subData as TrimmedConsentFormData;
-        //const data : ConsentFormData = req.body.data;
         let err = ""; let errIndex = 5; // Output parameter for errors from Mumps (1st param is #0)
         let tag="SAVECSNT"; let rtn="TMGPRE01";
 
-        //frozenFormHTML = '';  //temp!!  <--- if not set to '', the RPC fails ... May have to make separate call.
-        //  When run from here, it appears sessionID gets lost.  But if I step through from console, it is fine.  Weird.
         const rpcResult: RPCSaveDataResult = await tmg.RPC<RPCSaveDataResult>(tag, rtn, [sessionID, trimmedData, encodedSignature, frozenFormHTML, progress, err]);
 
         if (rpcErrorCheckOK(rpcResult, res, errIndex, tag, rtn)) {

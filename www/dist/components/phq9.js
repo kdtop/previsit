@@ -10,7 +10,7 @@ export default class TPhq9UpdateAppView extends TQuestionnaireAppView {
             //process opts -- if any added later
         }
     } //constructor
-    getQuestionnaireData() {
+    getQuestionnaireSchema() {
         const commonAnswers = ['Several days', 'More than half the days', 'Nearly every day'];
         let mainQuestGroup = {
             groupHeadingText: 'Questions',

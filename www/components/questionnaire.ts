@@ -1,15 +1,19 @@
 // /opt/worldvista/EHR/web/previsit/www/components/questionnaire.ts
 
 import TAppView, {  } from './appview.js';
-import { KeyToStrBoolValueObj, TQuestion, TQuestionGroup, TQuestionnaireData,
+import { KeyToStrBoolValueObj, TQuestionSchema, TQuestionGroupSchema, TQuestionnaireSchema, TQuestionnaireUserData,
          EnhancedHTMLDivElement,
-         QuestionResults,
+         TQuestionResults,
+         TQuestionGroupResults,
        } from '../utility/types.js';
+import { strToNumDef,
+         padZero, camelCase,
+} from '../utility/client_utils.js';
 import { TCtrl } from '../utility/controller.js';
 
-import { QuestionAnswerComponent, QuestionAnswerChangeEventDetail, NoneButtonToggleEventDetail, QACompOptions } from './comp_quest.js'; // NEW: Import QuestionAnswerComponent
+import { QuestionAnswerComponent, QACompOptions,
+         QuestionAnswerChangeEventDetail, ButtonToggleEventDetail } from './comp_quest.js'; // NEW: Import QuestionAnswerComponent
 import { piece, debounce } from '../utility/client_utils.js';
-import { argv } from 'process';
 
 interface questionnaireUpdateOptions {
     someOption : any;
@@ -24,8 +28,9 @@ export type QuestionnaireHTMLElement = EnhancedHTMLDivElement & {
 /**
  * Represents the generic Questionnaire component as a class, responsible for building and managing the questions on form.
  */
-export default class TQuestionnaireAppView extends TAppView<KeyToStrBoolValueObj> {
-    //NOTE: The generic type <KeyToStrBoolValueObj> is used to represent this view's data structure.
+//export default class TQuestionnaireAppView extends TAppView<KeyToStrBoolValueObj> {
+export default class TQuestionnaireAppView extends TAppView<TQuestionnaireUserData> {
+    //NOTE: The generic type <TQuestionnaireUserData> is used to represent this view's data structure.
     //      In the ancestor class, it will be represented at TServerData
     //      This the type of data that will be sent to the server when the form is submitted.
     //      other AppViews will use different data types when sending data to the server.
@@ -34,9 +39,10 @@ export default class TQuestionnaireAppView extends TAppView<KeyToStrBoolValueObj
     public resultingTotalScore : number = 0;
     public scoring : boolean = false;
     private loadingServerData: boolean = false; // Flag to indicate if data is currently being loaded into form
-    private formData : TQuestionnaireData = {   instructionsText: '',
-                                                questGroups : [],
-                                            };
+    private formSchema : TQuestionnaireSchema = {   instructionsText: '',
+                                                    questGroups : [],
+                                                };
+    private formUserData : TQuestionnaireUserData = { questGroupsResults : [], scoring: false, totalScore: 0, instructionsText: '', endingText: '' };
 
     constructor(aName : string, apiURL : string = '/api/questionnaireUpdate', aCtrl:  TCtrl,  opts?: questionnaireUpdateOptions) {
         super(aName, apiURL, aCtrl);
@@ -51,10 +57,9 @@ export default class TQuestionnaireAppView extends TAppView<KeyToStrBoolValueObj
         `
             <style>
                 .content-container {
+                  /* other values inherited from ancestor */
                   line-height:      1.6;
                   padding:          0 100px;
-                  background-color: var(--whiteColor);
-                  color:            var(--textColor);
                 }
 
                 /* --- Details Textarea Styling (General) --- */
@@ -202,47 +207,8 @@ export default class TQuestionnaireAppView extends TAppView<KeyToStrBoolValueObj
     public getHTMLTagContent() : string
     {
         let result = this.getHTMLStructure();
-        /*
-        let old_result : string = `
-            <form class='container content-container'>
-                <h1>Tell Us About Your Symptoms</h1>
-                <p><b>Patient:</b> <span class="patient-name"></span></p>
-
-                <div class="instructions">
-                    <p>Please answer the following questions. This will help us prepare for your visit.</p>
-                </div>
-                <div class="forms-container"></div>
-                <div class="closing-instructions"></div>
-                <div class="result-container"></div>
-
-                <div class="submission-controls">
-                    <button type="button" class="done-button">
-                        <!-- Icon on the left -->
-                        <span class="done-button-icon-area">
-                            ${this.getDoneIncompleteSVGIcon()}
-                            ${this.getDoneCompleteSVGIcon()}
-                        </span>
-                        <!-- Text container -->
-                        <span class="done-button-text">
-                          <span class="done-button-main-text">Main Text</span>
-                          <span class="done-button-sub-text">Sub Text</span>
-                        </span>
-                    </button>
-                </div>
-            </form>
-        `;
-        */
         return result;
     }
-
-    /*
-    public setupPatientNameDisplay() {
-        //NOTE: This is a virtual method, to be overridden by descendant classes
-        // Populate patient name
-        const patientNameEl = this.htmlEl.dom.querySelector<HTMLSpanElement>('.patient-name');
-        if (patientNameEl) patientNameEl.textContent = this.ctrl.patientFullName || "Valued Patient";
-    }
-    */
 
     /**
      * Builds the entire Questionainnaire form dynamically within the component.
@@ -262,100 +228,187 @@ export default class TQuestionnaireAppView extends TAppView<KeyToStrBoolValueObj
     }
 
     public async renderContent(parent: HTMLElement) {
-        this.formData = this.getQuestionnaireData();
+        this.formSchema = this.getQuestionnaireSchema();
         this.scoring = false;  //default
-        await this.renderQuestionnaire(parent, this.formData);
+        await this.renderQuestionnaire(parent, this.formSchema);
     }
 
-    public getQuestionnaireData() : TQuestionnaireData {
+    public getQuestionnaireSchema() : TQuestionnaireSchema {
+        // Get the definition of the questionaire (i.e. all the questions and components etc)
         // NOTE: This is a virtual method, to be overridden by descendant classes
-        throw new Error("Method 'getQuestionnaireData' must be implemented by subclasses.");
+        throw new Error("Method 'getQuestionnaireSchema' must be implemented by subclasses.");
     }
 
-    private async renderQuestionnaire(parent: HTMLElement, aQuestionnaire: TQuestionnaireData) {
-        /* TQuestionnaireData {
-                instructionsText: string;
-                questGroups : TQuestionGroup[];
-                endingText?: string;
+    private ensureUserDataDefined(aQuestionnaireSchema: TQuestionnaireSchema, userData : TQuestionnaireUserData): void {
+        if (!userData.questGroupsResults) {
+            userData.questGroupsResults = [];  //initialize array if was undefined
+        }
+        aQuestionnaireSchema.questGroups.forEach( (aQuestGroupSchema : TQuestionGroupSchema, groupIndex : number) => {
+            if (!userData.questGroupsResults[groupIndex]) {
+                userData.questGroupsResults[groupIndex] = { questionResults: [], groupHeadingText: '' };
             }
-        */
-        //insert instructionText into DOM
-        let instructionsDiv : HTMLDivElement | null = null;
-        let closingInstructionsDiv : HTMLDivElement | null = null;
-
-        if (aQuestionnaire.instructionsText) {
-            instructionsDiv  = this.htmlEl.dom.querySelector<HTMLDivElement>('.instructions');
-            if (instructionsDiv) instructionsDiv.innerHTML = '<p>' + aQuestionnaire.instructionsText + '</p>';
-        }
-
-        if (aQuestionnaire.endingText) {
-            closingInstructionsDiv  = this.htmlEl.dom.querySelector<HTMLDivElement>('.closing-instructions');
-            if (closingInstructionsDiv) closingInstructionsDiv.innerHTML = '<p>' + aQuestionnaire.endingText + '</p>';
-        }
-
-        aQuestionnaire.questGroups.forEach( (aQuestGroup : TQuestionGroup, groupIndex : number) => {
-           this.renderAQuestionGroup(parent, aQuestGroup, groupIndex);
+            aQuestGroupSchema.questionDefinition.forEach( (aQuestionSchema : TQuestionSchema, questionIndex : number) => {
+                if (!userData.questGroupsResults[groupIndex].questionResults[questionIndex]) {
+                    userData.questGroupsResults[groupIndex].questionResults[questionIndex] = { questionText : '', value : '', details: ''}
+                }
+            });
         });
     }
 
-    private renderAQuestionGroup(parent: HTMLElement, aQuestGroup : TQuestionGroup, groupIndex : number) : void {
-        /* TQuestionGroup {
-              groupHeadingText?: string;
-              question: TQuestion[];
-            }                                */
+    private partialSchemaToUserData(aQuestionnaireSchema: TQuestionnaireSchema, userData : TQuestionnaireUserData): void {
+        //this.formUserData is for storing user replies as separate data from schema.
+        //But this is the data sent to the server, and there needs to be context there for generating documention.
+        //   I.e. an answer of "NONE" is only meaningful if the related question is also present.
+        //So will ensure the relevent parts of the schema are copied here.
+        this.ensureUserDataDefined(aQuestionnaireSchema, userData); //Make sure all the elements are not undefined.
 
-        if (!aQuestGroup) return;
-        parent.appendChild(this.createHeading(1, aQuestGroup.groupHeadingText));
-
-        aQuestGroup.questionInstance = [];
-        aQuestGroup.questionDefinition.forEach( (aQuestion : TQuestion, questionIndex : number) => {
-            let qaComponent : QuestionAnswerComponent = this.createAQuestionSection(parent, aQuestion, groupIndex, questionIndex);
-            if (!aQuestGroup.questionInstance) aQuestGroup.questionInstance = [];
-            aQuestGroup.questionInstance.push(qaComponent);
+        this.formUserData.instructionsText = aQuestionnaireSchema.instructionsText;
+        this.formUserData.endingText = aQuestionnaireSchema.endingText;
+        this.formUserData.scoring = this.scoring;
+        aQuestionnaireSchema.questGroups.forEach( (aQuestGroupSchema : TQuestionGroupSchema, groupIndex : number) => {
+            this.formUserData.questGroupsResults[groupIndex].groupHeadingText = aQuestGroupSchema.groupHeadingText;
+            aQuestGroupSchema.questionDefinition.forEach( (aQuestionSchema : TQuestionSchema, questionIndex : number) => {
+                let text : string = aQuestionSchema.questionText || '';
+                if (text ==='') text = camelCase(aQuestionSchema.dataNamespace);
+                this.formUserData.questGroupsResults[groupIndex].questionResults[questionIndex].questionText = text;
+            });
         });
     }
 
-    /*
-        TQuestionnaireData {
+    private async renderQuestionnaire(parent: HTMLElement, aQuestionnaireSchema: TQuestionnaireSchema) {
+    /*  TQuestionnaireSchema {
             instructionsText?: string;
-            questGroups : TQuestionGroup[]; <-- a single element of this is 'aQuestGroup'
-                          TQuestionGroup {
+            questGroups : TQuestionGroupSchema[];
+                          TQuestionGroupSchema {
                             groupHeadingText: string;
-                            questionDefinition: TQuestion[];
-                              TQuestion {
+                            questionDefinition: TQuestionSchema[];
+                              TQuestionSchema {
                                ... (defining items)
                               }
-                            questionInstance: HTMLElement[];  //will really hold QuestionAnswerComponent (extended from HTMlElement) that implements TQuestion definition
+                            questionInstance: QuestionAnswerComponent[];  //holds QuestionAnswerComponent elements (extended from HTMlElement) that implement TQuestionSchema definitions
                           }
             endingText?: string;
         }
     */
+        this.partialSchemaToUserData(aQuestionnaireSchema, this.formUserData);
 
-    private createAQuestionSection(parent: HTMLElement, aQuestion : TQuestion, groupIndex : number, questionIndex : number): QuestionAnswerComponent
+        let instructionsDiv : HTMLDivElement | null = null;
+        let closingInstructionsDiv : HTMLDivElement | null = null;
+
+        if (aQuestionnaireSchema.instructionsText) {
+            instructionsDiv  = this.htmlEl.dom.querySelector<HTMLDivElement>('.instructions');
+            if (instructionsDiv) instructionsDiv.innerHTML = '<p>' + aQuestionnaireSchema.instructionsText + '</p>';
+        }
+
+        if (aQuestionnaireSchema.endingText) {
+            closingInstructionsDiv  = this.htmlEl.dom.querySelector<HTMLDivElement>('.closing-instructions');
+            if (closingInstructionsDiv) closingInstructionsDiv.innerHTML = '<p>' + aQuestionnaireSchema.endingText + '</p>';
+        }
+
+        aQuestionnaireSchema.questGroups.forEach( (aQuestGroup : TQuestionGroupSchema, groupIndex : number) => {
+           this.renderAQuestionGroup(parent, aQuestGroup, groupIndex);
+        });
+
+    }
+
+    private renderAQuestionGroup(parent: HTMLElement, aQuestGroupSchema : TQuestionGroupSchema, groupIndex : number) : void {
+        /* TQuestionGroupSchema {
+              groupHeadingText?: string;
+              question: TQuestionSchema[];
+            }                                */
+
+        if (!aQuestGroupSchema) return;
+
+        let questGroupDivElem = document.createElement('div') as HTMLDivElement;
+        aQuestGroupSchema.groupContainerDiv = questGroupDivElem;
+        questGroupDivElem.classList.add('question-group');
+        questGroupDivElem.dataset.groupIdx = groupIndex.toString();
+        parent.appendChild(questGroupDivElem);
+
+        questGroupDivElem.appendChild(this.createHeading(1, aQuestGroupSchema.groupHeadingText));
+        aQuestGroupSchema.questionInstance = [];  //type HTMLElement[]
+        aQuestGroupSchema.questionDefinition.forEach( (aQuestSchema : TQuestionSchema, questionIndex : number) => {
+            let qaComponent : QuestionAnswerComponent = this.createAQuestionSection(questGroupDivElem, aQuestSchema, groupIndex, questionIndex);
+            aQuestGroupSchema.questionInstance![questionIndex]=qaComponent;
+        });
+    }
+
+    private createAQuestionSection(parentDiv: HTMLDivElement, aQuestSchema : TQuestionSchema, groupIndex : number, questionIndex : number): QuestionAnswerComponent
+    /*  interface TQuestionSchema {
+          dataNamespace          : string;
+          questionText          ?: string;
+          replyType              : TReplyType;
+          hasDetailsArea        ?: boolean;
+          detailsAreaLabelText  ?: string;          //if set to '' then no label shown.  If not specified, default is "Other:".  Only applies if hasDetailsArea is true.
+          replies               ?: string[];        // replies will be required if the replyType is oneButton, multiButtons, noneOrOne, or noneOrMulti
+          scoreMode             ?: TScoreMode;      //NOTE: currently Values for numeric input are not included in scoring.
+          repliesCustomScore    ?: number[];        //see definition of TScoreMode for details.
+          placeholder           ?: string;          // Placeholder text for input fields
+          minValue              ?: number;          // Minimum value for numeric input.  NOTE: currently Values for numeric input are not included in scoring.
+          maxValue              ?: number;          // Maximum value for numeric input   NOTE: currently Values for numeric input are not included in scoring.
+          noneButtonLabel       ?: string;          // if replyType mode includes none button, then this label will be for none button.  Default is 'NONE'
+        }
+    */
     {
-        let scoreMode : string = aQuestion.scoreMode?.toLowerCase() ?? '';
+        let scoreMode : string = aQuestSchema.scoreMode?.toLowerCase() ?? '';
         this.scoring = this.scoring || scoreMode === "0indexed" || scoreMode === "1indexed" || scoreMode === "custom";
 
-        const section = this.createCategorySection(parent);
+        const section = this.createCategorySection(parentDiv);
         section.classList.add('trackable-question');
 
         // Create the new QuestionAnswerComponent
         const options : QACompOptions = {
-            id : `qa-${aQuestion.dataNamespace}`, // Assign a unique ID for easy lookup
-            questionData : aQuestion,
+            id : `qa-${aQuestSchema.dataNamespace}`, // Assign a unique ID for easy lookup
+            questionData : aQuestSchema,
             groupIndex : groupIndex,
             questionIndex : questionIndex,
         }
         const qaComponent : QuestionAnswerComponent = new QuestionAnswerComponent(options);
+        //NOTE: This will be saved into aQuestGroupSchema.questionInstance in caller of this function.
 
-        // Capture 'this' explicitly as 'self' to ensure correct context within callbacks
-        const self = this;
-        qaComponent.addEventListener('change', (event: Event) => {    // Add event listener for the main answer change
-            self.updatePageState(); // Use 'self' here
-        });
-
+        qaComponent.addEventListener('change', this.handleQuestionOnChange.bind(this));
         section.appendChild(qaComponent);
         return qaComponent; // Return the created component for further use if needed
+    }
+
+    private setFormValueToData(groupIndex: number, questionIndex: number, value: TQuestionResults) {
+        this.formUserData.questGroupsResults[groupIndex].questionResults[questionIndex] = value;
+    }
+
+    private _handleQuestOnChange(event: Event) : void {
+        if (event instanceof CustomEvent) {
+            let custEvent = event as CustomEvent;
+            if (custEvent.detail) {
+                let details : QuestionAnswerChangeEventDetail | ButtonToggleEventDetail | null = null;
+                if (custEvent.detail.type === "QAAnswerChange") {
+                    details = custEvent.detail as QuestionAnswerChangeEventDetail;
+                } else if (custEvent.detail.type === "ButtonToggle") {
+                    details = custEvent.detail as ButtonToggleEventDetail;
+                }
+                if (details) {
+                    //save data to model
+                    const qaComponent : QuestionAnswerComponent = details.target;
+                    const groupIndex : number = Number(qaComponent.dataset.groupIndex);
+                    const questionIndex : number = Number(qaComponent.dataset.questionIndex);
+                    let values : TQuestionResults = qaComponent.getValues();
+                    this.setFormValueToData(groupIndex, questionIndex, values);
+                }
+            }
+        }
+        this.updatePageState();  //<-- will call this.updateProgressState(), which changes resultingTotalScore is scoring, or 0 if default
+        this.formUserData.totalScore = this.resultingTotalScore;
+    }
+    private debouncedHandleQuestOnChange = debounce(this._handleQuestOnChange.bind(this), 100);
+    public handleQuestionOnChange(event: Event) : void {
+        //this.debouncedHandleQuestOnChange(event);
+        if (event instanceof CustomEvent) {
+            const clonedEvent = new CustomEvent(event.type, {
+                detail: { ...event.detail },
+                bubbles: event.bubbles,
+                cancelable: event.cancelable,
+            });
+            this.debouncedHandleQuestOnChange(clonedEvent);
+        }
     }
 
     // --- Data, Submission, and Autosave Logic ---
@@ -364,6 +417,7 @@ export default class TQuestionnaireAppView extends TAppView<KeyToStrBoolValueObj
      * Sets up event listeners for the form, including the autosave mechanism and the 'Done' button.
      */
     public setupFormEventListeners = (): void => {
+        //NOTE: Form listeners are also attached to the various question components during rendering of the form
         if (!this.htmlEl) return;
         const form = this.htmlEl.dom.querySelector('form.content-container');
         if (!form) return;
@@ -371,13 +425,18 @@ export default class TQuestionnaireAppView extends TAppView<KeyToStrBoolValueObj
         // Autosave on any change or input via updatePageState
         const updatePageFn = this.updatePageState.bind(this); // Permanently binds 'this' to the method
         // Listen for 'change' events from question-answer-component (CustomEvent) and standard inputs/textareas
-        form.addEventListener('change', updatePageFn);
-        form.addEventListener('input', updatePageFn); // 'input' is better for textareas
+        //form.addEventListener('change', updatePageFn);
+        //form.addEventListener('input', updatePageFn); // 'input' is better for textareas
 
         // 'Done' button listener
         const doneButton = this.htmlEl.dom.querySelector<HTMLButtonElement>('.done-button');
         doneButton?.addEventListener('click', (e) => {
             e.preventDefault();
+            e.stopImmediatePropagation();
+            console.group("Done button clicked");
+            console.log("Stack trace at event dispatch:");
+            console.trace(); // <-- captures stack from where *dispatchEvent* was called
+            console.groupEnd();
             this.handleDoneClick();
         });
     }
@@ -415,6 +474,9 @@ export default class TQuestionnaireAppView extends TAppView<KeyToStrBoolValueObj
                     isTextareaAnswered = true;
                 }
             });
+            if (qaComponent && !isTextareaAnswered && qaComponent.details.trim() !== '') {
+                isTextareaAnswered = true;
+            }
 
             if (isQuestionAnswered || isTextareaAnswered) {
                 answeredCount++;
@@ -423,7 +485,7 @@ export default class TQuestionnaireAppView extends TAppView<KeyToStrBoolValueObj
 
         if (this.scoring) {
             this.resultingTotalScore = 0;
-            this.formData.questGroups.forEach( (qGroup: TQuestionGroup) => {
+            this.formSchema.questGroups.forEach( (qGroup: TQuestionGroupSchema) => {
                 if (qGroup.questionInstance) qGroup.questionInstance.forEach( (element: HTMLElement) => {
                     let aQuestInstance = element as QuestionAnswerComponent;
                     this.resultingTotalScore += aQuestInstance.getUnitScore();
@@ -441,17 +503,17 @@ export default class TQuestionnaireAppView extends TAppView<KeyToStrBoolValueObj
     }
 
     public clear(): void {
-      if (!this.htmlEl) return;
-      const form : HTMLFormElement | null = this.htmlEl.dom.querySelector<HTMLFormElement>('form.content-container');
-      if (!form) {
-          console.error("Form not found for data extraction.");
-          return;
-      }
+        if (!this.htmlEl) return;
+        const form : HTMLFormElement | null = this.htmlEl.dom.querySelector<HTMLFormElement>('form.content-container');
+        if (!form) {
+            console.error("Form not found for data extraction.");
+            return;
+        }
 
-      // clear all question-answer-component elements
-      form.querySelectorAll<QuestionAnswerComponent>('question-answer-component').forEach( (qaComp:QuestionAnswerComponent) => {
-          qaComp.clear();
-      });
+        // clear all question-answer-component elements
+        form.querySelectorAll<QuestionAnswerComponent>('question-answer-component').forEach( (qaComp:QuestionAnswerComponent) => {
+            qaComp.clear();
+        });
 
     }
 
@@ -459,38 +521,108 @@ export default class TQuestionnaireAppView extends TAppView<KeyToStrBoolValueObj
      * Gathers all form data into a structured JSON object.
      * @returns A JSON object representing the current state of the form.
      */
+    public gatherDataForServer = (): TQuestionnaireUserData => {
+        return this.formUserData;
+    }
+
+    /*
     public gatherDataForServer = (): KeyToStrBoolValueObj => {
       // Need to override gatherDataFromContainerForServer from AppView
       // because form.elements (used by FormData) does not include custom elements' internal inputs.
-      if (!this.htmlEl) return {};
-      const form : HTMLFormElement | null = this.htmlEl.dom.querySelector<HTMLFormElement>('form.content-container');
-      if (!form) {
-          console.error("Form not found for data extraction.");
-          return {};
-      }
-      const resultData: KeyToStrBoolValueObj = {};
+        if (!this.htmlEl) return {};
+        const form : HTMLFormElement | null = this.htmlEl.dom.querySelector<HTMLFormElement>('form.content-container');
+        if (!form) {
+            console.error("Form not found for data extraction.");
+            return {};
+        }
+        const resultData: KeyToStrBoolValueObj = {};
 
-      // Gather data from question-answer-component elements
-      form.querySelectorAll<QuestionAnswerComponent>('question-answer-component').forEach( (qaComp:QuestionAnswerComponent) => {
-          const dataNamespace = qaComp.dataset.namespace;  //qaComp.getAttribute('data-namespace');
-          const groupIndex = qaComp.dataset.groupIndex;
-          const questionIndex = qaComp.dataset.questionIndex;
-          if (!dataNamespace || !groupIndex || !questionIndex) return;
-          let keyPrefix = `${groupIndex}.${questionIndex}:${dataNamespace}`;
-          let values : QuestionResults = qaComp.getValues();
-          resultData[keyPrefix+'^questionText'] = values.questionText;
-          resultData[keyPrefix+'^value'] = values.value;
-          if (values.details) resultData[keyPrefix+'^details'] = values.details;
-      });
+        let instructionsText : string = this.formSchema?.instructionsText || '';
+        let endingText : string = this.formSchema?.endingText || '';
+        resultData["QUESTIONAIRE:INSTRUCTION-TEXT"]=instructionsText;
+        resultData["QUESTIONAIRE:ENDING-TEXT"]=endingText;
+        if (this.scoring) resultData["QUESTIONAIRE:TOTAL-SCORE"]=this.resultingTotalScore.toString();
 
-      console.log("Compiled form data:", resultData);
-      return resultData;
+        this.formSchema.questGroups.forEach( (aQuestGroup:TQuestionGroupSchema, index : number) => {
+          this.gatherQuestionGroupData(aQuestGroup, index, resultData);
+        });
+
+        //form.querySelectorAll<HTMLDivElement>('.question-group').forEach( (groupDiv:HTMLDivElement) => {
+        //  //let groupIndex = strToNumDef(groupDiv.dataset.groupIdx, -1);
+        //  let grpIndexStr = groupDiv.dataset?.groupIdx || '-1';
+        //  const heading = groupDiv.querySelector<HTMLHeadingElement>('.question-group-heading');
+        //  if (heading) {
+        //      let groupHeadingText = heading.innerText;
+        //      let key = `${padZero(grpIndexStr)}:GROUP-TITLE`;
+        //      resultData[key]=groupHeadingText;
+        //  }
+        //  // Gather data from question-answer-component elements
+        //  groupDiv.querySelectorAll<QuestionAnswerComponent>('question-answer-component').forEach( (qaComp:QuestionAnswerComponent) => {
+        //      const dataNamespace = qaComp.dataset.namespace;  //qaComp.getAttribute('data-namespace');
+        //      const groupIndex = qaComp.dataset.groupIndex;
+        //      const questionIndex = qaComp.dataset.questionIndex;
+        //      if (!dataNamespace || !groupIndex || !questionIndex) return;
+        //      let keyPrefix = `${padZero(groupIndex)}.${padZero(questionIndex)}:${dataNamespace}`;
+        //      let values : TQuestionResults = qaComp.getValues();
+        //      resultData[keyPrefix+'^questionText'] = values.questionText;
+        //      resultData[keyPrefix+'^value'] = values.value;
+        //      if (values.details) resultData[keyPrefix+'^details'] = values.details;
+        //  });
+        //});
+
+        console.log("Compiled form data:", resultData);
+        return resultData;
     }
+
+    public gatherQuestionGroupData(aQuestGroup:TQuestionGroupSchema, groupIndex: number, outResultData: KeyToStrBoolValueObj) {
+        let key = `${padZero(groupIndex)}:GROUP-TITLE`;
+        outResultData[key]=aQuestGroup.groupHeadingText;
+
+        aQuestGroup.questionInstance?.forEach( (aQuestionEl : QuestionAnswerComponent, questIndex : number) => {
+            let aQuestionDef : TQuestionSchema = aQuestGroup.questionDefinition[questIndex];
+            this.gatherQuestionData(aQuestionDef, aQuestionEl, groupIndex, questIndex, outResultData);
+        });
+    }
+
+    public gatherQuestionData(aQuestionDef: TQuestionSchema, aQuestionEl: QuestionAnswerComponent, groupIndex: number, questIndex: number, outResultData: KeyToStrBoolValueObj) {
+        let keyPrefix = `${padZero(groupIndex)}.${padZero(questIndex)}:${aQuestionDef.dataNamespace}`;
+        outResultData[keyPrefix+'^questionText'] =  aQuestionDef.questionText || '';
+        let values : TQuestionResults = aQuestionEl.getValues();
+        outResultData[keyPrefix+'^value'] = values.value;
+        if (values.details) outResultData[keyPrefix+'^details'] = values.details;
+    }
+    */
 
     /**
      * Populates the form fields based on a JSON object from the server.
      * @param data A JSON object with form data.
      */
+    public serverDataToForm = (data: TQuestionnaireUserData): void => {
+        this.clear();
+        this.formUserData = data;
+        this.partialSchemaToUserData(this.formSchema, this.formUserData); //If data from server was missing some questions etc, this will ensure added.
+
+        if (!this.htmlEl) return;
+        const form = this.htmlEl.dom.querySelector('form.content-container');
+        if (!form) return;
+
+        // Set isLoadingData flag to true at the beginning of data loading
+        this.loadingServerData = true;
+
+        data.questGroupsResults.forEach( (aGroupResults : TQuestionGroupResults, groupIndex : number) => {
+            aGroupResults.questionResults.forEach( (aQuestionResults : TQuestionResults, questionIndex : number) => {
+                const qaComponent : QuestionAnswerComponent = this.formSchema.questGroups[groupIndex].questionInstance![questionIndex];
+                qaComponent.value = aQuestionResults.value;
+                qaComponent.details = aQuestionResults.details || '';
+            });
+        });
+
+        this.loadingServerData = false;  // Set isLoadingData flag back to false after all data is loaded
+
+        this.updatePageState();
+    }
+
+    /*
     public serverDataToForm = (data: KeyToStrBoolValueObj): void => {
         this.clear();
         if (!this.htmlEl) return;
@@ -524,6 +656,7 @@ export default class TQuestionnaireAppView extends TAppView<KeyToStrBoolValueObj
 
         this.updatePageState();
     }
+    */
 
     /**
      * Creates a category section div and appends it to the parent.
@@ -541,6 +674,7 @@ export default class TQuestionnaireAppView extends TAppView<KeyToStrBoolValueObj
     createHeading(level: number, text: string): HTMLHeadingElement {
         const h = document.createElement(`h${level}`) as HTMLHeadingElement;
         h.textContent = text;
+        h.classList.add('question-group-heading');
         return h;
     }
 

@@ -10,7 +10,7 @@ export default class TRosUpdateAppView extends TQuestionnaireAppView {
             //process opts -- if any added later
         }
     } //constructor
-    getQuestionnaireData() {
+    getQuestionnaireSchema() {
         let testQuestGroup = {
             groupHeadingText: 'Review of Systems',
             questionDefinition: [

@@ -2,7 +2,7 @@
 
 import {  } from './appview.js';
 import { TCtrl } from '../utility/controller.js';
-import { TQuestion, TQuestionGroup, TQuestionnaireData,
+import { TQuestionSchema, TQuestionGroupSchema, TQuestionnaireSchema,
          TReplyType, EnhancedHTMLDivElement
        } from '../utility/types.js';
 import TQuestionnaireAppView from './questionnaire.js';
@@ -60,8 +60,8 @@ export default class THxUpdateAppView extends TQuestionnaireAppView  {
         return result;
     }
 
-    public getQuestionnaireData() : TQuestionnaireData {
-        let mainQuestGroup : TQuestionGroup = {
+    public getQuestionnaireSchema() : TQuestionnaireSchema {
+        let mainQuestGroup : TQuestionGroupSchema = {
             groupHeadingText : 'Welcome!',
             questionDefinition : [
                 {
@@ -75,7 +75,7 @@ export default class THxUpdateAppView extends TQuestionnaireAppView  {
             ]
         }
 
-        let hxUpdateGroup : TQuestionGroup = {
+        let hxUpdateGroup : TQuestionGroupSchema = {
             groupHeadingText : 'Since your last visit, have you had any of the following?',
             questionDefinition : [
                 {
@@ -128,7 +128,7 @@ export default class THxUpdateAppView extends TQuestionnaireAppView  {
                 },
             ]
         }
-        let formData :  TQuestionnaireData = {
+        let formData :  TQuestionnaireSchema = {
             instructionsText : 'Please answer the following questions. This will help us prepare for your visit.',
             questGroups : [mainQuestGroup, hxUpdateGroup]
         };

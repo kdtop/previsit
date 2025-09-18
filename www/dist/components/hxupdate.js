@@ -28,7 +28,7 @@ export default class THxUpdateAppView extends TQuestionnaireAppView {
         let result = this.getHTMLStructure();
         return result;
     }
-    getQuestionnaireData() {
+    getQuestionnaireSchema() {
         let mainQuestGroup = {
             groupHeadingText: 'Welcome!',
             questionDefinition: [

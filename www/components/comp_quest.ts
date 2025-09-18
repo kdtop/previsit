@@ -2,23 +2,27 @@
 
 import { ToggleButton, ReplyToggleButton, ToggleButtonOptions } from './comp_btns.js'; // Ensure .js extension for module import
 import {camelCase, toNumStrDef  } from '../utility/client_utils.js'
-import { TQuestion, TReplyType, TScoreMode, QuestionResults } from '../utility/types.js';
+import { TQuestionSchema, TReplyType, TScoreMode, TQuestionResults } from '../utility/types.js';
 
 // Define the interface for the custom event detail when the answer changes
 export interface QuestionAnswerChangeEventDetail {
+    type : "QAAnswerChange",
     dataNamespace: string;
     value: string | number | null; // The combined value of the answer
+    target: QuestionAnswerComponent;
 }
 
-// NEW: Define interface for None button toggle event
-export interface NoneButtonToggleEventDetail {
+// NEW: Define interface for button toggle event
+export interface ButtonToggleEventDetail {
+    type : "QAButtonToggle",
     dataNamespace: string;
     isChecked: boolean;
+    target: QuestionAnswerComponent;
 }
 
 export interface QACompOptions {
     id : string; // Assign a unique ID for easy lookup
-    questionData :  TQuestion; // the question object
+    questionData :  TQuestionSchema; // the question object
     groupIndex : number;
     questionIndex : number;
 }
@@ -70,7 +74,7 @@ export class QuestionAnswerComponent extends HTMLElement {
     private sectionContainer : HTMLDivElement | null = null;
 
     public scoring : boolean = false;
-    public questionData: TQuestion | null = null; // Changed from private to public for external access (e.g., scoring)
+    public questionData: TQuestionSchema | null = null; // Changed from private to public for external access (e.g., scoring)
 
     //NOTES ABOUT LOADING....    <----- NOTE: I'm not sure this was implemented....
     //If loading is TRUE,  then only data -> controls (but not controls -> data).
@@ -202,7 +206,7 @@ export class QuestionAnswerComponent extends HTMLElement {
      * based on the `questionData`.
      */
     private renderContent(): void {
-        let aQuestion : TQuestion | null = this.questionData;
+        let aQuestion : TQuestionSchema | null = this.questionData;
 
         if (!aQuestion) {
             this.dom.innerHTML = `<style>${this.styleContent()}</style><p>No question data provided.</p>`;
@@ -442,7 +446,14 @@ export class QuestionAnswerComponent extends HTMLElement {
                 console.log('Turned off button:', aToggleButton.dataset.replyName);
                 if (aToggleButton == this.noneButton) {
                     // Create and dispatch a 'change' event
-                    const changeEvent = new Event('change', {
+                    let details : ButtonToggleEventDetail = {
+                        type : "QAButtonToggle",
+                        dataNamespace: this.questionData?.dataNamespace || '',
+                        isChecked: false,
+                        target: this,
+                    }
+                    const changeEvent = new CustomEvent<ButtonToggleEventDetail>('change', {
+                        detail: details,
                         bubbles: true, // Allows the event to bubble up the DOM tree
                         cancelable: true // Allows the event to be canceled
                     });
@@ -456,6 +467,7 @@ export class QuestionAnswerComponent extends HTMLElement {
      * Handles the 'change' event from individual ToggleButtons.
      */
     private handleButtonChange(event: Event): void {
+        event.stopImmediatePropagation();  //stop any other listeners from getting signal.
         const changedButton = event.target as ToggleButton;
         if (!changedButton) return;
 
@@ -486,7 +498,14 @@ export class QuestionAnswerComponent extends HTMLElement {
             if (this.noneButton?.checked) {  //<--- actually should never occur, because if checked, then other buttons would be hidden and unclickable.
                 this.noneButton.checked = false;  //doesn't trigger change event.
                 // Create and dispatch a 'change' event
-                const changeEvent = new Event('change', {
+                let details : ButtonToggleEventDetail = {
+                    type : "QAButtonToggle",
+                    dataNamespace: this.questionData?.dataNamespace || '',
+                    isChecked: false,
+                    target: this,
+                }
+                const changeEvent = new CustomEvent<ButtonToggleEventDetail>('change', {
+                    detail: details,
                     bubbles: true, // Allows the event to bubble up the DOM tree
                     cancelable: true // Allows the event to be canceled
                 });
@@ -497,7 +516,6 @@ export class QuestionAnswerComponent extends HTMLElement {
         this.dispatchChangeEvent();
     }
 
-    //private debouncedhandleDetailsTextAreaChange = debounce(this.handleDetailsTextAreaChange, 500);
     private handleDetailsTextAreaChange(event: Event): void {
         const changedDetailsTextArea = event.target as HTMLTextAreaElement;
         if (!changedDetailsTextArea) return;
@@ -506,7 +524,6 @@ export class QuestionAnswerComponent extends HTMLElement {
         this.dispatchChangeEvent();
     }
 
-    //private debouncedHandleFreeTextInputChange = debounce(this.handleFreeTextInputChange, 500);
     private handleFreeTextInputChange(event: Event): void {
         const changedTextInput = event.target as HTMLInputElement;
         if (!changedTextInput) return;
@@ -518,7 +535,6 @@ export class QuestionAnswerComponent extends HTMLElement {
         this.dispatchChangeEvent();
     }
 
-    //private debouncedHandleNumericInputChange = debounce(this.handleNumericInputChange, 500);
     private handleNumericInputChange(event: Event): void {
         const changedNumericInput = event.target as HTMLInputElement
         if (!changedNumericInput) return;
@@ -689,14 +705,18 @@ export class QuestionAnswerComponent extends HTMLElement {
     } //updateButtonsFromValues
 
     private dispatchChangeEvent(): void {
-        this.dispatchEvent(new CustomEvent<QuestionAnswerChangeEventDetail>('change', {
-            detail: {
-                dataNamespace: this.questionData?.dataNamespace || '',
-                value: this._value
-            },
-            bubbles: true,
-            composed: true,
-        }));
+        let details : QuestionAnswerChangeEventDetail = {
+            type : "QAAnswerChange",
+            dataNamespace: this.questionData?.dataNamespace || '',
+            value: this._value,
+            target: this,
+        }
+        const changeEvent = new CustomEvent<QuestionAnswerChangeEventDetail>('change', {
+            detail: details,
+            bubbles: true, // Allows the event to bubble up the DOM tree
+            cancelable: true // Allows the event to be canceled
+        });
+        this.dispatchEvent(changeEvent);
     }
 
     private styleContent(): string {
@@ -942,10 +962,10 @@ export class QuestionAnswerComponent extends HTMLElement {
         return result;
     }
 
-    public getValues() : QuestionResults
+    public getValues() : TQuestionResults
     {
         //should be already updated via event handlers --> this.updateValuesFromComponents();
-        let result : QuestionResults = {
+        let result : TQuestionResults = {
             questionText : this.questionData?.questionText ?? '',
             value : this._value,
             details : this._details

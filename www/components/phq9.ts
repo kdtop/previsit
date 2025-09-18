@@ -1,6 +1,6 @@
 // /opt/worldvista/EHR/web/previsit/www/components/phq9.ts
 
-import { TQuestion, TQuestionGroup, TQuestionnaireData, TReplyType } from '../utility/types.js';
+import { TQuestionSchema, TQuestionGroupSchema, TQuestionnaireSchema, TReplyType } from '../utility/types.js';
 import TQuestionnaireAppView from './questionnaire.js';
 import { TCtrl } from '../utility/controller.js';
 
@@ -21,10 +21,10 @@ export default class TPhq9UpdateAppView extends TQuestionnaireAppView {
         }
     }  //constructor
 
-    public getQuestionnaireData() : TQuestionnaireData {
+    public getQuestionnaireSchema() : TQuestionnaireSchema {
         const commonAnswers : string[] = ['Several days','More than half the days','Nearly every day'];
 
-        let mainQuestGroup : TQuestionGroup = {
+        let mainQuestGroup : TQuestionGroupSchema = {
             groupHeadingText : 'Questions',
             questionDefinition : [
                 {
@@ -93,7 +93,7 @@ export default class TPhq9UpdateAppView extends TQuestionnaireAppView {
             ],
         }
 
-        let impactQuestGroup : TQuestionGroup = {
+        let impactQuestGroup : TQuestionGroupSchema = {
             groupHeadingText : 'Life Impact',
             questionDefinition : [
                 {
@@ -105,7 +105,7 @@ export default class TPhq9UpdateAppView extends TQuestionnaireAppView {
             ]
         }
 
-        let formData :  TQuestionnaireData = {
+        let formData :  TQuestionnaireSchema = {
             instructionsText : 'Please answer the following questions. This will help us prepare for your visit.',
             questGroups : [mainQuestGroup, impactQuestGroup]
         };

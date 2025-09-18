@@ -10,7 +10,7 @@ export default class TAwvQuestionnaireAppView extends TQuestionnaireAppView {
             //process opts -- if any added later
         }
     } //constructor
-    getQuestionnaireData() {
+    getQuestionnaireSchema() {
         const commonAnswers = ['Several days', 'More than half the days', 'Nearly every day'];
         let num1QuestGroup = {
             groupHeadingText: 'Physical Activity',

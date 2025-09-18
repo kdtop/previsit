@@ -20,19 +20,26 @@ export function toNumStrDef(s : string | null | undefined, defaultNumStr = '0') 
   return floatVal.toString();
 }
 
+export function strToNumDef(str: string | undefined, defaultNum: number): number {
+    if (str === undefined || str.trim() === "") return defaultNum; // reject empty or whitespace-only strings
+    const n = Number(str);
+    return Number.isFinite(n) ? n : defaultNum;
+}
+
 /**
  * Pads a single-digit number string with a leading zero.
  * e.g., "7" becomes "07".
  * @param numStr The string to pad.
  * @returns The padded string or the original string if no padding is needed.
  */
-export function padZero(numStr: string): string {
-    // Using a radix is a best practice for parseInt.
-    const num = parseInt(numStr, 10);
-    if (!isNaN(num) && numStr.length === 1 && num >= 0 && num <= 9) {
-        return String(num).padStart(2, '0');
+export function padZero(num: string | number): string {
+    const numStr = String(num); // convert number to string if needed
+    const parsed = parseInt(numStr, 10);
+    let result = numStr;
+    if (!isNaN(parsed) && numStr.length === 1 && parsed >= 0 && parsed <= 9) {
+      result=numStr.padStart(2, '0');
     }
-    return numStr;
+    return result;
 }
 
 /**
@@ -220,11 +227,11 @@ export function debounce<T extends Procedure>(func: DebouncedFunction<T>, wait: 
     //-------------------------------------------------------
 
     // --- ADD THESE DEBUG LOGS ---
-    console.log('Debounced function called!');
-    console.log('Arguments:', args);
-    if (args[0] instanceof Event) {
-        console.log('Event target (inside debounce):', (args[0] as Event).target);
-    }
+    //console.log('Debounced function called!');
+    //console.log('Arguments:', args);
+    //if (args[0] instanceof Event) {
+    //    console.log('Event target (inside debounce):', (args[0] as Event).target);
+    //}
     // --- END DEBUG LOGS ---
     if (timeout) {
       clearTimeout(timeout);

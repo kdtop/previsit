@@ -1,5 +1,8 @@
 // /opt/worldvista/EHR/web/previsit/www/types.ts
 
+import type { QuestionAnswerComponent } from '../components/comp_quest.js';
+
+
 /** Shape of the data sent in the login API request. */
 export interface LoginRequestData {
     lastName: string;
@@ -24,8 +27,14 @@ export interface GetPatientFormsApiResponse {
     text?: string; // The display name of the form
     viewName?: string; // The name of the view to switch to
     iconName?: string; // The name of the icon to display
-    progress?: ProgressData
+    progress?: ProgressData;
+    //------------------------
+    //Below is optional variable to be used as signal from client to send back to server after submission
+    //   This will tell server that the user is done, and server can move replies into medical record.
+    formsHaveBeenSubmitted?: boolean;
 }
+
+
 
 export type GetPatientFormsApiResponseArray = GetPatientFormsApiResponse[];
 
@@ -80,7 +89,6 @@ export interface ProgressData {
     progressPercentage?: number; // Percentage of items completed (0-100)
 }
 
-//export type KeyToStrBoolValueObj = Record<string, string | boolean | string[] | null>; // Updated to include string[] and null
 export type KeyToStrBoolValueObj = Record<string, string | boolean >;
 
 export interface SigFormData {
@@ -124,39 +132,55 @@ export type TReplyType = "freeText" | "buttons" | "radioButtons" | "noneOrButton
 //  if 1Index then reply[0] gets 1 points, reply[1] gets 2 point etc.
 export type TScoreMode = "none" | "custom" | "0Indexed" | "1Indexed";
 
-export interface TQuestionnaireData {
+export interface TQuestionnaireSchema {
     instructionsText?: string;
-    questGroups : TQuestionGroup[];
+    questGroups : TQuestionGroupSchema[];
     endingText?: string;
 }
 
 // Define the main interface for the JSON structure
-export interface TQuestionGroup {
-  groupHeadingText: string;
-  questionDefinition: TQuestion[];
-  questionInstance ?: HTMLElement[];  //will really hold QuestionAnswerComponent (extended from HTMlElement. )
+export interface TQuestionGroupSchema {
+    groupHeadingText: string;
+    groupContainerDiv?: HTMLDivElement;
+    questionDefinition: TQuestionSchema[];
+    questionInstance ?: QuestionAnswerComponent[];  //holds  1:1 relationship between questionDef:questionInstance
 }
 // Define the interface for a single question object
-export interface TQuestion {
-  dataNamespace          : string;
-  questionText          ?: string;
-  replyType              : TReplyType;
-  hasDetailsArea        ?: boolean;
-  detailsAreaLabelText  ?: string;          //if set to '' then no label shown.  If not specified, default is "Other:".  Only applies if hasDetailsArea is true.
-  replies               ?: string[];        // replies will be required if the replyType is oneButton, multiButtons, noneOrOne, or noneOrMulti
-  scoreMode             ?: TScoreMode;      //NOTE: currently Values for numeric input are not included in scoring.
-  repliesCustomScore    ?: number[];        //see definition of TScoreMode for details.
-  placeholder           ?: string;          // Placeholder text for input fields
-  minValue              ?: number;          // Minimum value for numeric input.  NOTE: currently Values for numeric input are not included in scoring.
-  maxValue              ?: number;          // Maximum value for numeric input   NOTE: currently Values for numeric input are not included in scoring.
-  noneButtonLabel       ?: string;          // if replyType mode includes none button, then this label will be for none button.  Default is 'NONE'
+export interface TQuestionSchema {
+    dataNamespace          : string;
+    questionText          ?: string;
+    replyType              : TReplyType;
+    hasDetailsArea        ?: boolean;
+    detailsAreaLabelText  ?: string;          //if set to '' then no label shown.  If not specified, default is "Other:".  Only applies if hasDetailsArea is true.
+    replies               ?: string[];        // replies will be required if the replyType is oneButton, multiButtons, noneOrOne, or noneOrMulti
+    scoreMode             ?: TScoreMode;      //NOTE: currently Values for numeric input are not included in scoring.
+    repliesCustomScore    ?: number[];        //see definition of TScoreMode for details.
+    placeholder           ?: string;          // Placeholder text for input fields
+    minValue              ?: number;          // Minimum value for numeric input.  NOTE: currently Values for numeric input are not included in scoring.
+    maxValue              ?: number;          // Maximum value for numeric input   NOTE: currently Values for numeric input are not included in scoring.
+    noneButtonLabel       ?: string;          // if replyType mode includes none button, then this label will be for none button.  Default is 'NONE'
 }
 
-export interface QuestionResults {
+export interface TQuestionResults {
     questionText : string;
     value : string;
     details?: string;
 }
+
+export interface TQuestionGroupResults {
+    groupHeadingText: string;   //this isn't really user data, but it will be used on server to save final form, so useful to have copy here.  Populated when rendering the form.
+    questionResults : TQuestionResults[];
+}
+
+export interface TQuestionnaireUserData {
+    instructionsText?:  string;  //this isn't really user data, but it will be used on server to save final form, so useful to have copy here.  Populated when rendering the form.
+    endingText?:        string;        //this isn't really user data, but it will be used on server to save final form, so useful to have copy here.  Populated when rendering the form.
+    questGroupsResults: TQuestionGroupResults[];
+    scoring:            boolean;
+    totalScore?:        number;
+}
+
+
 /**
  * Represents an instance created by the EL utility.
  * This is the object returned by `new EL(...)`.

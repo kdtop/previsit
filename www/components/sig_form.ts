@@ -178,7 +178,7 @@ export default class TSigFormAppView extends TAppView<SigFormData> {
         });
 
         // Add event listener for the new 'Don't sign' button
-        this.htmlEl.dontSignBtn?.addEventListener('click', () => {
+        this.htmlEl.dontSignBtn?.addEventListener('click', (e) => {
             console.log("Don't sign button clicked!");
             this.htmlEl.signaturePadComponent?.clear();
             this.updatePageState();

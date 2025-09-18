@@ -7,6 +7,8 @@ CONTENTS:
 */
 // components.ts
 
+import {svgIcons } from '../utility/globals.js';
+
 export interface ToggleButtonOptions {
     id?: string;
     state ?: {
@@ -37,21 +39,8 @@ export interface ReplyToggleButton extends ToggleButton {
     unitScore?: number;
 }
 
-//var _checkedBackgroundColor: string = '#3498db';
-//var _checkedColor: string = 'white';
-//var _uncheckedBackgroundColor: string = '#f0f0f0';
-//var _uncheckedColor: string = '#555555';
-//var _showChecked: boolean = false;
-//var _checkedText: string = 'Checked'; // Default internal checked text
-//var _uncheckedText: string = 'Unchecked'; // Default internal unchecked text
-
-
 export function checkboxSVG() : string {
-  return `
-    <svg class="checkmark" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-      <polyline points="20 6 9 17 4 12"></polyline>
-    </svg>
-  `;
+  return svgIcons["Checkmark"];
 }
 
 

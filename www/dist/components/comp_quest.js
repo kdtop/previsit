@@ -370,7 +370,14 @@ export class QuestionAnswerComponent extends HTMLElement {
                 console.log('Turned off button:', aToggleButton.dataset.replyName);
                 if (aToggleButton == this.noneButton) {
                     // Create and dispatch a 'change' event
-                    const changeEvent = new Event('change', {
+                    let details = {
+                        type: "QAButtonToggle",
+                        dataNamespace: this.questionData?.dataNamespace || '',
+                        isChecked: false,
+                        target: this,
+                    };
+                    const changeEvent = new CustomEvent('change', {
+                        detail: details,
                         bubbles: true, // Allows the event to bubble up the DOM tree
                         cancelable: true // Allows the event to be canceled
                     });
@@ -383,6 +390,7 @@ export class QuestionAnswerComponent extends HTMLElement {
      * Handles the 'change' event from individual ToggleButtons.
      */
     handleButtonChange(event) {
+        event.stopImmediatePropagation(); //stop any other listeners from getting signal.
         const changedButton = event.target;
         if (!changedButton)
             return;
@@ -413,7 +421,14 @@ export class QuestionAnswerComponent extends HTMLElement {
             if (this.noneButton?.checked) { //<--- actually should never occur, because if checked, then other buttons would be hidden and unclickable.
                 this.noneButton.checked = false; //doesn't trigger change event.
                 // Create and dispatch a 'change' event
-                const changeEvent = new Event('change', {
+                let details = {
+                    type: "QAButtonToggle",
+                    dataNamespace: this.questionData?.dataNamespace || '',
+                    isChecked: false,
+                    target: this,
+                };
+                const changeEvent = new CustomEvent('change', {
+                    detail: details,
                     bubbles: true, // Allows the event to bubble up the DOM tree
                     cancelable: true // Allows the event to be canceled
                 });
@@ -423,7 +438,6 @@ export class QuestionAnswerComponent extends HTMLElement {
         this.updateValuesFromButtons(); // Update the component's internal _value
         this.dispatchChangeEvent();
     }
-    //private debouncedhandleDetailsTextAreaChange = debounce(this.handleDetailsTextAreaChange, 500);
     handleDetailsTextAreaChange(event) {
         const changedDetailsTextArea = event.target;
         if (!changedDetailsTextArea)
@@ -432,7 +446,6 @@ export class QuestionAnswerComponent extends HTMLElement {
         this._details = value;
         this.dispatchChangeEvent();
     }
-    //private debouncedHandleFreeTextInputChange = debounce(this.handleFreeTextInputChange, 500);
     handleFreeTextInputChange(event) {
         const changedTextInput = event.target;
         if (!changedTextInput)
@@ -444,7 +457,6 @@ export class QuestionAnswerComponent extends HTMLElement {
         this._value = value;
         this.dispatchChangeEvent();
     }
-    //private debouncedHandleNumericInputChange = debounce(this.handleNumericInputChange, 500);
     handleNumericInputChange(event) {
         const changedNumericInput = event.target;
         if (!changedNumericInput)
@@ -622,14 +634,18 @@ export class QuestionAnswerComponent extends HTMLElement {
         } //if buttonType
     } //updateButtonsFromValues
     dispatchChangeEvent() {
-        this.dispatchEvent(new CustomEvent('change', {
-            detail: {
-                dataNamespace: this.questionData?.dataNamespace || '',
-                value: this._value
-            },
-            bubbles: true,
-            composed: true,
-        }));
+        let details = {
+            type: "QAAnswerChange",
+            dataNamespace: this.questionData?.dataNamespace || '',
+            value: this._value,
+            target: this,
+        };
+        const changeEvent = new CustomEvent('change', {
+            detail: details,
+            bubbles: true, // Allows the event to bubble up the DOM tree
+            cancelable: true // Allows the event to be canceled
+        });
+        this.dispatchEvent(changeEvent);
     }
     styleContent() {
         return `

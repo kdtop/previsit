@@ -1,7 +1,7 @@
 // /opt/worldvista/EHR/web/previsit/www/components/rosupdate.ts
 
 import { TCtrl } from '../utility/controller.js';
-import { TQuestion, TQuestionGroup, TQuestionnaireData, TReplyType } from '../utility/types.js';
+import { TQuestionSchema, TQuestionGroupSchema, TQuestionnaireSchema, TReplyType } from '../utility/types.js';
 import TQuestionnaireAppView from './questionnaire.js';
 
 
@@ -22,9 +22,9 @@ export default class TRosUpdateAppView extends TQuestionnaireAppView {
         }
     }  //constructor
 
-    public getQuestionnaireData() : TQuestionnaireData {
+    public getQuestionnaireSchema() : TQuestionnaireSchema {
 
-        let testQuestGroup : TQuestionGroup = {
+        let testQuestGroup : TQuestionGroupSchema = {
             groupHeadingText : 'Review of Systems',
             questionDefinition : [
                 {
@@ -123,7 +123,7 @@ export default class TRosUpdateAppView extends TQuestionnaireAppView {
                 },
             ],
         }
-        let formData :  TQuestionnaireData = {
+        let formData :  TQuestionnaireSchema = {
             instructionsText : 'Please answer the following questions. This will help us prepare for your visit.',
             questGroups : [testQuestGroup]
         };

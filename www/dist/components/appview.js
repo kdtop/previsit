@@ -1,5 +1,6 @@
 // /opt/worldvista/EHR/web/previsit/www/utility/el.ts
 import { addShortcuts, properties, debounce } from '../utility/client_utils.js';
+import { svgIcons } from '../utility/globals.js';
 export function getAppColors() {
     return `
       --medium: 0.8em;
@@ -66,6 +67,10 @@ export default class TAppView {
     autosaveTimer = null;
     formAutoSaves = true;
     needPrepopulateWithEachShow = false;
+    serverData = null; //NOTE: See comment below
+    //The app gets data from server and puts into form, buttons, edits etc.  User will then
+    //  modify those values, and ultimately it will all be gathered for saving back to server.
+    //  This variable just holds the data as it was downloaded.  I.e. MAY BE OUTDATED!
     apiURL = '/invalid'; // Default API URL, will be set in the constructor
     constructor(viewName, apiURL, aCtrl) {
         this.ctrl = aCtrl;
@@ -81,321 +86,274 @@ export default class TAppView {
     getCSSContent() {
         //this is top level, so no super to call.
         return `
-            <style>
+        <style>
+            :host {
+              ${getAppColors()}
+            }
+            /* General Body and Font Styles */
+            body {
+                font-family:        Arial, sans-serif;
+                margin:             20px;
+                line-height:        1.6;
+                background-color:   var(--whiteColor);
+                color:              var(--textColor);
+            }
+            /* General Heading Styles */
+            h1 {
+                color:          var(--textColor);
+                text-align:     center;
+                margin-bottom:  15px;
+                display:         flex;
+                flex-direction: column;
+            }
+            h2 {
+                color:          var(--textColor);
+                text-align:     center;
+                border-bottom:  2px solid var(--niceBlue);
+                padding-bottom: 5px;
+                margin-top:     30px;
+                margin-bottom:  15px;
+            }
+            h3 {
+                color:          var(--textColor);
+                margin-top:     10px;
+                border-bottom:  1px solid var(--lightGray);
+                padding-bottom: 5px;
+            }
+            h4 {
+                color:          var(--lighterDarkGray);
+                margin-top:     20px;
+            }
+            p, .shaded-text {
+                background:     var(--lightGray);
+                padding:        10px;
+                border-radius:  5px;
+            }
+            patient-name-area {
+                font-size:        1em;
+                color:              var(--textColor);
+            }
+            .shaded-text {
+                margin-bottom:  10px;
+            }
+            ul {
+              list-style:       none;
+              padding:          0;
+              margin-bottom:    20px;
+              display:          flex;
+              flex-wrap:        wrap;
+              gap:              10px;
+            }
+            li {
+              margin-bottom:    0;
+            }
+            label {
+                display:        block;
+                margin-top:     10px;
+                font-weight:    bold;
+            }
+            input[type="text"],
+            input[type="date"],
+            textarea {
+                padding:        8px;
+                margin-top:     5px;
+                border:         1px solid var(--gray);
+                border-radius:  4px;
+                box-sizing:     border-box; /* Ensure padding/border don't add to total width */
+                font-size:      1em; /* Standardize font size */
+            }
+            textarea {
+                width:          100%; /* Make textarea full width by default */
+                min-height:     50px; /* A reasonable default height */
+                resize:         vertical; /* Allow vertical resizing */
+            }
+            .header-area {
+                padding:            1px;
+                background-color:   var(--lightLightGray);
+                text-align:         center;
+            }
 
-                :host {
-                  ${getAppColors()}
-                }
+            .content-container {
+                background-color: var(--whiteColor);
+                color:            var(--textColor);
+                min-height: 100vh;
+            }
 
-                /* General Body and Font Styles */
+            /* General Table Styles */
+            table {
+                width:          100%;
+                border-collapse: collapse;
+                margin-top:     10px;
+                margin-bottom:  10px; /* Added for general table spacing */
+            }
+            table, th, td {
+                border:         1px solid var(--gray);
+            }
+            th, td {
+                padding:        8px;
+                text-align:     left;
+            }
+            /* General Horizontal Rule */
+            hr {
+                margin:         30px 0;
+                border:         0;
+                border-top:     1px solid var(--lightGray);
+            }
+            svg.icon  {
+                /* Adjust SVG size as needed */
+                width: 32px;
+                height: 32px;
+                margin-right: 10px; /* Space between icon and text */
+                vertical-align: middle;
+            }
+            .submission-controls {
+                text-align:     center;
+                margin-top:     10px;
+                padding-bottom: 50vh;
+            }
+            .done-button {
+                width:          100%;
+                padding:        12px 25px;
+                font-size:      1.1em;
+                color:          var(--whiteColor);
+                border:         none;
+                border-radius:  5px;
+                cursor:         pointer;
+                transition:     background-color 0.3s ease;
+                display:        flex;
+                flex-direction: row;
+                align-items:    center;
+                justify-content: center;
+                line-height:    1.4;
+            }
+            .done-button-text {
+                display:        flex;
+                flex-direction: column; /* stack main and sub text vertically */
+            }
+            .done-button-sub-text {
+                font-size: 0.8em;
+                opacity: 0.9;
+            }
+            .done-button-incomplete {
+                background-color: var(--redish);
+            }
+            .done-button.done-button-incomplete:hover:not(:disabled) {
+                background-color: var(--red);
+            }
+            .done-button-complete {
+                background-color: var(--okGreen);
+            }
+            .done-button.done-button-complete:hover:not(:disabled) {
+                background-color: var(--darkerGreen);
+            }
+            .done-button-icon-area {
+              margin-right: 10px;
+            }
+            .done-button-icon {
+                display: none;   /*default is to be hidden, overridden below */
+                width:32px;
+                height:32px;
+            }
+            .done-button.done-button-complete .complete-icon {
+                display: inline;
+            }
+            .done-button.done-button-incomplete .incomplete-icon {
+                display: inline;
+            }
+            .hidden {
+                display: none !important;
+            }
+            /* Responsive adjustments for all app views */
+            @media (max-width: 500px) {
                 body {
-                    font-family:        Arial, sans-serif;
-                    margin:             20px;
-                    line-height:        1.6;
-                    background-color:   var(--whiteColor);
-                    color:              var(--textColor);
+                    margin: 15px; /* Smaller margins for smaller screens */
                 }
-
-                /* General Heading Styles */
-                h1 {
-                    color:          var(--textColor);
-                    text-align:     center;
-                    margin-bottom:  30px;
-                    display:         flex;
-                    flex-direction: column;
+            }
+            .navigation-area { /* Container for buttons and message */
+                display:            flex;
+                justify-content:    space-between;
+                align-items:        center;
+                padding:            0px;
+                width:              100%;
+                z-index:            20;
+            }
+            .navigation-area button {
+                padding:            10px 20px;
+                font-size:          1em;
+                background-color:   var(--niceBlue);
+                color:              var(--whiteColor);
+                border:             none;
+                border-radius:      5px;
+                cursor:             pointer;
+                height:             7vw;
+                transition:         background-color 0.5s ease;
+                flex-shrink:        0; /* Prevent buttons from shrinking */
+            }
+            .navigation-area button:hover:not(:disabled) {
+                background-color:   var(--darkerNiceBlue);
+            }
+            .navigation-area button:disabled {
+                background-color:   var(--gray);
+                cursor:             not-allowed;
+            }
+            .nav-button {
+                height: 200px;
+            }
+            .prev-item-button {
+                background-color:   var(--niceBlue);
+                color:              var(--whiteColor);
+            }
+            .prev-item-button:hover:not(:disabled) {
+                background-color:   var(--darkerNiceBlue);
+            }
+            .next-item-button.incomplete {
+                background-color:   var(--incompleteRed);
+                color:              var(--textColor);
+            }
+            .next-item-button.incomplete:hover:not(:disabled) {
+                background-color:   var(--incompleteRedDarker);
+            }
+            .next-item-button.complete {
+                background-color:   var(--okGreen);
+                color:              var(--whiteColor);
+            }
+            .next-item-button.complete:hover:not(:disabled) {
+                background-color:   var(--darkerGreen);
+            }
+            /* Responsive adjustments */
+            @media(max-width: 500px) {
+                .itemreview-container {
+                    padding:                0 15px;
                 }
-                h2 {
-                    color:          var(--textColor);
-                    text-align:     center;
-                    border-bottom:  2px solid var(--niceBlue);
-                    padding-bottom: 5px;
-                    margin-top:     30px;
-                    margin-bottom:  15px;
+                .item-card {
+                    /* Width is now handled by max-width and parent's centering */
                 }
-                h3 {
-                    color:          var(--textColor);
-                    margin-top:     10px;
-                    border-bottom:  1px solid var(--lightGray);
-                    padding-bottom: 5px;
+                .navigation-area {
+                    padding:                0 0; /* Remove horizontal padding here, parent handles it */
+                    flex-direction:         column; /* Stack buttons and message vertically */
+                    gap:                    15px; /* Space between stacked items */
                 }
-
-                h4 {
-                    color:          var(--lighterDarkGray);
-                    margin-top:     20px;
-                }
-
-                p, .shaded-text {
-                    background:     var(--lightGray);
-                    padding:        10px;
-                    border-radius:  5px;
-                }
-
-                patient-name-area {
-                  font-size:        0.8em;
-                }
-
-                .shaded-text {
-                    margin-bottom:  10px;
-                }
-
-                ul {
-                  list-style:       none;
-                  padding:          0;
-                  margin-bottom:    20px;
-                  display:          flex;
-                  flex-wrap:        wrap;
-                  gap:              10px;
-                }
-
-                li {
-                  margin-bottom:    0;
-                }
-
-                label {
-                    display:        block;
-                    margin-top:     10px;
-                    font-weight:    bold;
-                }
-
-                input[type="text"],
-                input[type="date"],
-                textarea {
-                    padding:        8px;
-                    margin-top:     5px;
-                    border:         1px solid var(--gray);
-                    border-radius:  4px;
-                    box-sizing:     border-box; /* Ensure padding/border don't add to total width */
-                    font-size:      1em; /* Standardize font size */
-                }
-
-                textarea {
-                    width:          100%; /* Make textarea full width by default */
-                    min-height:     50px; /* A reasonable default height */
-                    resize:         vertical; /* Allow vertical resizing */
-                }
-
-
-                /* General Table Styles */
-                table {
-                    width:          100%;
-                    border-collapse: collapse;
-                    margin-top:     10px;
-                    margin-bottom:  10px; /* Added for general table spacing */
-                }
-                table, th, td {
-                    border:         1px solid var(--gray);
-                }
-                th, td {
-                    padding:        8px;
-                    text-align:     left;
-                }
-
-                /* General Horizontal Rule */
-                hr {
-                    margin:         30px 0;
-                    border:         0;
-                    border-top:     1px solid var(--lightGray);
-                }
-
-                svg.icon  {
-                    /* Adjust SVG size as needed */
-                    width: 32px;
-                    height: 32px;
-                    margin-right: 10px; /* Space between icon and text */
-                    vertical-align: middle;
-                }
-
-                .submission-controls {
-                    text-align:     center;
-                    margin-top:     10px;
-                    padding-bottom: 50vh;
-                }
-
-                .done-button {
-                    width:          100%;
-                    padding:        12px 25px;
-                    font-size:      1.1em;
-                    color:          var(--whiteColor);
-                    border:         none;
-                    border-radius:  5px;
-                    cursor:         pointer;
-                    transition:     background-color 0.3s ease;
-                    display:        flex;
-                    flex-direction: row;
-                    align-items:    center;
-                    justify-content: center;
-                    line-height:    1.4;
-                }
-
-                .done-button-text {
-                    display:        flex;
-                    flex-direction: column; /* stack main and sub text vertically */
-                }
-
-                .done-button-sub-text {
-                    font-size: 0.8em;
-                    opacity: 0.9;
-                }
-
-                .done-button-incomplete {
-                    background-color: var(--redish);
-                }
-                .done-button.done-button-incomplete:hover:not(:disabled) {
-                    background-color: var(--red);
-                }
-
-                .done-button-complete {
-                    background-color: var(--okGreen);
-                }
-
-                .done-button.done-button-complete:hover:not(:disabled) {
-                    background-color: var(--darkerGreen);
-                }
-
-                .done-button-icon-area {
-                  margin-right: 10px;
-                }
-
-                .done-button-icon {
-                    display: none;   /*default is to be hidden, overridden below */
-                    width:32px;
-                    height:32px;
-                }
-
-                .done-button.done-button-complete .complete-icon {
-                    display: inline;
-                }
-                .done-button.done-button-incomplete .incomplete-icon {
-                    display: inline;
-                }
-
-                .hidden {
-                    display: none !important;
-                }
-
-                /* Responsive adjustments for all app views */
-                @media (max-width: 500px) {
-                    body {
-                        margin: 15px; /* Smaller margins for smaller screens */
-                    }
-                }
-
-                .navigation-area { /* Container for buttons and message */
-                    display:            flex;
-                    justify-content:    space-between;
-                    align-items:        center;
-                    padding:            0px;
-                    width:              100%;
-                    z-index:            20;
-                }
-
                 .navigation-area button {
-                    padding:            10px 20px;
-                    font-size:          1em;
-                    background-color:   var(--niceBlue);
-                    color:              var(--whiteColor);
-                    border:             none;
-                    border-radius:      5px;
-                    cursor:             pointer;
-                    height:             7vw;
-                    transition:         background-color 0.5s ease;
-                    flex-shrink:        0; /* Prevent buttons from shrinking */
+                    width:                  100%; /* Full width when stacked */
                 }
-
-                .navigation-area button:hover:not(:disabled) {
-                    background-color:   var(--darkerNiceBlue);
+                .item-progress-message {
+                    order:                  -1; /* Move message to the top when stacked */
+                    margin-top:             0px;
+                    margin-bottom:          -15px;
                 }
-
-                .navigation-area button:disabled {
-                    background-color:   var(--gray);
-                    cursor:             not-allowed;
+                .custom-checkbox-text {
+                    padding:                6px 10px;
+                    font-size:              0.95em;
                 }
-
-                .nav-button {
-                    height: 200px;
-                }
-
-                .prev-item-button {
-                    background-color:   var(--niceBlue);
-                    color:              var(--whiteColor);
-                }
-
-                .prev-item-button:hover:not(:disabled) {
-                    background-color:   var(--darkerNiceBlue);
-                }
-
-                .next-item-button.incomplete {
-                    background-color:   var(--incompleteRed);
-                    color:              var(--textColor);
-                }
-
-                .next-item-button.incomplete:hover:not(:disabled) {
-                    background-color:   var(--incompleteRedDarker);
-                }
-
-                .next-item-button.complete {
-                    background-color:   var(--okGreen);
-                    color:              var(--whiteColor);
-                }
-
-                .next-item-button.complete:hover:not(:disabled) {
-                    background-color:   var(--darkerGreen);
-                }
-
-                /* Responsive adjustments */
-                @media(max-width: 500px) {
-                    .itemreview-container {
-                        padding:                0 15px;
-                    }
-                    .item-card {
-                        /* Width is now handled by max-width and parent's centering */
-                    }
-                    .navigation-area {
-                        padding:                0 0; /* Remove horizontal padding here, parent handles it */
-                        flex-direction:         column; /* Stack buttons and message vertically */
-                        gap:                    15px; /* Space between stacked items */
-                    }
-                    .navigation-area button {
-                        width:                  100%; /* Full width when stacked */
-                    }
-                    .item-progress-message {
-                        order:                  -1; /* Move message to the top when stacked */
-                        margin-top:             0px;
-                        margin-bottom:          -15px;
-                    }
-                    .custom-checkbox-text {
-                        padding:                6px 10px;
-                        font-size:              0.95em;
-                    }
-                }
-            </style>
+            }
+        </style>
         `;
     }
     getDoneIncompleteSVGIcon() {
-        //red frowning face
-        return `
-            <?xml version="1.0" encoding="utf-8"?><!-- Uploaded to: SVG Repo, www.svgrepo.com, Generator: SVG Repo Mixer Tools -->
-            <svg class="done-button-icon incomplete-icon" width="800px" height="800px" viewBox="0 0 48 48" fill="none" xmlns="http://www.w3.org/2000/svg">
-            <rect width="48" height="48" fill="white" fill-opacity="0.01"/>
-            <path d="M24 44C35.0457 44 44 35.0457 44 24C44 12.9543 35.0457 4 24 4C12.9543 4 4 12.9543 4 24C4 35.0457 12.9543 44 24 44Z" fill="#b70505" stroke="#000000" stroke-width="4" stroke-linejoin="round"/>
-            <path d="M31 18V19" stroke="white" stroke-width="4" stroke-linecap="round" stroke-linejoin="round"/>
-            <path d="M17 18V19" stroke="white" stroke-width="4" stroke-linecap="round" stroke-linejoin="round"/>
-            <path d="M31 30.9999C31 30.9999 29 26.9999 24 26.9999C19 26.9999 17 30.9999 17 30.9999" stroke="white" stroke-width="4" stroke-linecap="round" stroke-linejoin="round"/>
-            </svg>
-        `;
+        return svgIcons["RedFrowningFace"];
     }
     getDoneCompleteSVGIcon() {
-        //green happy face
-        return `
-            <?xml version="1.0" encoding="utf-8"?><!-- Uploaded to: SVG Repo, www.svgrepo.com, Generator: SVG Repo Mixer Tools -->
-            <svg class="done-button-icon complete-icon" width="800px" height="800px" viewBox="0 0 48 48" fill="none" xmlns="http://www.w3.org/2000/svg">
-            <rect width="48" height="48" fill="white" fill-opacity="0.01"/>
-            <path d="M24 44C35.0457 44 44 35.0457 44 24C44 12.9543 35.0457 4 24 4C12.9543 4 4 12.9543 4 24C4 35.0457 12.9543 44 24 44Z" fill="#28a745" stroke="#000000" stroke-width="4" stroke-linejoin="round"/>
-            <path d="M31 18V19" stroke="white" stroke-width="4" stroke-linecap="round" stroke-linejoin="round"/>
-            <path d="M17 18V19" stroke="white" stroke-width="4" stroke-linecap="round" stroke-linejoin="round"/>
-            <path d="M31 31C31 31 29 35 24 35C19 35 17 31 17 31" stroke="white" stroke-width="4" stroke-linecap="round" stroke-linejoin="round"/>
-            </svg>
-        `;
+        return svgIcons["GreenHappyFace"];
     }
     getTitleText() {
         return "Review Items Below";
@@ -533,6 +491,7 @@ export default class TAppView {
     async prePopulateFromServer() {
         // NEW: Try to prepopulate form from server data
         try {
+            this.serverData = null; //drop any old copy of data.
             const sessionID = this.ctrl.loginData?.sessionID;
             if (!sessionID)
                 return; // No session, so nothing to do.
@@ -545,9 +504,8 @@ export default class TAppView {
             }
             const result = await resp.json();
             if (result.success && result.data) {
-                let data = result.data;
-                this.serverDataToForm(data);
-                // The serverDataToForm method is expected to update the UI elements
+                this.serverData = result.data;
+                this.serverDataToForm(this.serverData); // Use data to update the UI elements
             }
         }
         catch (e) {
